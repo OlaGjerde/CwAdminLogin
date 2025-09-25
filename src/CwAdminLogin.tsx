@@ -57,7 +57,7 @@ const CwAdminLogin = () => {
     try {
       // Get user info from API; treat 404 as a handled response (not an exception)
       const response = await axios.get(
-        `${CW_AUTH_ENDPOINT}/VerifyEmail?email=${encodeURIComponent(login)}`,
+        `${CW_AUTH_ENDPOINT}/auth/VerifyEmail?email=${encodeURIComponent(login)}`,
         { validateStatus: (status) => status < 500 }
       );
       console.log('API response:', response.data);
@@ -156,7 +156,7 @@ const CwAdminLogin = () => {
         password
       };
       console.log('Login payload:', payload);
-      const response = await axios.post(`${CW_AUTH_ENDPOINT}/LoginUser`, payload);
+      const response = await axios.post(`${CW_AUTH_ENDPOINT}/auth/LoginUser`, payload);
       console.log('Login response:', response.data);
       if (response.data && response.data.ChallengeRequired) {
         setMfaSession(response.data.Session);
@@ -219,7 +219,7 @@ const CwAdminLogin = () => {
         session: mfaSession,
         challengeName: mfaChallengeName
       };
-  const response = await axios.post(`${CW_AUTH_ENDPOINT}/RespondToMfa`, payload);
+  const response = await axios.post(`${CW_AUTH_ENDPOINT}/auth/RespondToMfa`, payload);
       console.log("Respond to MFA:", response.data);
 
         if (response.data.Cognito && response.data.Cognito.AccessToken && response.data.Cognito.RefreshToken && response.data.Cognito.uid) {
