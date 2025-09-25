@@ -357,8 +357,8 @@ const CwAdminLogin = () => {
   };
 
   // Fetch authorized installations using raw (un-Base64) token
-  interface InstallationItem { AppType?: number; Type?: number; DisplayName?: string; Name?: string; Title?: string; LaunchUrl?: string; Url?: string; Link?: string; InstallerUrl?: string; AppInstallerUrl?: string; ProtocolUrl?: string; Id?: string | number; [k: string]: unknown }
-  interface NormalizedInstallation { id: string; name: string; link: string; raw: InstallationItem | string }
+  interface InstallationItem { AppType?: number; Type?: number; DisplayName?: string; Name?: string; Title?: string; LaunchUrl?: string; Url?: string; Link?: string; InstallerUrl?: string; AppInstallerUrl?: string; ProtocolUrl?: string; Id?: string | number; InstallationId?: string | number; [k: string]: unknown }
+  interface NormalizedInstallation { id: string; name: string; link: string; hasRealLink: boolean; raw: InstallationItem | string }
   const fetchAuthorizedInstallations = async (rawAccessToken: string) => {
     try {
       const resp = await axios.get(INSTALLATIONS_ENDPOINT, {
@@ -382,14 +382,17 @@ const CwAdminLogin = () => {
             id: String(idx),
             name: extractNameFromUrl(item) || `Installation ${idx + 1}`,
             link: item,
+            hasRealLink: true,
             raw: item
           };
         }
-        const link = item.LaunchUrl || item.Url || item.Link || item.ProtocolUrl || item.InstallerUrl || item.AppInstallerUrl || '';
-        const name = item.DisplayName || item.Name || item.Title || extractNameFromUrl(link) || `Installation ${idx + 1}`;
-        const id = (item.Id !== undefined ? String(item.Id) : `${idx}`);
-        return { id, name, link, raw: item };
-      }).filter(inst => !!inst.link);
+        const linkCandidate = item.LaunchUrl || item.Url || item.Link || item.ProtocolUrl || item.InstallerUrl || item.AppInstallerUrl;
+  const id = item.Id !== undefined ? String(item.Id) : (item.InstallationId !== undefined ? String(item.InstallationId) : `${idx}`);
+        const name = item.DisplayName || item.Name || item.Title || (linkCandidate && extractNameFromUrl(linkCandidate)) || `Installation ${idx + 1}`;
+        const hasRealLink = !!linkCandidate;
+        const link = linkCandidate || `#installation-${id}`; // placeholder so item still renders
+        return { id, name, link, hasRealLink, raw: item };
+      });
       setAuthorizedInstallations(normalized);
       // If installation objects carry an AppType, still merge numeric types for legacy app grid
       const appTypes = data
@@ -520,24 +523,41 @@ const CwAdminLogin = () => {
               <ul className="CwAdminLogin-installation-list" style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
                 {authorizedInstallations.map(inst => (
                   <li key={inst.id} style={{ flex: '0 1 260px' }}>
-                    <a
-                      href={inst.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="CwAdminLogin-installation-link"
-                      style={{
-                        display: 'block',
-                        padding: '12px 14px',
-                        background: '#1e2530',
-                        borderRadius: 8,
-                        color: 'white',
-                        textDecoration: 'none',
-                        border: '1px solid #2d3746'
-                      }}
-                    >
-                      <div style={{ fontWeight: 600, marginBottom: 4 }}>{inst.name}</div>
-                      <div style={{ fontSize: 12, opacity: 0.7, wordBreak: 'break-all' }}>{inst.link}</div>
-                    </a>
+                    {inst.hasRealLink ? (
+                      <a
+                        href={inst.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="CwAdminLogin-installation-link"
+                        style={{
+                          display: 'block',
+                          padding: '12px 14px',
+                          background: '#1e2530',
+                          borderRadius: 8,
+                          color: 'white',
+                          textDecoration: 'none',
+                          border: '1px solid #2d3746'
+                        }}
+                      >
+                        <div style={{ fontWeight: 600, marginBottom: 4 }}>{inst.name}</div>
+                        <div style={{ fontSize: 12, opacity: 0.7, wordBreak: 'break-all' }}>{inst.link}</div>
+                      </a>
+                    ) : (
+                      <div
+                        className="CwAdminLogin-installation-link"
+                        style={{
+                          display: 'block',
+                          padding: '12px 14px',
+                          background: '#262d39',
+                          borderRadius: 8,
+                          color: 'white',
+                          border: '1px dashed #3a4657'
+                        }}
+                      >
+                        <div style={{ fontWeight: 600, marginBottom: 4 }}>{inst.name}</div>
+                        <div style={{ fontSize: 12, opacity: 0.6 }}>Ingen link tilgjengelig (InstallationId: {inst.id})</div>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
