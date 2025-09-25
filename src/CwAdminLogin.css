@@ -1,0 +1,216 @@
+ .CwAdminLogin-login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: #f8fbff;
+  box-shadow: 1px 0 6px rgba(0,0,0,0.05);
+  padding: 32px 16px;
+  min-width: 0;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.CwAdminLogin-login-title {
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: #1976d2;
+  margin-bottom: 1rem;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.CwAdminLogin-login-subtitle {
+  font-size: 0.9rem;
+  color: #888;
+  margin-bottom: 28px;
+  text-align: center;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.CwAdminLogin-login-error {
+  color: #d32f2f;
+  margin-top: 8px;
+  font-weight: 500;
+}
+
+.CwAdminLogin-login-input {
+  margin-bottom: 16px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  max-width: 350px;
+}
+
+
+.CwAdminLogin-login-button {
+  margin-bottom: 8px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  max-width: 350px;
+}
+
+.CwAdminLogin-login-button .dx-button {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  max-width: 350px;
+}
+
+.CwAdminLogin-login-launch-banner {
+  background: #fff8e1;
+  border: 1px solid #ffd54f;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+/* Shared sizing for main content blocks so grid and fallback always match */
+.CwAdminLogin-content-max {
+  width: 100%;
+  max-width: 520px; /* central width used across these components */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.CwAdminLogin-login-download-fallback {
+  background: #ffffff;
+  border: 1px solid rgba(25,118,210,0.06);
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  box-shadow: 0 6px 18px rgba(25,118,210,0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.CwAdminLogin-login-download-fallback > div[style] {
+  margin: 0;
+}
+
+.CwAdminLogin-download-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: stretch;
+  width: 100%;
+  flex-direction: column; /* stacked by default for narrow view */
+}
+
+/* Make DevExtreme buttons inside the fallback fill available space */
+.CwAdminLogin-login-download-fallback .dx-button {
+  width: 100%;
+  max-width: none;
+}
+
+/* On wider screens show buttons side-by-side with equal widths */
+@media (min-width: 520px) {
+  .CwAdminLogin-download-actions {
+    flex-direction: row;
+  }
+  .CwAdminLogin-download-actions .dx-button {
+    flex: 1 1 0;
+  }
+}
+
+/* App grid and cards */
+.CwAdminLogin-app-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  align-items: center;
+}
+
+/* Ensure both the grid and the fallback use the shared sizing class */
+.CwAdminLogin-app-grid,
+.CwAdminLogin-login-download-fallback {
+  width: 100%;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+
+.CwAdminLogin-app-card:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.CwAdminLogin-app-card:hover:not(:disabled) {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(25,118,210,0.08);
+}
+
+.CwAdminLogin-app-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid rgba(25,118,210,0.08);
+  padding: 10px 12px;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(25,118,210,0.04);
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease;
+  width: 100%;
+  max-width: 520px; /* ensure cards are wider */
+  text-align: left;
+}
+
+.CwAdminLogin-app-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: linear-gradient(135deg,#1976d2 0%,#42a5f5 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.dl-modal {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 540px;
+  width: 100%;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+}
+
+.CwAdminLogin-login-launch-spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid rgba(0,0,0,0.08);
+  border-top-color: #1976d2;
+  margin-right: 8px;
+  animation: spin 800ms linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Entrance animation for the per-card fallback UI */
+.CwAdminLogin-fallback-entrance {
+  animation: fallbackEntrance 680ms cubic-bezier(.2,.9,.2,1);
+}
+
+@keyframes fallbackEntrance {
+  from { transform: translateY(8px) scale(0.98); opacity: 0; }
+  60% { transform: translateY(-6px) scale(1.02); opacity: 1; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}

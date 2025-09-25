@@ -1,0 +1,23 @@
+// Centralized configuration for URLs and endpoints
+export const API_BASE = 'https://localhost:7059';
+export const CW_AUTH_ENDPOINT = `${API_BASE}/api`;
+// Per-type installer URLs. Keys correspond to app type numbers (0,1,2).
+// Update these URLs to the correct installer files for each environment as needed.
+export const APPINSTALLER_URLS: Record<number, string> = {
+  0: 'https://calwinmedia.calwincloud.com/CalWin8-x64.appinstaller',
+  1: 'https://calwinmedia-test.calwincloud.com/CalWin8-x64.appinstaller',
+  2: 'https://calwinmedia-dev.calwincloud.com/CalWin8-x64.appinstaller'
+};
+// Supported app protocols
+export const PROTOCOL_CALWIN = 'calwin://';
+export const PROTOCOL_CALWIN_TEST = 'calwintest://';
+export const PROTOCOL_CALWIN_DEV = 'calwindev://';
+
+export default {
+  API_BASE,
+  CW_AUTH_ENDPOINT,
+  APPINSTALLER_URLS,
+  PROTOCOL_CALWIN,
+  PROTOCOL_CALWIN_TEST,
+  PROTOCOL_CALWIN_DEV
+};
