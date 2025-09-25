@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import React from 'react';
 import axios from 'axios';
-import { CW_AUTH_ENDPOINT, APPINSTALLER_URLS, PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } from './config';
+import { CW_AUTH_ENDPOINT, APPINSTALLER_URLS, PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV, INSTALLATIONS_ENDPOINT } from './config';
 import './CwAdminLogin.css';
 import { TextBox } from 'devextreme-react/text-box';
 import { Button } from 'devextreme-react/button';
@@ -27,6 +27,8 @@ const CwAdminLogin = () => {
   // Removed unused preferredLoginType state
   const [userData, setUserData] = useState<UserData | null>(null);
   const [tokens, setTokens] = useState<{ accessToken: string; refreshToken: string } | null>(null);
+  // Authorized installations (links fetched after login)
+  const [authorizedInstallations, setAuthorizedInstallations] = useState<NormalizedInstallation[] | null>(null);
   const [launching, setLaunching] = useState(false);
   const [launchMessage, setLaunchMessage] = useState<string | null>(null);
   const [downloadAvailableUrl, setDownloadAvailableUrl] = useState<string | null>(null);
@@ -173,6 +175,8 @@ const CwAdminLogin = () => {
           accessToken: btoa(accessToken),
           refreshToken: btoa(refreshToken)
         });
+        // Fetch authorized installations (async, fire and forget)
+        fetchAuthorizedInstallations(accessToken).catch(err => console.warn('fetchAuthorizedInstallations failed', err));
         setStep('login'); // or show app links
 
       } else if (response.data && response.data.Cognito && response.data.Cognito.ChallengeName) {
@@ -193,6 +197,7 @@ const CwAdminLogin = () => {
           accessToken: btoa(accessTokenRaw),
           refreshToken: btoa(refreshTokenRaw)
         });
+        fetchAuthorizedInstallations(accessTokenRaw).catch(err => console.warn('fetchAuthorizedInstallations failed', err));
         setStep('login');
         return;
       } else {
@@ -230,6 +235,7 @@ const CwAdminLogin = () => {
             accessToken: btoa(accessToken),
             refreshToken: btoa(refreshToken)
           });
+          fetchAuthorizedInstallations(accessToken).catch(err => console.warn('fetchAuthorizedInstallations failed', err));
           setStep('login'); // or show app links
         } else {
           setError(response.data && response.data.message ? response.data.message : 'MFA failed.');
@@ -349,6 +355,69 @@ const CwAdminLogin = () => {
     });
     // stay on the same step; once tokens & userData are present the app list will render
   };
+
+  // Fetch authorized installations using raw (un-Base64) token
+  interface InstallationItem { AppType?: number; Type?: number; DisplayName?: string; Name?: string; Title?: string; LaunchUrl?: string; Url?: string; Link?: string; InstallerUrl?: string; AppInstallerUrl?: string; ProtocolUrl?: string; Id?: string | number; [k: string]: unknown }
+  interface NormalizedInstallation { id: string; name: string; link: string; raw: InstallationItem | string }
+  const fetchAuthorizedInstallations = async (rawAccessToken: string) => {
+    try {
+      const resp = await axios.get(INSTALLATIONS_ENDPOINT, {
+        headers: {
+          Authorization: `Bearer ${rawAccessToken}`
+        },
+        validateStatus: s => s < 500
+      });
+      if (resp.status === 401) {
+        console.warn('Unauthorized fetching installations');
+        return;
+      }
+      const data = resp.data;
+      if (!Array.isArray(data)) {
+        console.warn('Unexpected installations response shape', data);
+        return;
+      }
+      const normalized: NormalizedInstallation[] = data.map((item: InstallationItem | string, idx: number) => {
+        if (typeof item === 'string') {
+          return {
+            id: String(idx),
+            name: extractNameFromUrl(item) || `Installation ${idx + 1}`,
+            link: item,
+            raw: item
+          };
+        }
+        const link = item.LaunchUrl || item.Url || item.Link || item.ProtocolUrl || item.InstallerUrl || item.AppInstallerUrl || '';
+        const name = item.DisplayName || item.Name || item.Title || extractNameFromUrl(link) || `Installation ${idx + 1}`;
+        const id = (item.Id !== undefined ? String(item.Id) : `${idx}`);
+        return { id, name, link, raw: item };
+      }).filter(inst => !!inst.link);
+      setAuthorizedInstallations(normalized);
+      // If installation objects carry an AppType, still merge numeric types for legacy app grid
+      const appTypes = data
+        .map(i => (typeof i === 'object' && i && typeof (i as InstallationItem).AppType === 'number') ? (i as InstallationItem).AppType : undefined)
+        .filter((v): v is number => typeof v === 'number');
+      if (appTypes.length) {
+        setUserData(prev => {
+          if (!prev) return prev;
+          const merged = new Set([...(prev.CalWinAppTypes || []), ...appTypes]);
+          return { ...prev, CalWinAppTypes: Array.from(merged).sort() };
+        });
+      }
+    } catch (e) {
+      console.warn('Error fetching installations', e);
+    }
+  };
+
+  // Helper to derive a readable name from a URL
+  const extractNameFromUrl = (url?: string): string | undefined => {
+    if (!url) return undefined;
+    try {
+      const u = new URL(url);
+      const last = u.pathname.split('/').filter(Boolean).pop();
+      return last || u.host;
+    } catch {
+      return undefined;
+    }
+  };
   return (<>
     <div className="CwAdminLogin-login-container">
       {step === 'mfa' ? (
@@ -445,6 +514,35 @@ const CwAdminLogin = () => {
               );
             })}
           </div>
+          {authorizedInstallations && authorizedInstallations.length > 0 && (
+            <div style={{ marginTop: 32 }}>
+              <div className="CwAdminLogin-login-subtitle" style={{ marginBottom: 8 }}>Tilgjengelige installasjoner</div>
+              <ul className="CwAdminLogin-installation-list" style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                {authorizedInstallations.map(inst => (
+                  <li key={inst.id} style={{ flex: '0 1 260px' }}>
+                    <a
+                      href={inst.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="CwAdminLogin-installation-link"
+                      style={{
+                        display: 'block',
+                        padding: '12px 14px',
+                        background: '#1e2530',
+                        borderRadius: 8,
+                        color: 'white',
+                        textDecoration: 'none',
+                        border: '1px solid #2d3746'
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, marginBottom: 4 }}>{inst.name}</div>
+                      <div style={{ fontSize: 12, opacity: 0.7, wordBreak: 'break-all' }}>{inst.link}</div>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           
         </div>
       ) : (
