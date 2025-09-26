@@ -178,6 +178,17 @@
   flex-shrink: 0;
 }
 
+/* Reuse the app card look for installation entries */
+.CwAdminLogin-installation-list .CwAdminLogin-app-card-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.CwAdminLogin-installation-list .CwAdminLogin-app-card-url {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
 .dl-modal {
   background: #fff;
   padding: 20px;

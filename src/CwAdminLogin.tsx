@@ -341,24 +341,10 @@ const CwAdminLogin = () => {
     }
   };
 
-  // Demo helper: populate userData with sample app types so apps can be shown for testing/demo
-  const showDemoApps = () => {
-    // If no tokens exist, create harmless demo tokens so the UI can render.
-    if (!tokens) {
-      setTokens({ accessToken: btoa('demo-access-token'), refreshToken: btoa('demo-refresh-token') });
-    }
-    setUserData({
-      Username: 'demo.user',
-      Email: 'demo@example.com',
-      PreferredLoginType: 0,
-      CalWinAppTypes: [0, 1, 2]
-    });
-    // stay on the same step; once tokens & userData are present the app list will render
-  };
 
   // Fetch authorized installations using raw (un-Base64) token
   interface InstallationItem { AppType?: number; Type?: number; DisplayName?: string; Name?: string; Title?: string; LaunchUrl?: string; Url?: string; Link?: string; InstallerUrl?: string; AppInstallerUrl?: string; ProtocolUrl?: string; Id?: string | number; InstallationId?: string | number; [k: string]: unknown }
-  interface NormalizedInstallation { id: string; name: string; link: string; hasRealLink: boolean; raw: InstallationItem | string }
+  interface NormalizedInstallation { id: string; name: string; link: string; hasRealLink: boolean; raw: InstallationItem | string; oneTimeToken?: string }
   const fetchAuthorizedInstallations = async (rawAccessToken: string) => {
     try {
       const resp = await axios.get(INSTALLATIONS_ENDPOINT, {
@@ -376,22 +362,107 @@ const CwAdminLogin = () => {
         console.warn('Unexpected installations response shape', data);
         return;
       }
+      console.log('Authorized installations:', data);
+      console.log('Raw access token:', rawAccessToken);
+
+      // Utility: extract a one-time token from various possible response shapes
+      const extractOneTimeToken = (respData: unknown): string | undefined => {
+        if (!respData) return undefined;
+        if (typeof respData === 'string') return respData; // backend might return plain token
+        if (typeof respData === 'object') {
+          const r = respData as Record<string, unknown>;
+          return (
+            (typeof r.oneTimeToken === 'string' && r.oneTimeToken) ||
+            (typeof r.OneTimeToken === 'string' && r.OneTimeToken) ||
+            (typeof r.token === 'string' && r.token) ||
+            (typeof r.Token === 'string' && r.Token) ||
+            (typeof r.linkToken === 'string' && r.linkToken) ||
+            (typeof r.LinkToken === 'string' && r.LinkToken) ||
+            undefined
+          );
+        }
+        return undefined;
+      };
+
+      // Collect one-time tokens for each installation id
+      const oneTimeTokenMap: Record<string, string> = {};
+      for (const item of data) {
+        const instId = typeof item === 'string'
+          ? item
+          : (item.Id !== undefined
+            ? String(item.Id)
+            : (item.InstallationId !== undefined ? String(item.InstallationId) : null));
+        if (!instId) continue;
+        try {
+          const tokenResp = await axios.post(
+            `${CW_AUTH_ENDPOINT}/desktop/CreateOneTimeToken?installationId=${encodeURIComponent(instId)}`,
+            null,
+            {
+              headers: { Authorization: `Bearer ${rawAccessToken}` },
+              validateStatus: s => s < 500
+            }
+          );
+            if (tokenResp.status === 200) {
+              const ot = extractOneTimeToken(tokenResp.data);
+              if (ot) {
+                oneTimeTokenMap[instId] = ot;
+                console.log('Created one-time token for installation:', instId);
+              } else {
+                console.warn('Token response missing expected token field for installation', instId, tokenResp.data);
+              }
+            } else {
+              console.warn('Failed to create one-time token:', tokenResp.status, tokenResp.data);
+            }
+        } catch (err) {
+          console.error('Error creating one-time token:', err);
+        }
+      }
+
+      // (appendQueryParam removed: token links are now fully constructed via buildTokenLink)
+  // buildTokenLink removed: now constructing custom protocol URLs directly
+
       const normalized: NormalizedInstallation[] = data.map((item: InstallationItem | string, idx: number) => {
+        // Helper to choose protocol from (App)Type
+        const chooseProtocol = (appType?: number) => {
+          switch (appType) {
+            case 0: return PROTOCOL_CALWIN;
+            case 1: return PROTOCOL_CALWIN_TEST;
+            case 2: return PROTOCOL_CALWIN_DEV;
+            default: return PROTOCOL_CALWIN_DEV;
+          }
+        };
+
         if (typeof item === 'string') {
+          const instId = item;
+          const ot = oneTimeTokenMap[instId];
+          // Build a custom protocol link if token present; else fall back to original string (may be URL)
+          const protocol = chooseProtocol(undefined);
+          const linkWithToken = ot
+            ? `${protocol}?oneTimeToken=${encodeURIComponent(ot)}&installationId=${encodeURIComponent(instId)}`
+            : instId;
           return {
             id: String(idx),
-            name: extractNameFromUrl(item) || `Installation ${idx + 1}`,
-            link: item,
-            hasRealLink: true,
-            raw: item
+            name: extractNameFromUrl(instId) || `Installation ${idx + 1}`,
+            link: linkWithToken,
+            hasRealLink: !!ot || /^\w+:\/\//.test(instId), // true if token (custom protocol) or looks like URL
+            raw: item,
+            oneTimeToken: ot
           };
         }
         const linkCandidate = item.LaunchUrl || item.Url || item.Link || item.ProtocolUrl || item.InstallerUrl || item.AppInstallerUrl;
-  const id = item.Id !== undefined ? String(item.Id) : (item.InstallationId !== undefined ? String(item.InstallationId) : `${idx}`);
+        const id = item.Id !== undefined ? String(item.Id) : (item.InstallationId !== undefined ? String(item.InstallationId) : `${idx}`);
         const name = item.DisplayName || item.Name || item.Title || (linkCandidate && extractNameFromUrl(linkCandidate)) || `Installation ${idx + 1}`;
-        const hasRealLink = !!linkCandidate;
-        const link = linkCandidate || `#installation-${id}`; // placeholder so item still renders
-        return { id, name, link, hasRealLink, raw: item };
+        let hasRealLink = !!linkCandidate;
+        let link = linkCandidate || `#installation-${id}`; // placeholder until token resolves
+        const ot = oneTimeTokenMap[id];
+        if (ot) {
+          const appType = typeof item.AppType === 'number' ? item.AppType : (typeof item.Type === 'number' ? item.Type : undefined);
+          const protocol = chooseProtocol(appType);
+          // Build proper custom protocol URL with query parameters so the desktop app can parse them.
+          link = `${protocol}${encodeURIComponent(ot)}`;
+          hasRealLink = true; // token-based protocol link is valid
+        }
+        return { id, name, link, hasRealLink, raw: item, oneTimeToken: ot };
       });
       setAuthorizedInstallations(normalized);
       // If installation objects carry an AppType, still merge numeric types for legacy app grid
@@ -520,46 +591,48 @@ const CwAdminLogin = () => {
           {authorizedInstallations && authorizedInstallations.length > 0 && (
             <div style={{ marginTop: 32 }}>
               <div className="CwAdminLogin-login-subtitle" style={{ marginBottom: 8 }}>Tilgjengelige installasjoner</div>
-              <ul className="CwAdminLogin-installation-list" style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-                {authorizedInstallations.map(inst => (
-                  <li key={inst.id} style={{ flex: '0 1 260px' }}>
-                    {inst.hasRealLink ? (
-                      <a
-                        href={inst.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="CwAdminLogin-installation-link"
-                        style={{
-                          display: 'block',
-                          padding: '12px 14px',
-                          background: '#1e2530',
-                          borderRadius: 8,
-                          color: 'white',
-                          textDecoration: 'none',
-                          border: '1px solid #2d3746'
-                        }}
+              <ul className="CwAdminLogin-installation-list" style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+                {authorizedInstallations.map(inst => {
+                  const isProtocol = /^calwin(dev|test)?/i.test(inst.link);
+                  const disabled = !inst.hasRealLink;
+                  const handleClick = (e: React.MouseEvent) => {
+                    if (disabled) {
+                      e.preventDefault();
+                      return;
+                    }
+                    e.preventDefault();
+                    try {
+                      if (isProtocol) {
+                        window.location.href = inst.link;
+                      } else if (/^https?:\/\//i.test(inst.link)) {
+                        window.open(inst.link, '_blank', 'noopener');
+                      }
+                    } catch (err) {
+                      console.warn('Installation launch failed', err);
+                    }
+                  };
+                  return (
+                    <li key={inst.id} style={{ width: '100%', maxWidth: 520 }}>
+                      <button
+                        className="CwAdminLogin-app-card"
+                        style={disabled ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+                        onClick={handleClick}
+                        disabled={disabled}
+                        aria-label={disabled ? `Ingen link for ${inst.name}` : `Åpne ${inst.name}`}
                       >
-                        <div style={{ fontWeight: 600, marginBottom: 4 }}>{inst.name}</div>
-                        <div style={{ fontSize: 12, opacity: 0.7, wordBreak: 'break-all' }}>{inst.link}</div>
-                      </a>
-                    ) : (
-                      <div
-                        className="CwAdminLogin-installation-link"
-                        style={{
-                          display: 'block',
-                          padding: '12px 14px',
-                          background: '#262d39',
-                          borderRadius: 8,
-                          color: 'white',
-                          border: '1px dashed #3a4657'
-                        }}
-                      >
-                        <div style={{ fontWeight: 600, marginBottom: 4 }}>{inst.name}</div>
-                        <div style={{ fontSize: 12, opacity: 0.6 }}>Ingen link tilgjengelig (InstallationId: {inst.id})</div>
-                      </div>
-                    )}
-                  </li>
-                ))}
+                        <div className="CwAdminLogin-app-card-icon">IN</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div className="CwAdminLogin-app-card-title" style={{ fontWeight: 600 }}>{inst.name}</div>
+                          {disabled && (
+                            <div style={{ fontSize: 12, opacity: 0.55 }}>
+                              Ingen link tilgjengelig (InstallationId: {inst.id})
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -584,9 +657,7 @@ const CwAdminLogin = () => {
                   onClick={handleNext}
                 />
               </div>
-              <div style={{ marginTop: 8 }}>
-                <Button text="Vis demoapper" type="normal" onClick={showDemoApps} />
-              </div>
+              {/* Demo apps button removed */}
               {error && <div className="CwAdminLogin-login-error">{error}</div>}
               {info && <div className="CwAdminLogin-login-info">{info}</div>}
             </>
@@ -647,9 +718,7 @@ const CwAdminLogin = () => {
                   onClick={handleLogin}
                 />
               </div>
-              <div style={{ marginTop: 8 }}>
-                <Button text="Show demo apps" type="normal" onClick={showDemoApps} />
-              </div>
+              {/* Demo apps button removed */}
               {error && <div className="CwAdminLogin-login-error">{error}</div>}
               {info && <div className="CwAdminLogin-login-info">{info}</div>}
             </>
