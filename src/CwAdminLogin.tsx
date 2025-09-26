@@ -551,7 +551,7 @@ const CwAdminLogin = () => {
                     disabled={launching}
                     aria-label={`Open ${appName}`}
                   >
-                    <div className="CwAdminLogin-app-card-icon">CW</div>
+                    <div className="CwAdminLogin-app-card-icon">{appName.replace(/[^A-Za-z0-9]/g,'').slice(0,2).toUpperCase() || 'CW'}</div>
                     <div className="CwAdminLogin-app-card-body">
                       <div className="CwAdminLogin-app-card-title">{appName}</div>
                     </div>
@@ -611,6 +611,7 @@ const CwAdminLogin = () => {
                       console.warn('Installation launch failed', err);
                     }
                   };
+                  const iconText = (inst.name && inst.name.replace(/[^A-Za-z0-9]/g,'').slice(0,2).toUpperCase()) || 'IN';
                   return (
                     <li key={inst.id} style={{ width: '100%', maxWidth: 520 }}>
                       <button
@@ -620,7 +621,7 @@ const CwAdminLogin = () => {
                         disabled={disabled}
                         aria-label={disabled ? `Ingen link for ${inst.name}` : `Åpne ${inst.name}`}
                       >
-                        <div className="CwAdminLogin-app-card-icon">IN</div>
+                        <div className="CwAdminLogin-app-card-icon">{iconText}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div className="CwAdminLogin-app-card-title" style={{ fontWeight: 600 }}>{inst.name}</div>
                           {disabled && (
