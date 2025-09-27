@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "aws s3 rm s3://calwin-login/login-dev --recursive & aws s3 sync dist/ s3://calwin-login/login-dev & aws cloudfront create-invalidation --distribution-id=E2OK4SXLF70R7G --paths /"
   },
   "dependencies": {
     "axios": "^1.11.0",
