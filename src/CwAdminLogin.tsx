@@ -20,6 +20,9 @@ const CwAdminLogin = () => {
   // Download fallback & modal state
   const [downloadAvailableUrl, setDownloadAvailableUrl] = useState<string | null>(null);
   const [downloadAvailableType, setDownloadAvailableType] = useState<number | null>(null);
+  // Fallback specifically for installations (since multiple installations can share same appType)
+  const [installationFallbackId, setInstallationFallbackId] = useState<string | null>(null);
+  const [installationFallbackUrl, setInstallationFallbackUrl] = useState<string | null>(null);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const fallbackRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
@@ -396,7 +399,13 @@ const CwAdminLogin = () => {
                       if (token) {
                         const protocol = inst.appType === 0 ? PROTOCOL_CALWIN : inst.appType === 1 ? PROTOCOL_CALWIN_TEST : PROTOCOL_CALWIN_DEV;
                         const uri = `${protocol}${encodeURIComponent(token)}`;
-                        requestLaunch(uri, '', inst.appType);
+                        const typeKey = typeof inst.appType === 'number' ? inst.appType : 2;
+                        const installerUrl = APPINSTALLER_URLS[typeKey as keyof typeof APPINSTALLER_URLS] || APPINSTALLER_URLS[2];
+                        // Use launcher directly so we can capture installation id for fallback (app-level fallback uses type)
+                        launchWithFallback(uri, () => {
+                          setInstallationFallbackId(inst.id);
+                          setInstallationFallbackUrl(installerUrl);
+                        });
                       } else {
                         setError('Feil ved generering av engangstoken.');
                       }
@@ -425,6 +434,29 @@ const CwAdminLogin = () => {
                           )}
                         </div>
                       </button>
+                      {installationFallbackId === inst.id && installationFallbackUrl && (
+                        <div style={{ marginTop: 10 }}>
+                          <div className="CwAdminLogin-login-download-fallback" role="region" aria-live="polite">
+                            <div style={{ marginBottom: 8 }}>Kan ikke åpne via protokoll. Last ned installasjonsprogrammet manuelt:</div>
+                            <div className="CwAdminLogin-download-actions">
+                              <Button
+                                text="Last ned .appinstaller"
+                                type="default"
+                                onClick={() => {
+                                  window.location.href = installationFallbackUrl;
+                                  setInstallationFallbackId(null);
+                                  setInstallationFallbackUrl(null);
+                                }}
+                              />
+                              <Button
+                                text="Vis installasjonsinstruksjoner"
+                                type="normal"
+                                onClick={() => setShowDownloadModal(true)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </li>
                   );
                 })}
@@ -692,18 +724,34 @@ const CwAdminLogin = () => {
       )}
     </div>
     {showDownloadModal && (
-      <div className="dl-modal-backdrop" onClick={() => setShowDownloadModal(false)}>
-        <div className="dl-modal" onClick={e => e.stopPropagation()}>
-          <h3>Installasjonsinstruksjoner</h3>
-          <p>Hvis App Installer sier at protokollen er deaktivert, last ned .appinstaller-filen og dobbeltklikk for å åpne den i App Installer.</p>
+      <div className="dl-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="installer-modal-title" onClick={() => setShowDownloadModal(false)}>
+        <div
+          className="dl-modal"
+          onClick={e => e.stopPropagation()}
+          tabIndex={-1}
+        >
+          <button
+            type="button"
+            className="dl-modal-close"
+            aria-label="Lukk"
+            onClick={() => setShowDownloadModal(false)}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+          <h3 id="installer-modal-title">Installasjonsinstruksjoner</h3>
+          <p>Hvis protokollen ikke åpner applikasjonen, installer eller oppdater CalWin-klienten ved å følge trinnene:</p>
           <ol>
-            <li>Klikk «Last ned .appinstaller» for å lagre filen.</li>
-            <li>Åpne mappen der filen er lagret.</li>
-            <li>Dobbeltklikk på filen for å starte App Installer.</li>
-            <li>Følg instruksjonene i App Installer for å fullføre installasjonen.</li>
+            <li>Klikk «Last ned .appinstaller» på kortet.</li>
+            <li>Åpne filen du lastet ned (App Installer starter).</li>
+            <li>Klikk Install / Oppdater og vent til ferdig.</li>
+            <li>Gå tilbake hit og klikk applikasjonen igjen.</li>
           </ol>
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            <Button text="Lukk" onClick={() => setShowDownloadModal(false)} />
+          <p style={{ marginTop: 18, color: '#39566c' }}>Tips: Hvis ingenting skjer etter installasjon, prøv å lukke alle CalWin-vinduer og start på nytt.</p>
+          <div className="dl-modal-actions">
+            <Button text="Lukk" type="normal" onClick={() => setShowDownloadModal(false)} />
           </div>
         </div>
       </div>

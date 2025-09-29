@@ -190,13 +190,86 @@
 }
 
 .dl-modal {
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  max-width: 540px;
+  background: #ffffff;
+  padding: 28px 28px 26px;
+  border-radius: 18px;
+  max-width: 560px;
   width: 100%;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+  box-shadow: 0 18px 48px -6px rgba(18,51,92,0.30), 0 2px 8px rgba(18,51,92,0.08);
+  border: 1px solid rgba(25,118,210,0.15);
+  position: relative;
+  font-size: 14px;
+  line-height: 1.55;
+  animation: modalScaleIn .28s cubic-bezier(.25,.9,.25,1);
+  backdrop-filter: saturate(140%);
 }
+
+.dl-modal h3 {
+  margin: 0 0 14px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f467a;
+  letter-spacing: .5px;
+}
+
+.dl-modal p {
+  margin: 0 0 14px;
+  color: #3a5368;
+}
+
+.dl-modal ol {
+  margin: 0 0 16px 22px;
+  padding: 0;
+  color: #2d485b;
+}
+.dl-modal ol li { margin: 0 0 6px; padding-left: 2px; }
+.dl-modal ol li::marker { color: #1976d2; font-weight: 600; }
+
+.dl-modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+
+.dl-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #f1f7fc;
+  border: 1px solid rgba(25,118,210,0.25);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #1976d2;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.dl-modal-close:hover { background: #e7f2fa; }
+.dl-modal-close:active { background: #d7e9f7; }
+.dl-modal-close:focus { outline: 2px solid #125ea5; outline-offset: 2px; }
+
+.dl-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 30% 40%, rgba(25,118,210,0.16), rgba(15,53,92,0.55)) , rgba(10,32,54,0.55);
+  backdrop-filter: blur(4px) saturate(140%);
+  -webkit-backdrop-filter: blur(4px) saturate(140%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 64px 18px 48px;
+  overflow-y: auto;
+  z-index: 4000;
+  animation: backdropFade .28s ease;
+}
+
+@keyframes backdropFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modalScaleIn { from { transform: translateY(8px) scale(.96); opacity: 0; } 60% { transform: translateY(-4px) scale(1.015); opacity: 1; } to { transform: translateY(0) scale(1); opacity: 1; } }
+
+/* Scrollbar tweak inside modal for long content */
+.dl-modal::-webkit-scrollbar { width: 10px; }
+.dl-modal::-webkit-scrollbar-track { background: transparent; }
+.dl-modal::-webkit-scrollbar-thumb { background: #c2d6e7; border-radius: 6px; }
+.dl-modal::-webkit-scrollbar-thumb:hover { background: #a5c4db; }
 
 .CwAdminLogin-login-launch-spinner {
   width: 18px;

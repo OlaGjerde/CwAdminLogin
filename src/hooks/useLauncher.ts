@@ -10,7 +10,8 @@ export interface UseLauncherResult extends LaunchState {
 }
 
 // Attempt to open a URI and heuristically detect success via visibility / blur.
-function tryLaunchUri(uri: string, timeout = 1500): Promise<boolean> {
+// timeout slightly increased to reduce false negatives on slower systems
+function tryLaunchUri(uri: string, timeout = 1800): Promise<boolean> {
   return new Promise((resolve) => {
     let handled = false;
     const onVisibilityChange = () => { if (document.hidden) handled = true; };
@@ -48,13 +49,15 @@ export function useLauncher(): UseLauncherResult {
         setTimeout(() => { setLaunching(false); setLaunchMessage(null); }, 1200);
         return;
       }
+      // Mark launching complete BEFORE invoking failure so UI can decide
+      // not to show fallback while a success message is visible.
       setLaunchMessage('Ikke installert. Last ned installasjonsprogram under.');
-      if (onFailure) onFailure();
       setLaunching(false);
+      if (onFailure) onFailure();
     } catch {
       setLaunchMessage('Kunne ikke åpne applikasjon.');
-      if (onFailure) onFailure();
       setLaunching(false);
+      if (onFailure) onFailure();
     }
   }, []);
 
