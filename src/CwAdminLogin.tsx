@@ -34,6 +34,9 @@ const CwAdminLogin = () => {
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showSignupConfirm, setShowSignupConfirm] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState<{ score: number; label: string; percent: number }>({ score: 0, label: 'Svært svakt', percent: 0 });
+  const [isLoginSubmitting, setIsLoginSubmitting] = useState(false);
+  const [isSignupSubmitting, setIsSignupSubmitting] = useState(false);
+  const [lastLoginAttempt, setLastLoginAttempt] = useState(0);
 
   // When a per-card fallback is shown, scroll it into view and add a quick entrance animation.
   useEffect(() => {
@@ -54,11 +57,30 @@ const CwAdminLogin = () => {
   // Email verification step
   const handleNext = async () => { await handleVerifyEmail(login); };
 
-  const submitSignup = async () => { await handleSignUp(login, password, confirmPassword); };
+  const submitSignup = async () => {
+    if (isSignupSubmitting) return;
+    setIsSignupSubmitting(true);
+    try {
+      await handleSignUp(login, password, confirmPassword);
+    } finally {
+      setIsSignupSubmitting(false);
+    }
+  };
 
   const submitLogin = async () => {
-    const usernameToUse = userData?.Email || login;
-    await handleLogin(usernameToUse, password);
+    // basic throttle: ignore if last attempt < 900ms ago
+    const now = Date.now();
+    if (now - lastLoginAttempt < 900) return;
+    setLastLoginAttempt(now);
+    if (step !== 'password') return; // safety guard
+    if (isLoginSubmitting) return;
+    setIsLoginSubmitting(true);
+    try {
+      const usernameToUse = userData?.Email || login;
+      await handleLogin(usernameToUse, password);
+    } finally {
+      setIsLoginSubmitting(false);
+    }
   };
 
   const handleMfaSubmit = async () => {
@@ -402,10 +424,10 @@ const CwAdminLogin = () => {
               {error && <div className="CwAdminLogin-login-error" role="alert" aria-live="assertive">{error}</div>}
               <div className="CwAdminLogin-login-button" style={{ display: 'flex', gap: 8 }}>
                 <Button
-                  text="Opprett konto"
+                  text={isSignupSubmitting ? 'Oppretter…' : 'Opprett konto'}
                   type="success"
                   useSubmitBehavior={true}
-                  onClick={submitSignup}
+                  disabled={isSignupSubmitting}
                 />
                 <Button
                   text="Tilbake"
@@ -449,10 +471,11 @@ const CwAdminLogin = () => {
               {error && <div className="CwAdminLogin-login-error" role="alert" aria-live="assertive">{error}</div>}
               <div className="CwAdminLogin-login-button">
                 <Button
-                  text="Login"
+                  text={isLoginSubmitting ? 'Logger inn…' : 'Login'}
                   type="success"
                   useSubmitBehavior={true}
-                  onClick={submitLogin}
+                  disabled={isLoginSubmitting}
+                  aria-busy={isLoginSubmitting}
                 />
               </div>
               {/* Demo apps button removed */}
