@@ -12,10 +12,7 @@ export const APPINSTALLER_URLS: Record<number, string> = {
 export const PROTOCOL_CALWIN = 'calwin://';
 export const PROTOCOL_CALWIN_TEST = 'calwintest://';
 export const PROTOCOL_CALWIN_DEV = 'calwindev://';
-
-// Admin API (authorized installations)
-export const ADMIN_API_BASE = 'https://adminapi-dev.calwincloud.com/api';
-export const INSTALLATIONS_ENDPOINT = `${ADMIN_API_BASE}/installation/GetAuthorizedInstallations`;
+export const INSTALLATIONS_ENDPOINT = `${CW_AUTH_ENDPOINT}/installation/GetAuthorizedInstallations`;
 
 export default {
   API_BASE,
@@ -24,6 +21,5 @@ export default {
   PROTOCOL_CALWIN,
   PROTOCOL_CALWIN_TEST,
   PROTOCOL_CALWIN_DEV,
-  ADMIN_API_BASE,
   INSTALLATIONS_ENDPOINT
 };

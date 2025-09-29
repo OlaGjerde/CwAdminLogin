@@ -1,43 +1,38 @@
-import { useState } from 'react';
-import React from 'react';
-import axios from 'axios';
-import { CW_AUTH_ENDPOINT, APPINSTALLER_URLS, PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV, INSTALLATIONS_ENDPOINT } from './config';
+import React, { useState, useEffect, useRef } from 'react';
+import { APPINSTALLER_URLS, PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } from './config';
+import { useAuthFlow } from './hooks/useAuthFlow';
+import { useInstallations } from './hooks/useInstallations';
+import { useLauncher } from './hooks/useLauncher';
+import type { NormalizedInstallation } from './types/installations';
 import './CwAdminLogin.css';
 import { TextBox } from 'devextreme-react/text-box';
 import { Button } from 'devextreme-react/button';
 
-interface UserData {
-  Username?: string;
-  Email?: string;
-  PreferredLoginType?: number;
-  CalWinAppTypes?: number[];
-  // Add other fields as needed based on your API response
-}
+// UserData shape handled internally by useAuthFlow; no local interface needed
 
 const CwAdminLogin = () => {
-  const [step, setStep] = useState<'login' | 'password' | 'mfa' | 'signup'>('login');
+  // Form inputs
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [mfaCode, setMfaCode] = useState('');
-  const [mfaSession, setMfaSession] = useState<string | null>(null);
-  const [mfaChallengeName, setMfaChallengeName] = useState<string>('SMS_MFA');
-  const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
-  // Removed unused preferredLoginType state
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [tokens, setTokens] = useState<{ accessToken: string; refreshToken: string } | null>(null);
-  // Authorized installations (links fetched after login)
-  const [authorizedInstallations, setAuthorizedInstallations] = useState<NormalizedInstallation[] | null>(null);
-  const [launching, setLaunching] = useState(false);
-  const [launchMessage, setLaunchMessage] = useState<string | null>(null);
+  // Download fallback & modal state
   const [downloadAvailableUrl, setDownloadAvailableUrl] = useState<string | null>(null);
   const [downloadAvailableType, setDownloadAvailableType] = useState<number | null>(null);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
-  const fallbackRefs = React.useRef<Record<number, HTMLDivElement | null>>({});
+  const fallbackRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  // Hooks: auth, installations, launcher
+  const {
+    step, setStep, userData, setUserData, tokens, error, info, setError, setInfo,
+    handleVerifyEmail, handleSignUp, handleLogin, handleMfa
+  } = useAuthFlow();
+  const { installations, refresh: refreshInstallations, generateLaunchToken } = useInstallations();
+  const { launching, launchMessage, launchWithFallback } = useLauncher();
+  const [installationLoading, setInstallationLoading] = useState<Record<string, boolean>>({});
 
   // When a per-card fallback is shown, scroll it into view and add a quick entrance animation.
-  React.useEffect(() => {
+  useEffect(() => {
     if (downloadAvailableUrl && typeof downloadAvailableType === 'number') {
       const el = fallbackRefs.current[downloadAvailableType];
       if (el) {
@@ -52,200 +47,19 @@ const CwAdminLogin = () => {
 
   // ...existing code...
 
-  // API check function
-  const handleNext = async () => {
-    setError(null);
-    setInfo(null);
-    try {
-      // Get user info from API; treat 404 as a handled response (not an exception)
-      const response = await axios.get(
-        `${CW_AUTH_ENDPOINT}/auth/VerifyEmail?email=${encodeURIComponent(login)}`,
-        { validateStatus: (status) => status < 500 }
-      );
-  // console.log removed
-      // If user not found (404), present signup flow
-      if (response.status === 404) {
-        setUserData(null);
-        setInfo('Fant ingen bruker med denne e-posten. Opprett en konto nedenfor.');
-        setStep('signup');
-        return;
-      }
+  // Email verification step
+  const handleNext = async () => { await handleVerifyEmail(login); };
 
-      const rawStatus: string | undefined = (response.data && (response.data.UserStatus || response.data.userStatus)) as string | undefined;
-      const userStatus = rawStatus ? String(rawStatus).toUpperCase() : undefined;
-      // Map numeric PreferredLoginType to string
-      const loginTypeMap = {
-        0: 'Password',
-        1: 'Azure',
-        2: 'AWS Cognito'
-      };
+  const submitSignup = async () => { await handleSignUp(login, password, confirmPassword); };
 
-      const typeValue: number = response.data.PreferredLoginType;
-      const typeString = loginTypeMap[typeValue as keyof typeof loginTypeMap] || String(typeValue);
-      // If user is UNCONFIRMED/UNKNOWN, direct them to sign up
-      if (userStatus === 'UNCONFIRMED' || userStatus === 'UNKNOWN') {
-        setUserData({
-          Username: response.data.Username,
-          Email: login,
-          PreferredLoginType: response.data.PreferredLoginType,
-          CalWinAppTypes: response.data.CalWinAppTypes
-        });
-        setInfo('Brukeren er ikke bekreftet. Fullfør registreringen nedenfor.');
-        setStep('signup');
-        return;
-      }
-
-      if (response.data && typeString) {  
-        setLogin(login);
-        setUserData({
-          Username: response.data.Username,
-          Email: login,
-          PreferredLoginType: response.data.PreferredLoginType,
-          CalWinAppTypes: response.data.CalWinAppTypes
-        });
-        setStep('password');
-      } else {
-        setError('Login not found or missing preferredLoginType.');
-        setUserData(null);
-      }
-    } catch {
-      // Network/5xx or unexpected
-      setError('Login not found.');
-      setUserData(null);
-    }
+  const submitLogin = async () => {
+    const usernameToUse = userData?.Email || login;
+    await handleLogin(usernameToUse, password);
   };
 
-  // Minimal sign-up handler. Assumes backend endpoint /SignUp accepts { email, password } or { username, password }.
-  const handleSignUp = async () => {
-    setError(null);
-    setInfo(null);
-    try {
-      if (!login) {
-        setError('E-post er påkrevd.');
-        return;
-      }
-      if (!password || password.length < 8) {
-        setError('Passord må være minst 8 tegn.');
-        return;
-      }
-      if (password !== confirmPassword) {
-        setError('Passordene stemmer ikke.');
-        return;
-      }
-
-      const payload = { email: login, username: login, password };
-  await axios.post(`${CW_AUTH_ENDPOINT}/SignUp`, payload);
-      setInfo('Registrering startet. Sjekk e-posten din for en bekreftelseskode.');
-      // Optionally navigate back to login after a short delay
-      // setStep('login');
-    } catch (e) {
-      if (axios.isAxiosError(e) && e.response && e.response.data && (e.response.data.message || e.response.data.error)) {
-        setError(e.response.data.message || e.response.data.error);
-      } else {
-        setError('Registrering feilet.');
-      }
-    }
-  };
-
-  const handleLogin = async () => {
-    setError(null);
-  // console.log removed
-    try {
-      const usernameToUse = userData?.Email || login;
-      const payload = {
-        username: usernameToUse,
-        password
-      };
-  // console.log removed
-      const response = await axios.post(`${CW_AUTH_ENDPOINT}/auth/LoginUser`, payload);
-  // console.log removed
-      if (response.data && response.data.ChallengeRequired) {
-        setMfaSession(response.data.Session);
-        setMfaChallengeName(response.data.ChallengeName || 'SMS_MFA');
-        setStep('mfa');
-        return;
-      }
-      // Legacy: Cognito object nested in response
-      if (response.data && response.data.Cognito && !response.data.Cognito.ChallengeName) {
-        setError(null);
-        const accessToken = response.data.Cognito.AccessToken;
-        const refreshToken = response.data.Cognito.RefreshToken;
-        setTokens({
-          accessToken: btoa(accessToken),
-          refreshToken: btoa(refreshToken)
-        });
-        // Fetch authorized installations (async, fire and forget)
-        fetchAuthorizedInstallations(accessToken).catch(err => console.warn('fetchAuthorizedInstallations failed', err));
-        setStep('login'); // or show app links
-
-      } else if (response.data && response.data.Cognito && response.data.Cognito.ChallengeName) {
-        // MFA required (legacy Cognito challenge)
-        setMfaSession(response.data.Cognito.Session);
-        setMfaChallengeName(response.data.Cognito.ChallengeName || 'SMS_MFA');
-        setStep('mfa');
-        return;
-      }
-
-      // Newer/alternate backend: tokens returned at top-level (AccessToken / RefreshToken)
-      if (response.data && (response.data.AccessToken || response.data.accessToken) && (response.data.RefreshToken || response.data.refreshToken)) {
-        setError(null);
-        const accessTokenRaw = response.data.AccessToken || response.data.accessToken;
-        const refreshTokenRaw = response.data.RefreshToken || response.data.refreshToken;
-        // try to extract a uid (sub or username) from the JWT access token
-        setTokens({
-          accessToken: btoa(accessTokenRaw),
-          refreshToken: btoa(refreshTokenRaw)
-        });
-        fetchAuthorizedInstallations(accessTokenRaw).catch(err => console.warn('fetchAuthorizedInstallations failed', err));
-        setStep('login');
-        return;
-      } else {
-        setError(response.data && response.data.message ? response.data.message : 'Login failed.');
-      }
-    } catch (err) {
-      // Try to get error message from response, fallback to generic
-      if (axios.isAxiosError(err) && err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-      } else {
-        setError('Login failed.');
-      }
-    }
-  };
-
-  // Handle MFA code submit
   const handleMfaSubmit = async () => {
-    setError(null);
-    try {
-      const usernameToUse = userData?.Username || login;
-      const payload = {
-        username: usernameToUse,
-        mfaCode,
-        session: mfaSession,
-        challengeName: mfaChallengeName
-      };
-  const response = await axios.post(`${CW_AUTH_ENDPOINT}/auth/RespondToMfa`, payload);
-  // console.log removed
-
-        if (response.data.Cognito && response.data.Cognito.AccessToken && response.data.Cognito.RefreshToken && response.data.Cognito.uid) {
-          setError(null);
-          const accessToken = response.data.Cognito.AccessToken;
-          const refreshToken = response.data.Cognito.RefreshToken;
-          setTokens({
-            accessToken: btoa(accessToken),
-            refreshToken: btoa(refreshToken)
-          });
-          fetchAuthorizedInstallations(accessToken).catch(err => console.warn('fetchAuthorizedInstallations failed', err));
-          setStep('login'); // or show app links
-        } else {
-          setError(response.data && response.data.message ? response.data.message : 'MFA failed.');
-      }
-    } catch (err) {
-      if (axios.isAxiosError(err) && err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-      } else {
-        setError('MFA failed.');
-      }
-    }
+    const username = userData?.Username || login;
+    await handleMfa(username || '', mfaCode);
   };
 
   // Render custom protocol links after successful login
@@ -255,132 +69,25 @@ const CwAdminLogin = () => {
     2: 'CalWin Dev'
   };
 
-  // Attempt to open a URI and detect whether the browser successfully launched an external app.
-  // Uses visibility / blur heuristics with a timeout; not 100% reliable but common pattern.
-  const tryLaunchUri = (uri: string, timeout = 1500): Promise<boolean> => {
-    return new Promise((resolve) => {
-      let handled = false;
-
-      const onVisibilityChange = () => {
-        if (document.hidden) {
-          handled = true;
-        }
-      };
-
-      const onBlur = () => {
-        handled = true;
-      };
-
-      document.addEventListener('visibilitychange', onVisibilityChange);
-      window.addEventListener('blur', onBlur);
-
-      // Try to open via iframe (older technique) and location as fallback
-      try {
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-        iframe.src = uri;
-        setTimeout(() => {
-          try {
-            document.body.removeChild(iframe);
-          } catch (removeErr) {
-            // non-fatal
-            console.warn('remove iframe failed', removeErr);
-          }
-        }, timeout + 100);
-      } catch (createErr) {
-        // if iframe creation fails, fallback to location change
-        console.warn('iframe create failed, falling back to location.href', createErr);
-        try {
-          window.location.href = uri;
-        } catch (locErr) {
-          console.warn('location.href fallback failed', locErr);
-        }
-      }
-
-      // After timeout decide
-      setTimeout(() => {
-        document.removeEventListener('visibilitychange', onVisibilityChange);
-        window.removeEventListener('blur', onBlur);
-        resolve(handled);
-      }, timeout);
+  // Hook-based launch wrapper
+  const requestLaunch = (appUri: string, downloadUrl: string, type?: number) => {
+    launchWithFallback(appUri, () => {
+      setDownloadAvailableUrl(downloadUrl);
+      setDownloadAvailableType(typeof type === 'number' ? type : null);
     });
   };
 
-  // Launch sequence: try app protocol, then ms-appinstaller, then direct download URL
-  const launchAppWithFallback = async (appUri: string, downloadUrl: string, type?: number) => {
-    setLaunching(true);
-    setLaunchMessage('Opening application...');
-    try {
-      const opened = await tryLaunchUri(appUri);
-      if (opened) {
-        setLaunchMessage('Application opened.');
-        setTimeout(() => { setLaunching(false); setLaunchMessage(null); }, 1200);
-        return;
-      }
-
-      // If custom protocol didn't open, do NOT attempt ms-appinstaller protocol.
-      // Instead present the .appinstaller file for manual download and show instructions.
-  setLaunchMessage('Application not installed. You can download the installer below.');
-  setDownloadAvailableUrl(downloadUrl);
-  setDownloadAvailableType(typeof type === 'number' ? type : null);
-      setLaunching(false);
-      return;
-    } catch (err) {
-      console.warn('launchAppWithFallback error', err);
-      setLaunchMessage('Failed to open application. You can download the installer below.');
-      setDownloadAvailableUrl(downloadUrl);
-      setDownloadAvailableType(typeof type === 'number' ? type : null);
-      setLaunching(false);
-    } finally {
-      // Clear transient launch message only if no download fallback is shown
-      if (!downloadAvailableUrl) {
-        setTimeout(() => { setLaunching(false); setLaunchMessage(null); }, 2000);
-      }
+  // Refresh installations when tokens appear
+  useEffect(() => {
+    if (tokens?.accessToken) {
+      try { const raw = atob(tokens.accessToken); refreshInstallations(raw); } catch { /* ignore */ }
     }
-  };
+  }, [tokens, refreshInstallations]);
 
-
-  // Fetch authorized installations using raw (un-Base64) token
-  interface InstallationItem { AppType?: number; Type?: number; DisplayName?: string; Name?: string; Title?: string; LaunchUrl?: string; Url?: string; Link?: string; InstallerUrl?: string; AppInstallerUrl?: string; ProtocolUrl?: string; Id?: string | number; InstallationId?: string | number; [k: string]: unknown }
-  interface NormalizedInstallation { id: string; name: string; appType?: number; raw: InstallationItem | string }
-  const [installationLoading, setInstallationLoading] = useState<Record<string, boolean>>({});
-  const fetchAuthorizedInstallations = async (rawAccessToken: string) => {
-    try {
-      const resp = await axios.get(INSTALLATIONS_ENDPOINT, {
-        headers: {
-          Authorization: `Bearer ${rawAccessToken}`
-        },
-        validateStatus: s => s < 500
-      });
-      if (resp.status === 401) {
-        console.warn('Unauthorized fetching installations');
-        return;
-      }
-      const data = resp.data;
-      if (!Array.isArray(data)) {
-        console.warn('Unexpected installations response shape', data);
-        return;
-      }
-      const normalized: NormalizedInstallation[] = data.map((item: InstallationItem | string, idx: number) => {
-        if (typeof item === 'string') {
-          return {
-            id: String(idx),
-            name: extractNameFromUrl(item) || `Installation ${idx + 1}`,
-            appType: undefined,
-            raw: item
-          };
-        }
-        const id = item.Id !== undefined ? String(item.Id) : (item.InstallationId !== undefined ? String(item.InstallationId) : `${idx}`);
-        const name = item.DisplayName || item.Name || item.Title || `Installation ${idx + 1}`;
-        const appType = typeof item.AppType === 'number' ? item.AppType : (typeof item.Type === 'number' ? item.Type : undefined);
-        return { id, name, appType, raw: item };
-      });
-      setAuthorizedInstallations(normalized);
-      // If installation objects carry an AppType, still merge numeric types for legacy app grid
-      const appTypes = data
-        .map(i => (typeof i === 'object' && i && typeof (i as InstallationItem).AppType === 'number') ? (i as InstallationItem).AppType : undefined)
-        .filter((v): v is number => typeof v === 'number');
+  // Merge installation app types into userData legacy appTypes
+  useEffect(() => {
+    if (installations.length && userData) {
+      const appTypes = installations.map(i => i.appType).filter((v): v is number => typeof v === 'number');
       if (appTypes.length) {
         setUserData(prev => {
           if (!prev) return prev;
@@ -388,22 +95,10 @@ const CwAdminLogin = () => {
           return { ...prev, CalWinAppTypes: Array.from(merged).sort() };
         });
       }
-    } catch (e) {
-      console.warn('Error fetching installations', e);
     }
-  };
+  }, [installations, userData, setUserData]);
 
-  // Helper to derive a readable name from a URL
-  const extractNameFromUrl = (url?: string): string | undefined => {
-    if (!url) return undefined;
-    try {
-      const u = new URL(url);
-      const last = u.pathname.split('/').filter(Boolean).pop();
-      return last || u.host;
-    } catch {
-      return undefined;
-    }
-  };
+  // ...existing code...
   return (<>
     <div className="CwAdminLogin-login-container">
       {step === 'mfa' ? (
@@ -452,7 +147,7 @@ const CwAdminLogin = () => {
               const onClick = (e: React.MouseEvent) => {
                 e.preventDefault();
                 if (launching) return; // disable while launching
-                launchAppWithFallback(appProtocolUrl, directDownloadUrl, type);
+                requestLaunch(appProtocolUrl, directDownloadUrl, type);
               };
 
               return (
@@ -500,11 +195,11 @@ const CwAdminLogin = () => {
               );
             })}
           </div>
-          {authorizedInstallations && authorizedInstallations.length > 0 && (
+          {installations && installations.length > 0 && (
             <div style={{ marginTop: 32 }}>
               <div className="CwAdminLogin-login-subtitle" style={{ marginBottom: 8 }}>Tilgjengelige installasjoner</div>
               <ul className="CwAdminLogin-installation-list" style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
-                {authorizedInstallations.map(inst => {
+                {installations.map((inst: NormalizedInstallation) => {
                   const loading = installationLoading[inst.id];
                   const disabled = loading || !tokens; // need tokens to request
                   const handleClick = async (e: React.MouseEvent) => {
@@ -515,33 +210,13 @@ const CwAdminLogin = () => {
                     try {
                       // decode stored base64 access token
                       const rawAccessToken = atob(tokens.accessToken);
-                      const resp = await axios.post(
-                        `${CW_AUTH_ENDPOINT}/desktop/CreateOneTimeToken?installationId=${encodeURIComponent(inst.id)}`,
-                        null,
-                        {
-                          headers: { Authorization: `Bearer ${rawAccessToken}` },
-                          validateStatus: s => s < 500
-                        }
-                      );
-                      if (resp.status === 200) {
-                        const data = resp.data;
-                        let token: string | undefined;
-                        if (typeof data === 'string') token = data;
-                        else if (data) {
-                          token = data.oneTimeToken || data.OneTimeToken || data.token || data.Token || data.linkToken || data.LinkToken;
-                        }
-                        if (token) {
-                          // choose protocol based on appType (fallback dev)
-                          const protocol = inst.appType === 0 ? PROTOCOL_CALWIN : inst.appType === 1 ? PROTOCOL_CALWIN_TEST : PROTOCOL_CALWIN_DEV;
-                          const uri = `${protocol}${encodeURIComponent(token)}`;
-                          launchAppWithFallback(uri, '', inst.appType);
-                        } else {
-                          setError('Kunne ikke hente engangstoken.');
-                        }
-                      } else if (resp.status === 401) {
-                        setError('Ikke autorisert til å hente token. Logg inn på nytt.');
+                      const token = await generateLaunchToken(rawAccessToken, inst.id);
+                      if (token) {
+                        const protocol = inst.appType === 0 ? PROTOCOL_CALWIN : inst.appType === 1 ? PROTOCOL_CALWIN_TEST : PROTOCOL_CALWIN_DEV;
+                        const uri = `${protocol}${encodeURIComponent(token)}`;
+                        requestLaunch(uri, '', inst.appType);
                       } else {
-                        setError('Feil ved henting av token.');
+                        setError('Feil ved generering av engangstoken.');
                       }
                     } catch (err) {
                       console.warn('Lazy token generation failed', err);
@@ -627,7 +302,7 @@ const CwAdminLogin = () => {
                 <Button
                   text="Opprett konto"
                   type="success"
-                  onClick={handleSignUp}
+                  onClick={submitSignup}
                 />
                 <Button
                   text="Tilbake"
@@ -653,7 +328,7 @@ const CwAdminLogin = () => {
                 <Button
                   text="Login"
                   type="success"
-                  onClick={handleLogin}
+                  onClick={submitLogin}
                 />
               </div>
               {/* Demo apps button removed */}
