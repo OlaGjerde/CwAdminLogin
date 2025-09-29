@@ -79,3 +79,10 @@ export function extractTokens(data: CognitoLikeResponse): LoginResponseTokens | 
   if (at && rt) return { accessToken: at, refreshToken: rt };
   return null;
 }
+
+/** Refresh access/refresh token pair using a refresh token. Adjust endpoint if backend differs. */
+export async function refreshTokens(refreshToken: string) {
+  return axios.post<CognitoLikeResponse>(`${CW_AUTH_ENDPOINT}/auth/RefreshToken`, { refreshToken }, {
+    validateStatus: s => s < 500
+  });
+}

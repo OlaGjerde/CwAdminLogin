@@ -117,6 +117,19 @@ export function useAuthFlow() {
     return false;
   };
 
+  const logout = () => {
+    setTokens(null);
+    setUserData(null);
+    setStep('login');
+    setMfaSession(null);
+    setError(null);
+    setInfo(null);
+  };
+
+  const setRawTokens = (accessToken: string, refreshToken: string) => {
+    setTokens({ accessToken: btoa(accessToken), refreshToken: btoa(refreshToken) });
+  };
+
   return {
     step,
     setStep,
@@ -134,5 +147,7 @@ export function useAuthFlow() {
     handleSignUp,
     handleLogin,
     handleMfa
+    ,logout
+    ,setRawTokens
   };
 }

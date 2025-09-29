@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { APPINSTALLER_URLS, PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } from './config';
 import { useAuthFlow } from './hooks/useAuthFlow';
+import { refreshTokens } from './api/auth';
 import { useInstallations } from './hooks/useInstallations';
 import { useLauncher } from './hooks/useLauncher';
 import type { NormalizedInstallation } from './types/installations';
@@ -25,7 +26,7 @@ const CwAdminLogin = () => {
   // Hooks: auth, installations, launcher
   const {
     step, setStep, userData, setUserData, tokens, error, info, setError, setInfo,
-    handleVerifyEmail, handleSignUp, handleLogin, handleMfa
+    handleVerifyEmail, handleSignUp, handleLogin, handleMfa, logout, setRawTokens
   } = useAuthFlow();
   const { installations, refresh: refreshInstallations, generateLaunchToken } = useInstallations();
   const { launching, launchMessage, launchWithFallback } = useLauncher();
@@ -37,6 +38,11 @@ const CwAdminLogin = () => {
   const [isLoginSubmitting, setIsLoginSubmitting] = useState(false);
   const [isSignupSubmitting, setIsSignupSubmitting] = useState(false);
   const [lastLoginAttempt, setLastLoginAttempt] = useState(0);
+  // Stay logged in (only UI placement for now)
+  const [stayLoggedIn, setStayLoggedIn] = useState(false);
+  const [showStayInfoModal, setShowStayInfoModal] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+  // Session control simplified: single click logout button (lock badge)
 
   // When a per-card fallback is shown, scroll it into view and add a quick entrance animation.
   useEffect(() => {
@@ -77,7 +83,27 @@ const CwAdminLogin = () => {
     setIsLoginSubmitting(true);
     try {
       const usernameToUse = userData?.Email || login;
-      await handleLogin(usernameToUse, password);
+      const result = await handleLogin(usernameToUse, password);
+      if (result) {
+        // decoded raw tokens
+        try {
+          const rawAccess = atob(result.accessToken);
+          const rawRefresh = atob(result.refreshToken);
+          if (stayLoggedIn) {
+            localStorage.setItem('cw_stay', '1');
+            // Obfuscate with reversible XOR over char codes + base64.
+            const obfuscate = (str: string) => btoa(String.fromCharCode(...str.split('').map((c, i) => c.charCodeAt(0) ^ (13 + (i % 7)))));
+            localStorage.setItem('cw_tokens', JSON.stringify({ a: obfuscate(rawAccess), r: obfuscate(rawRefresh), ts: Date.now() }));
+            if (userData?.Username || userData?.Email) {
+              localStorage.setItem('cw_user', JSON.stringify({ u: userData?.Username, e: userData?.Email }));
+            }
+          } else {
+            localStorage.removeItem('cw_stay');
+            localStorage.removeItem('cw_tokens');
+            localStorage.removeItem('cw_user');
+          }
+        } catch { /* ignore */ }
+      }
     } finally {
       setIsLoginSubmitting(false);
     }
@@ -163,6 +189,95 @@ const CwAdminLogin = () => {
     };
     setPasswordStrength(evaluate(password));
   }, [password, step]);
+
+  // Hydrate persisted session once
+  useEffect(() => {
+    if (hydrated) return;
+    try {
+      const stay = localStorage.getItem('cw_stay') === '1';
+      if (stay) {
+        const deobfuscate = (enc: string) => {
+          try {
+            const bin = atob(enc);
+            return Array.from(bin).map((c, i) => String.fromCharCode(c.charCodeAt(0) ^ (13 + (i % 7)))).join('');
+          } catch { return ''; }
+        };
+        const tokensStr = localStorage.getItem('cw_tokens');
+        if (tokensStr) {
+          const parsed = JSON.parse(tokensStr) as { a?: string; r?: string };
+          if (parsed.a && parsed.r) {
+            const rawA = deobfuscate(parsed.a);
+            const rawR = deobfuscate(parsed.r);
+            if (rawA && rawR) {
+              setRawTokens(rawA, rawR);
+              setStayLoggedIn(true);
+            }
+          }
+        }
+        const userStr = localStorage.getItem('cw_user');
+        if (userStr) {
+          try {
+            const uObj = JSON.parse(userStr) as { u?: string; e?: string };
+            if (uObj.u || uObj.e) {
+              setUserData(prev => ({ ...(prev || {}), Username: uObj.u, Email: uObj.e }));
+            }
+          } catch { /* ignore */ }
+        }
+      }
+    } catch { /* ignore */ }
+    setHydrated(true);
+  }, [hydrated, setRawTokens, setUserData]);
+
+  // Basic refresh interval (placeholder – adjust endpoint/logic if needed)
+  // Schedule refresh based on JWT exp minus safety margin
+  useEffect(() => {
+    if (!stayLoggedIn || !tokens?.accessToken || !tokens.refreshToken) return;
+    let canceled = false;
+    const rawAccess = (() => { try { return atob(tokens.accessToken); } catch { return null; } })();
+    const rawRefresh = (() => { try { return atob(tokens.refreshToken); } catch { return null; } })();
+    if (!rawAccess || !rawRefresh) return;
+
+    const decodeJwt = (jwt: string) => {
+      const parts = jwt.split('.');
+      if (parts.length < 2) return null;
+      try {
+        const json = decodeURIComponent(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')).split('').map(c=> '%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+        return JSON.parse(json) as { exp?: number };
+      } catch { return null; }
+    };
+    const payload = decodeJwt(rawAccess);
+    if (!payload?.exp) return; // fallback: no scheduling
+    const nowSec = Math.floor(Date.now()/1000);
+    const marginSec = 120; // refresh 2 minutes early
+    let delayMs = (payload.exp - marginSec - nowSec) * 1000;
+    if (delayMs < 5000) delayMs = 5000; // minimum delay 5s
+
+    const timer = setTimeout(async () => {
+      if (canceled) return;
+      try {
+        const resp = await refreshTokens(rawRefresh);
+        const dataObj = resp.data as Record<string, unknown> & { Cognito?: Record<string, unknown> };
+        const at = (dataObj['AccessToken'] || dataObj['accessToken'] || dataObj.Cognito?.['AccessToken']) as string | undefined;
+        const rt = (dataObj['RefreshToken'] || dataObj['refreshToken'] || dataObj.Cognito?.['RefreshToken']) as string | undefined;
+        if (at && rt) {
+          setRawTokens(at, rt);
+          // Re-obfuscate
+            const obfuscate = (str: string) => btoa(String.fromCharCode(...str.split('').map((c, i) => c.charCodeAt(0) ^ (13 + (i % 7)))));
+          localStorage.setItem('cw_tokens', JSON.stringify({ a: obfuscate(at), r: obfuscate(rt), ts: Date.now() }));
+        } else if (resp.status === 401) {
+          localStorage.removeItem('cw_stay');
+          localStorage.removeItem('cw_tokens');
+          localStorage.removeItem('cw_user');
+          logout();
+        }
+      } catch { /* ignore transient errors; next effect run will reschedule */ }
+    }, delayMs);
+    return () => { canceled = true; clearTimeout(timer); };
+  }, [stayLoggedIn, tokens, setRawTokens, logout]);
+
+  // handleLogout removed (logic now inline with lock button click)
+
+  // No dropdown menu needed now.
 
   // ...existing code...
   return (<>
@@ -316,7 +431,32 @@ const CwAdminLogin = () => {
               </ul>
             </div>
           )}
-          
+          <div style={{ marginTop: 48, display: 'flex', justifyContent: 'flex-end', width: '100%', maxWidth: 520 }}>
+            <button
+              type="button"
+              className="CwAdminLogin-session-btn"
+              onClick={() => {
+                // Turning off persistence and logging out in one click
+                try {
+                  localStorage.removeItem('cw_stay');
+                  localStorage.removeItem('cw_tokens');
+                  localStorage.removeItem('cw_user');
+                } catch {/* ignore */}
+                setStayLoggedIn(false);
+                logout();
+              }}
+              title="Logg ut (deaktiver Forbli innlogget)"
+              aria-label="Logg ut"
+            >
+              <span aria-hidden="true" className={stayLoggedIn ? 'CwAdminLogin-lock-badge active' : 'CwAdminLogin-lock-badge'}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>Logg ut</span>
+            </button>
+          </div>
         </div>
       ) : (
         <>
@@ -342,6 +482,71 @@ const CwAdminLogin = () => {
                   type="default"
                   onClick={handleNext}
                 />
+              </div>
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '12px 0 10px', maxWidth: 360, position: 'relative' }}
+                onMouseEnter={() => setShowStayInfoModal(true)}
+                onMouseLeave={() => setShowStayInfoModal(false)}
+                onFocus={() => setShowStayInfoModal(true)}
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) setShowStayInfoModal(false);
+                }}
+              >
+                <input
+                  id="stay-logged-in"
+                  type="checkbox"
+                  checked={stayLoggedIn}
+                  onChange={e => setStayLoggedIn(e.target.checked)}
+                  style={{ cursor: 'pointer' }}
+                />
+                <label htmlFor="stay-logged-in" style={{ cursor: 'pointer', userSelect: 'none' }}>Forbli innlogget</label>
+                <button
+                  type="button"
+                  tabIndex={0}
+                  aria-label="Mer informasjon om 'Forbli innlogget' (hold musepekeren over)"
+                  style={{ border: 'none', background: 'transparent', cursor: 'help', padding: 2, lineHeight: 1, display: 'flex', alignItems: 'center' }}
+                  aria-expanded={showStayInfoModal}
+                  aria-haspopup="dialog"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 16v-4" />
+                    <path d="M12 8h.01" />
+                  </svg>
+                </button>
+                {showStayInfoModal && (
+                  <div
+                    role="dialog"
+                    aria-label="Informasjon om Forbli innlogget"
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      zIndex: 1000,
+                      background: '#ffffff',
+                      color: '#111',
+                      fontSize: 12,
+                      padding: '10px 12px 12px',
+                      borderRadius: 8,
+                      marginTop: 6,
+                      maxWidth: 300,
+                      boxShadow: '0 4px 14px rgba(0,0,0,.18)',
+                      lineHeight: 1.45,
+                      border: '1px solid #dcdcdc'
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, marginBottom: 4, fontSize: 13 }}>Bruk kun på privat enhet</div>
+                    <div style={{ marginBottom: 6 }}>
+                      Lengre innloggingssesjon. Ikke på offentlig / delt maskin.
+                    </div>
+                    <ul style={{ paddingLeft: 18, margin: '0 0 6px' }}>
+                      <li>Unngå offentlig PC</li>
+                      <li>Lås skjermen</li>
+                      <li>Logg ut ved tvil</li>
+                    </ul>
+                    <div style={{ position: 'absolute', top: -6, left: 14, width: 12, height: 12, background: '#ffffff', transform: 'rotate(45deg)', borderLeft: '1px solid #dcdcdc', borderTop: '1px solid #dcdcdc' }} aria-hidden="true" />
+                  </div>
+                )}
               </div>
               {/* Demo apps button removed */}
               {error && <div className="CwAdminLogin-login-error">{error}</div>}
