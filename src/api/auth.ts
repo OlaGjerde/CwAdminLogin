@@ -80,9 +80,15 @@ export function extractTokens(data: CognitoLikeResponse): LoginResponseTokens | 
   return null;
 }
 
-/** Refresh access/refresh token pair using a refresh token. Adjust endpoint if backend differs. */
+/**
+ * Refresh access/refresh token pair using a refresh token.
+ * Backend expects the refresh token as a query string (NOT request body).
+ * Endpoint: /api/auth/GetNewRefreshTokenFromCognito?refreshToken=...
+ */
 export async function refreshTokens(refreshToken: string) {
-  return axios.post<CognitoLikeResponse>(`${CW_AUTH_ENDPOINT}/auth/RefreshToken`, { refreshToken }, {
+  // Backend expects POST on this endpoint, with refreshToken passed as query string (no JSON body required)
+  return axios.post<CognitoLikeResponse>(`${CW_AUTH_ENDPOINT}/auth/GetNewRefreshTokenFromCognito`, null, {
+    params: { refreshToken },
     validateStatus: s => s < 500
   });
 }
