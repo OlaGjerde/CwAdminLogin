@@ -5,9 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/gen-build-info.cjs",
-    "build": "npm run bump:patch && tsc -b && node scripts/gen-build-info.cjs && vite build",
-    "bump:patch": "node scripts/version-bump.cjs patch",
+  "prebuild": "node scripts/gen-build-info.cjs",
+  "build": "tsc -b && vite build",
+  "bump:patch": "node scripts/version-bump.cjs patch",
+  "bump:minor": "node scripts/version-bump.cjs minor",
+  "bump:major": "node scripts/version-bump.cjs major",
+  "release:patch": "yarn bump:patch && yarn build",
+  "release:minor": "yarn bump:minor && yarn build",
+  "release:major": "yarn bump:major && yarn build",
     "lint": "eslint .",
     "preview": "vite preview",
     "deploy": "aws s3 rm s3://calwin-login/login-dev --recursive & aws s3 sync dist/ s3://calwin-login/login-dev & aws cloudfront create-invalidation --distribution-id=E2OK4SXLF70R7G --paths /"
