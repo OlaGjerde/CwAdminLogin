@@ -12,9 +12,13 @@ interface Props {
   setShowStayInfoModal: (v: boolean) => void;
   error: string | null;
   info: string | null;
+  hostedEnabled?: boolean;
+  onHostedSignup?: () => void;
+  onHostedLogin?: () => void;
+  onHostedForgot?: () => void;
 }
 
-export const LoginEmailForm: React.FC<Props> = ({ login, setLogin, handleNext, stayLoggedIn, setStayLoggedIn, showStayInfoModal, setShowStayInfoModal, error, info }) => {
+export const LoginEmailForm: React.FC<Props> = ({ login, setLogin, handleNext, stayLoggedIn, setStayLoggedIn, showStayInfoModal, setShowStayInfoModal, error, info, hostedEnabled, onHostedSignup, onHostedLogin, onHostedForgot }) => {
   return (
     <form autoComplete="on" onSubmit={(e) => { e.preventDefault(); handleNext(); }}>
       <div className="CwAdminLogin-login-title">Velkommen</div>
@@ -81,6 +85,25 @@ export const LoginEmailForm: React.FC<Props> = ({ login, setLogin, handleNext, s
       </div>
       {error && <div className="CwAdminLogin-login-error">{error}</div>}
       {info && <div className="CwAdminLogin-login-info">{info}</div>}
+      {hostedEnabled && (
+        <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => onHostedLogin && onHostedLogin()}
+            style={{ background: '#1a4b7a', color:'#fff', border:'none', padding:'8px 14px', borderRadius:6, cursor:'pointer', fontWeight:600 }}
+          >Logg inn via Cognito</button>
+          <button
+            type="button"
+            onClick={() => onHostedSignup && onHostedSignup()}
+            style={{ background: '#114d2c', color:'#fff', border:'none', padding:'8px 14px', borderRadius:6, cursor:'pointer', fontWeight:600 }}
+          >Opprett konto</button>
+          <button
+            type="button"
+            onClick={() => onHostedForgot && onHostedForgot()}
+            style={{ background: 'transparent', color:'#1a4b7a', border:'none', padding:'4px 6px', cursor:'pointer', textDecoration:'underline', fontSize:13, alignSelf:'flex-start' }}
+          >Glemt passord?</button>
+        </div>
+      )}
     </form>
   );
 };

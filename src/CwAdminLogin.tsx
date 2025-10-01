@@ -379,6 +379,10 @@ const CwAdminLogin = () => {
               setShowStayInfoModal={setShowStayInfoModal}
               error={error}
               info={info}
+              hostedEnabled={hostedEnabled}
+              onHostedLogin={() => { const u = buildAuthUrl('login'); if (u) window.location.href = u; }}
+              onHostedSignup={() => { const u = buildAuthUrl('signup'); if (u) window.location.href = u; }}
+              onHostedForgot={() => { const u = buildAuthUrl('login'); if (u) window.location.href = u; }}
             />
           ) : step === 'signup' ? (
             hostedEnabled ? (
