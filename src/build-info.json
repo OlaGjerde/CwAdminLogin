@@ -1,6 +1,8 @@
 {
-  "version": "0.10.0",
-  "commit": "dev",
-  "branch": "dev",
-  "timestamp": "1970-01-01T00:00:00.000Z"
+  "version": "0.10.1",
+  "commit": "9462f79",
+  "branch": "main",
+  "timestamp": "2025-10-01T10:56:38.821Z",
+  "buildNumber": "",
+  "node": "v22.20.0"
 }
