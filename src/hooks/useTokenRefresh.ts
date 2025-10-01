@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { refreshTokens } from '../api/auth';
+import { logDebug, logWarn } from '../utils/logger';
 import { REFRESH_MARGIN_SECONDS } from '../config';
 import { obfuscate } from '../utils/tokens';
 import { decodeJwt } from '../utils/jwt';
@@ -29,8 +30,14 @@ export function useTokenRefresh({ stayLoggedIn, tokens, setRawTokens, logout }: 
     let delayMs = (payload.exp - REFRESH_MARGIN_SECONDS - nowSec) * 1000;
     if (delayMs < 5000) delayMs = 5000;
 
+    if (import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1') {
+      logDebug('[tokenRefresh] scheduled', { delayMs, now: new Date().toISOString(), exp: payload.exp });
+    }
     const timer = setTimeout(async () => {
       if (canceled) return;
+      if (import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1') {
+        logDebug('[tokenRefresh] firing', { at: new Date().toISOString() });
+      }
       try {
         const resp = await refreshTokens(rawRefresh);
         const dataObj = resp.data as Record<string, unknown> & { Cognito?: Record<string, unknown> };
@@ -41,6 +48,9 @@ export function useTokenRefresh({ stayLoggedIn, tokens, setRawTokens, logout }: 
           try {
             localStorage.setItem('cw_tokens', JSON.stringify({ a: obfuscate(at), r: obfuscate(rt), ts: Date.now() }));
           } catch { /* ignore */ }
+          if (import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1') {
+            logDebug('[tokenRefresh] success new access fragment', at.slice(0,12)+'...');
+          }
         } else if (resp.status === 401) {
           try {
             localStorage.removeItem('cw_stay');
@@ -48,12 +58,23 @@ export function useTokenRefresh({ stayLoggedIn, tokens, setRawTokens, logout }: 
             localStorage.removeItem('cw_user');
           } catch { /* ignore */ }
           logout();
+          if (import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1') {
+            logWarn('[tokenRefresh] 401 logout');
+          }
         }
-      } catch {
-        // transient error ignored; next successful token update will reschedule
+      } catch (err) {
+        if (import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1') {
+          logWarn('[tokenRefresh] error', err);
+        }
       }
     }, delayMs);
 
-    return () => { canceled = true; clearTimeout(timer); };
+    return () => { 
+      canceled = true; 
+      clearTimeout(timer); 
+      if (import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1') {
+        logDebug('[tokenRefresh] cleanup');
+      }
+    };
   }, [stayLoggedIn, tokens, setRawTokens, logout]);
 }

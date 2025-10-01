@@ -35,7 +35,7 @@ const CwAdminLogin = () => {
     step, setStep, userData, setUserData, tokens, error, info, setError, setInfo,
     handleVerifyEmail, handleSignUp, handleLogin, handleMfa, logout, setRawTokens
   } = useAuthFlow();
-  const { installations, refresh: refreshInstallations, generateLaunchToken } = useInstallations();
+  const { installations, refresh: refreshInstallations, refreshIfStale, generateLaunchToken } = useInstallations();
   const { launching, launchMessage, launchWithFallback } = useLauncher();
   const [installationLoading, setInstallationLoading] = useState<Record<string, boolean>>({});
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -136,7 +136,20 @@ const CwAdminLogin = () => {
     if (tokens?.accessToken) {
       try { const raw = atob(tokens.accessToken); refreshInstallations(raw); } catch { /* ignore */ }
     }
-  }, [tokens, refreshInstallations]);
+    // intentionally exclude refreshInstallations to avoid re-run loops; function is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tokens]);
+
+  // On tab becoming visible again after idle, refresh if stale but keep cached list visible
+  useEffect(() => {
+    const handler = () => {
+      if (document.visibilityState === 'visible' && tokens?.accessToken) {
+        try { const raw = atob(tokens.accessToken); refreshIfStale(raw); } catch { /* ignore */ }
+      }
+    };
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }, [tokens, refreshIfStale]);
 
   // Merge installation app types into userData legacy appTypes
   useEffect(() => {

@@ -1,0 +1,6 @@
+.build-footer { position: fixed; bottom: 4px; right: 10px; font-size: 11px; font-family: system-ui, sans-serif; color: #5c6b76; background: rgba(255,255,255,0.82); backdrop-filter: blur(4px); padding: 4px 8px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.12); display: flex; gap: 6px; align-items: center; line-height: 1.2; z-index: 9999; }
+.build-footer-version { font-weight: 600; }
+.build-footer-sep { width: 1px; height: 12px; background: #aab4ba; display: inline-block; }
+.build-footer-time { opacity: 0.7; }
+.build-footer-copy { margin-left: 4px; opacity: 0.8; }
+.build-footer:hover { color: #2f3b42; }

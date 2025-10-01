@@ -16,6 +16,14 @@ export const PROTOCOL_CALWIN_DEV = 'calwindev://';
 export const INSTALLATIONS_ENDPOINT = `${CW_AUTH_ENDPOINT}/installation/GetAuthorizedInstallations`;
 // Refresh scheduling margin (seconds before access token exp when we attempt refresh)
 export const REFRESH_MARGIN_SECONDS = 120;
+// Installations caching & retry configuration (override via Vite env vars if needed)
+type ViteEnv = { [k: string]: string | undefined };
+const env = (import.meta as unknown as { env?: ViteEnv }).env || {};
+const num = (v: string | undefined) => (v != null && v !== '' && !Number.isNaN(Number(v))) ? Number(v) : undefined;
+export const INSTALLATIONS_STALE_MS = num(env.VITE_INSTALLATIONS_STALE_MS) || 20_000; // 20s default
+export const INSTALLATIONS_RETRY_BASE_MS = num(env.VITE_INSTALLATIONS_RETRY_BASE_MS) || 2_000; // initial backoff
+export const INSTALLATIONS_RETRY_MAX_MS = num(env.VITE_INSTALLATIONS_RETRY_MAX_MS) || 30_000; // cap
+export const INSTALLATIONS_RETRY_MAX_ATTEMPTS = num(env.VITE_INSTALLATIONS_RETRY_MAX_ATTEMPTS) || 6; // ~ up to ~2min worst case
 
 export default {
   API_BASE,
@@ -26,4 +34,8 @@ export default {
   PROTOCOL_CALWIN_DEV,
   INSTALLATIONS_ENDPOINT,
   REFRESH_MARGIN_SECONDS
+  , INSTALLATIONS_STALE_MS
+  , INSTALLATIONS_RETRY_BASE_MS
+  , INSTALLATIONS_RETRY_MAX_MS
+  , INSTALLATIONS_RETRY_MAX_ATTEMPTS
 };

@@ -2,6 +2,7 @@ import ResponsiveBox, { Row, Col, Item, Location } from 'devextreme-react/respon
 import CwAdminLogin from './CwAdminLogin.tsx';
 import NewsFeed from './NewsFeed';
 import './App.css';
+import BuildFooter from './components/BuildFooter';
 import 'devextreme/dist/css/dx.light.css';
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
           </div>
         </Item>
       </ResponsiveBox>
+      <BuildFooter />
     </div>
   );
 }
