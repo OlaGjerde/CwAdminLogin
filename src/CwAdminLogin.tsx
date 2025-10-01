@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { buildAuthUrl, exchangeCodeForTokens, getHostedConfig } from './auth/cognitoHosted';
 import { obfuscate, deobfuscate } from './utils/tokens';
 import { useAuthFlow } from './hooks/useAuthFlow';
 import { useInstallations } from './hooks/useInstallations';
@@ -16,7 +17,10 @@ import { Button } from 'devextreme-react/button';
 // UserData shape handled internally by useAuthFlow; no local interface needed
 
 const CwAdminLogin = () => {
-  // Form inputs
+  // Cognito Hosted UI mode toggle (env driven)
+  const hostedCfg = getHostedConfig();
+  const hostedEnabled = !!hostedCfg;
+  // Form inputs (unused in hosted mode for signup/forgot password, still used for direct login if desired)
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -51,6 +55,39 @@ const CwAdminLogin = () => {
   const [hydrated, setHydrated] = useState(false);
   // Session control simplified: single click logout button (lock badge)
 
+  // If we return from Cognito Hosted UI with a code, exchange it.
+  useEffect(() => {
+    if (!hostedEnabled) return;
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get('code');
+    const state = url.searchParams.get('state');
+    if (code) {
+      let validState = true;
+      try {
+        const stored = sessionStorage.getItem('cog_state');
+        if (stored && state && stored !== state) validState = false;
+      } catch { /* ignore */ }
+      if (!validState) return;
+      // Clean URL before async to avoid re-exchange on re-render
+      window.history.replaceState({}, document.title, url.pathname + url.hash);
+      (async () => {
+        const tokenSet = await exchangeCodeForTokens(code);
+        if (tokenSet?.access_token) {
+          // In hosted mode we don't have userData yet; decode id_token minimally for email/username if available.
+          try {
+            const idTok = tokenSet.id_token;
+            if (idTok) {
+              const payload = JSON.parse(atob(idTok.split('.')[1] || '')) as Record<string, unknown>;
+              const email = (payload.email as string) || (payload['cognito:username'] as string);
+              setUserData(prev => ({ ...(prev||{}), Username: email, Email: email }));
+            }
+          } catch { /* ignore */ }
+          setRawTokens(tokenSet.access_token, tokenSet.refresh_token || tokenSet.access_token);
+        }
+      })();
+    }
+  }, [hostedEnabled, setRawTokens, setUserData]);
+
   // When a per-card fallback is shown, scroll it into view and add a quick entrance animation.
   useEffect(() => {
     if (downloadAvailableUrl && typeof downloadAvailableType === 'number') {
@@ -68,7 +105,15 @@ const CwAdminLogin = () => {
   // ...existing code...
 
   // Email verification step
-  const handleNext = async () => { await handleVerifyEmail(login); };
+  const handleNext = async () => { 
+    if (hostedEnabled) {
+      // In hosted mode we don't do email pre-verification; redirect to Cognito login flow.
+      const url = buildAuthUrl('login');
+      if (url) window.location.href = url;
+      return;
+    }
+    await handleVerifyEmail(login); 
+  };
 
   const submitSignup = async () => {
     if (isSignupSubmitting) return;
@@ -336,24 +381,40 @@ const CwAdminLogin = () => {
               info={info}
             />
           ) : step === 'signup' ? (
-            <SignupForm
-              login={login}
-              setLogin={setLogin}
-              password={password}
-              setPassword={setPassword}
-              confirmPassword={confirmPassword}
-              setConfirmPassword={setConfirmPassword}
-              passwordStrength={passwordStrength}
-              showSignupPassword={showSignupPassword}
-              setShowSignupPassword={setShowSignupPassword}
-              showSignupConfirm={showSignupConfirm}
-              setShowSignupConfirm={setShowSignupConfirm}
-              isSignupSubmitting={isSignupSubmitting}
-              submitSignup={submitSignup}
-              backToLogin={() => { setStep('login'); setError(null); setInfo(null); }}
-              error={error}
-              info={info}
-            />
+            hostedEnabled ? (
+              <div className="CwAdminLogin-hosted-signup-redirect">
+                <p>Registrering håndteres av vår sikre Cognito-side.</p>
+                <button
+                  type="button"
+                  className="CwAdminLogin-primary-btn"
+                  onClick={() => { const u = buildAuthUrl('signup'); if (u) window.location.href = u; }}
+                >Fortsett til Opprett konto</button>
+                <button
+                  type="button"
+                  className="CwAdminLogin-link-btn"
+                  onClick={() => { setStep('login'); setError(null); setInfo(null); }}
+                >Tilbake</button>
+              </div>
+            ) : (
+              <SignupForm
+                login={login}
+                setLogin={setLogin}
+                password={password}
+                setPassword={setPassword}
+                confirmPassword={confirmPassword}
+                setConfirmPassword={setConfirmPassword}
+                passwordStrength={passwordStrength}
+                showSignupPassword={showSignupPassword}
+                setShowSignupPassword={setShowSignupPassword}
+                showSignupConfirm={showSignupConfirm}
+                setShowSignupConfirm={setShowSignupConfirm}
+                isSignupSubmitting={isSignupSubmitting}
+                submitSignup={submitSignup}
+                backToLogin={() => { setStep('login'); setError(null); setInfo(null); }}
+                error={error}
+                info={info}
+              />
+            )
           ) : (
             <PasswordForm
               userName={userData?.Username}
@@ -366,6 +427,12 @@ const CwAdminLogin = () => {
               error={error}
               info={info}
             />
+          )}
+          {hostedEnabled && step === 'login' && !tokens && (
+            <div className="CwAdminLogin-hosted-extra">
+              <button type="button" className="CwAdminLogin-primary-btn" onClick={() => { const u = buildAuthUrl('login'); if (u) window.location.href = u; }}>Logg inn via Cognito</button>
+              <button type="button" className="CwAdminLogin-link-btn" onClick={() => { const u = buildAuthUrl('signup'); if (u) window.location.href = u; }}>Opprett konto</button>
+            </div>
           )}
         </>
       )}
