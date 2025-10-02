@@ -81,7 +81,7 @@ export const InstallationsList: React.FC<Props> = ({
                 aria-label={disabled ? `Kan ikke åpne ${inst.name}` : `Åpne ${inst.name}`}
               >
                 <div className="CwAdminLogin-app-card-icon">{iconText}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ flex: '1 1 auto', minWidth: 0 }}>
                   <div className="CwAdminLogin-app-card-title" style={{ fontWeight: 600 }}>{inst.name}</div>
                   {loading && <div style={{ fontSize: 12, opacity: 0.65 }}>Genererer token...</div>}
                 </div>
