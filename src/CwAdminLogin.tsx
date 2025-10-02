@@ -323,28 +323,29 @@ const CwAdminLogin = () => {
         </div>
       ) : tokens && userData ? (
         <div className="CwAdminLogin-login-app-list" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          {/* DISABLED: AppInstaller props temporarily removed from AppGrid */}
-          <AppGrid
-            appTypes={userData.CalWinAppTypes}
-            tokens={tokens}
-            launching={launching}
-            launchMessage={launchMessage}
-            requestLaunch={requestLaunch}
-          />
-          {/* DISABLED: AppInstaller props temporarily removed from InstallationsList */}
-          <InstallationsList
-            installations={installations}
-            tokens={tokens}
-            installationLoading={installationLoading}
-            setInstallationLoading={setInstallationLoading}
-            generateLaunchToken={generateLaunchToken}
-            launchWithFallback={launchWithFallback}
-            setError={setError}
-            setInstallationFallbackId={setInstallationFallbackId}
-            setInstallationFallbackUrl={setInstallationFallbackUrl}
-          />
-          {/* Spacer to push content to bottom */}
-          <div style={{ flex: 1 }}></div>
+          {/* Scrollable content area */}
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            {/* DISABLED: AppInstaller props temporarily removed from AppGrid */}
+            <AppGrid
+              appTypes={userData.CalWinAppTypes}
+              tokens={tokens}
+              launching={launching}
+              launchMessage={launchMessage}
+              requestLaunch={requestLaunch}
+            />
+            {/* DISABLED: AppInstaller props temporarily removed from InstallationsList */}
+            <InstallationsList
+              installations={installations}
+              tokens={tokens}
+              installationLoading={installationLoading}
+              setInstallationLoading={setInstallationLoading}
+              generateLaunchToken={generateLaunchToken}
+              launchWithFallback={launchWithFallback}
+              setError={setError}
+              setInstallationFallbackId={setInstallationFallbackId}
+              setInstallationFallbackUrl={setInstallationFallbackUrl}
+            />
+          </div>
           
           {/* Bottom section with installer link and logout button */}
           <div style={{ marginTop: 'auto', paddingTop: 32, display: 'flex', flexDirection: 'column', gap: 16, width: '100%', maxWidth: 520, alignItems: 'center' }}>
