@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { obfuscate, deobfuscate } from './utils/tokens';
 import { useAuthFlow } from './hooks/useAuthFlow';
 import { useInstallations } from './hooks/useInstallations';
@@ -13,7 +13,7 @@ import './CwAdminLogin.css';
 import { TextBox } from 'devextreme-react/text-box';
 import { Button } from 'devextreme-react/button';
 import { exchangeCodeForTokens, extractTokens } from './api/auth';
-import { COGNITO_REDIRECT_URI } from './config';
+import { COGNITO_REDIRECT_URI, INSTALLER_DOWNLOAD_URL } from './config';
 
 // UserData shape handled internally by useAuthFlow; no local interface needed
 
@@ -23,14 +23,19 @@ const CwAdminLogin = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [mfaCode, setMfaCode] = useState('');
-  // Download fallback & modal state
-  const [downloadAvailableUrl, setDownloadAvailableUrl] = useState<string | null>(null);
-  const [downloadAvailableType, setDownloadAvailableType] = useState<number | null>(null);
+  // DISABLED: AppInstaller download fallback & modal state temporarily disabled
+  // const [downloadAvailableUrl, setDownloadAvailableUrl] = useState<string | null>(null);
+  // const [downloadAvailableType, setDownloadAvailableType] = useState<number | null>(null);
   // Fallback specifically for installations (since multiple installations can share same appType)
+  // Keep these for now as they're still passed to InstallationsList (but not used)
   const [installationFallbackId, setInstallationFallbackId] = useState<string | null>(null);
   const [installationFallbackUrl, setInstallationFallbackUrl] = useState<string | null>(null);
-  const [showDownloadModal, setShowDownloadModal] = useState(false);
-  const fallbackRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  // const [showDownloadModal, setShowDownloadModal] = useState(false);
+  // const fallbackRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  
+  // Suppress unused warnings - these are intentionally kept for future use
+  void installationFallbackId;
+  void installationFallbackUrl;
 
   // Hooks: auth, installations, launcher
   const {
@@ -47,14 +52,18 @@ const CwAdminLogin = () => {
   const [isLoginSubmitting, setIsLoginSubmitting] = useState(false);
   const [isSignupSubmitting, setIsSignupSubmitting] = useState(false);
   const [lastLoginAttempt, setLastLoginAttempt] = useState(0);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [showMfaForm, setShowMfaForm] = useState(false);
+  const [showSignupForm, setShowSignupForm] = useState(false);
   // Stay logged in (only UI placement for now)
   const [stayLoggedIn, setStayLoggedIn] = useState(false);
   const [showStayInfoModal, setShowStayInfoModal] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   // Session control simplified: single click logout button (lock badge)
 
+  // DISABLED: AppInstaller fallback scroll behavior temporarily disabled
   // When a per-card fallback is shown, scroll it into view and add a quick entrance animation.
-  useEffect(() => {
+  /* useEffect(() => {
     if (downloadAvailableUrl && typeof downloadAvailableType === 'number') {
       const el = fallbackRefs.current[downloadAvailableType];
       if (el) {
@@ -65,7 +74,9 @@ const CwAdminLogin = () => {
         return () => clearTimeout(handle);
       }
     }
-  }, [downloadAvailableUrl, downloadAvailableType]);
+  }, [downloadAvailableUrl, downloadAvailableType]); */
+
+
 
   // ...existing code...
 
@@ -124,11 +135,14 @@ const CwAdminLogin = () => {
 
   // appTypeMap now handled inside AppGrid component
 
+  // DISABLED: AppInstaller launch wrapper temporarily disabled (no fallback UI)
   // Hook-based launch wrapper
-  const requestLaunch = (appUri: string, downloadUrl: string, type?: number) => {
+  const requestLaunch = (appUri: string, _downloadUrl: string, _type?: number) => {
+    // Just launch without fallback UI - protocol handlers will still work
     launchWithFallback(appUri, () => {
-      setDownloadAvailableUrl(downloadUrl);
-      setDownloadAvailableType(typeof type === 'number' ? type : null);
+      // No fallback UI shown anymore
+      // setDownloadAvailableUrl(downloadUrl);
+      // setDownloadAvailableType(typeof type === 'number' ? type : null);
     });
   };
 
@@ -308,19 +322,16 @@ const CwAdminLogin = () => {
           {error && <div className="CwAdminLogin-login-error" role="alert" aria-live="assertive">{error}</div>}
         </div>
       ) : tokens && userData ? (
-        <div className="CwAdminLogin-login-app-list">
+        <div className="CwAdminLogin-login-app-list" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          {/* DISABLED: AppInstaller props temporarily removed from AppGrid */}
           <AppGrid
             appTypes={userData.CalWinAppTypes}
             tokens={tokens}
             launching={launching}
             launchMessage={launchMessage}
-            downloadAvailableUrl={downloadAvailableUrl}
-            downloadAvailableType={downloadAvailableType}
             requestLaunch={requestLaunch}
-            clearPerTypeFallback={(type:number) => { setDownloadAvailableUrl(null); setDownloadAvailableType(null); fallbackRefs.current[type] = null; }}
-            setShowDownloadModal={setShowDownloadModal}
-            fallbackRefs={fallbackRefs}
           />
+          {/* DISABLED: AppInstaller props temporarily removed from InstallationsList */}
           <InstallationsList
             installations={installations}
             tokens={tokens}
@@ -329,36 +340,47 @@ const CwAdminLogin = () => {
             generateLaunchToken={generateLaunchToken}
             launchWithFallback={launchWithFallback}
             setError={setError}
-            installationFallbackId={installationFallbackId}
-            installationFallbackUrl={installationFallbackUrl}
             setInstallationFallbackId={setInstallationFallbackId}
             setInstallationFallbackUrl={setInstallationFallbackUrl}
-            setShowDownloadModal={setShowDownloadModal}
           />
-          <div style={{ marginTop: 48, display: 'flex', justifyContent: 'flex-end', width: '100%', maxWidth: 520 }}>
-            <button
-              type="button"
-              className="CwAdminLogin-session-btn"
-              onClick={() => {
-                try {
-                  localStorage.removeItem('cw_stay');
-                  localStorage.removeItem('cw_tokens');
-                  localStorage.removeItem('cw_user');
-                } catch {/* ignore */}
-                setStayLoggedIn(false);
-                logout();
-              }}
-              title="Logg ut (deaktiver Forbli innlogget)"
-              aria-label="Logg ut"
+          {/* Spacer to push content to bottom */}
+          <div style={{ flex: 1 }}></div>
+          
+          {/* Bottom section with installer link and logout button */}
+          <div style={{ marginTop: 'auto', paddingTop: 32, display: 'flex', flexDirection: 'column', gap: 16, width: '100%', maxWidth: 520, alignItems: 'center' }}>
+            {/* Always visible installer download link - centered */}
+            <a 
+              href={INSTALLER_DOWNLOAD_URL}
+              className="CwAdminLogin-installer-link-simple"
             >
-              <span aria-hidden="true" className={stayLoggedIn ? 'CwAdminLogin-lock-badge active' : 'CwAdminLogin-lock-badge'}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-              </span>
-              <span style={{ fontSize: 12, fontWeight: 600 }}>Logg ut</span>
-            </button>
+              Install CalWin
+            </a>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+              <button
+                type="button"
+                className="CwAdminLogin-session-btn"
+                onClick={() => {
+                  try {
+                    localStorage.removeItem('cw_stay');
+                    localStorage.removeItem('cw_tokens');
+                    localStorage.removeItem('cw_user');
+                  } catch {/* ignore */}
+                  setStayLoggedIn(false);
+                  logout();
+                }}
+                title="Logg ut (deaktiver Forbli innlogget)"
+                aria-label="Logg ut"
+              >
+                <span aria-hidden="true" className={stayLoggedIn ? 'CwAdminLogin-lock-badge active' : 'CwAdminLogin-lock-badge'}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 600 }}>Logg ut</span>
+              </button>
+            </div>
           </div>
         </div>
       ) : (
@@ -411,7 +433,9 @@ const CwAdminLogin = () => {
         </>
       )}
     </div>
-    {showDownloadModal && (
+    
+    {/* DISABLED: AppInstaller download modal temporarily disabled */}
+    {/* showDownloadModal && (
       <div className="dl-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="installer-modal-title" onClick={() => setShowDownloadModal(false)}>
         <div
           className="dl-modal"
@@ -443,7 +467,7 @@ const CwAdminLogin = () => {
           </div>
         </div>
       </div>
-    )}
+    ) */}
     </>
   );
 };

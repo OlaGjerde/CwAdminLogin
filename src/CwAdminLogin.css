@@ -66,6 +66,15 @@
   padding: 8px 12px;
   border-radius: 4px;
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.CwAdminLogin-login-launch-banner.error {
+  background: #ffebee;
+  border: 1px solid #ef5350;
+  color: #c62828;
 }
 
 /* Shared sizing for main content blocks so grid and fallback always match */
@@ -430,3 +439,79 @@
 .CwAdminLogin-session-menu-item.danger { color: #c62828; }
 .CwAdminLogin-session-menu-item.danger:hover { background: #fdeeee; }
 .CwAdminLogin-session-menu-item:focus { outline: 2px solid #1976d2; outline-offset: -2px; }
+
+/* Installer download notice */
+.CwAdminLogin-installer-notice {
+  padding: 16px;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.15);
+  animation: slideInNotice 0.3s ease-out;
+}
+
+.CwAdminLogin-installer-notice-text {
+  margin-bottom: 12px;
+  color: #856404;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.CwAdminLogin-installer-download-link {
+  display: inline-block;
+  padding: 10px 20px;
+  background: #1976d2;
+  color: #ffffff;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3);
+}
+
+.CwAdminLogin-installer-download-link:hover {
+  background: #1565c0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(25, 118, 210, 0.4);
+}
+
+.CwAdminLogin-installer-download-link:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3);
+}
+
+@keyframes slideInNotice {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+
+/* Always visible installer link - simple text link */
+.CwAdminLogin-installer-link-simple {
+  display: inline-block;
+  color: #000000;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 0.2s ease, text-decoration 0.2s ease;
+  padding: 4px 0;
+}
+
+.CwAdminLogin-installer-link-simple:hover {
+  color: #333333;
+  text-decoration: underline;
+}
+
+.CwAdminLogin-installer-link-simple:active {
+  color: #000000;
+}

@@ -26,6 +26,7 @@
   justify-content: stretch;
   background: #fff; /* Example background, adjust as needed */
   box-sizing: border-box;
+  position: relative; /* For absolute positioning of installer link */
 }
 
 /* Make DummyLogin scale to fill the left panel */

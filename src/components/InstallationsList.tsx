@@ -1,6 +1,8 @@
 import React from 'react';
-import { Button } from 'devextreme-react/button';
-import { APPINSTALLER_URLS, PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } from '../config';
+// DISABLED: AppInstaller functionality temporarily disabled
+// import { Button } from 'devextreme-react/button';
+// import { APPINSTALLER_URLS, PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } from '../config';
+import { PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } from '../config';
 import type { NormalizedInstallation } from '../types/installations';
 
 interface Props {
@@ -11,11 +13,12 @@ interface Props {
   generateLaunchToken: (rawAccessToken: string, installationId: string) => Promise<string | null>;
   launchWithFallback: (uri: string, onFail: () => void) => void;
   setError: (v: string | null) => void;
-  installationFallbackId: string | null;
-  installationFallbackUrl: string | null;
+  // DISABLED: AppInstaller props temporarily disabled
+  // installationFallbackId: string | null;
+  // installationFallbackUrl: string | null;
   setInstallationFallbackId: (v: string | null) => void;
   setInstallationFallbackUrl: (v: string | null) => void;
-  setShowDownloadModal: (v: boolean) => void;
+  // setShowDownloadModal: (v: boolean) => void;
 }
 
 export const InstallationsList: React.FC<Props> = ({
@@ -26,11 +29,11 @@ export const InstallationsList: React.FC<Props> = ({
   generateLaunchToken,
   launchWithFallback,
   setError,
-  installationFallbackId,
-  installationFallbackUrl,
+  // installationFallbackId,
+  // installationFallbackUrl,
   setInstallationFallbackId,
   setInstallationFallbackUrl,
-  setShowDownloadModal
+  // setShowDownloadModal
 }) => {
   if (!installations.length) return null;
   return (
@@ -51,8 +54,10 @@ export const InstallationsList: React.FC<Props> = ({
               if (token) {
                 const protocol = inst.appType === 0 ? PROTOCOL_CALWIN : inst.appType === 1 ? PROTOCOL_CALWIN_TEST : PROTOCOL_CALWIN_DEV;
                 const uri = `${protocol}${encodeURIComponent(token)}`;
-                const typeKey = typeof inst.appType === 'number' ? inst.appType : 2;
-                const installerUrl = APPINSTALLER_URLS[typeKey] || APPINSTALLER_URLS[2];
+                // DISABLED: AppInstaller functionality temporarily disabled
+                // const typeKey = typeof inst.appType === 'number' ? inst.appType : 2;
+                // const installerUrl = APPINSTALLER_URLS[typeKey] || APPINSTALLER_URLS[2];
+                const installerUrl = ''; // Placeholder when disabled
                 launchWithFallback(uri, () => {
                   setInstallationFallbackId(inst.id);
                   setInstallationFallbackUrl(installerUrl);
@@ -81,7 +86,8 @@ export const InstallationsList: React.FC<Props> = ({
                   {loading && <div style={{ fontSize: 12, opacity: 0.65 }}>Genererer token...</div>}
                 </div>
               </button>
-              {installationFallbackId === inst.id && installationFallbackUrl && (
+              {/* DISABLED: AppInstaller download fallback UI temporarily disabled */}
+              {/* installationFallbackId === inst.id && installationFallbackUrl && (
                 <div style={{ marginTop: 10 }}>
                   <div className="CwAdminLogin-login-download-fallback" role="region" aria-live="polite">
                     <div style={{ marginBottom: 8 }}>Kan ikke åpne via protokoll. Last ned installasjonsprogrammet manuelt:</div>
@@ -103,7 +109,7 @@ export const InstallationsList: React.FC<Props> = ({
                     </div>
                   </div>
                 </div>
-              )}
+              ) */}
             </li>
           );
         })}

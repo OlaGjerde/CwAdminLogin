@@ -53,10 +53,14 @@ export function useLauncher(): UseLauncherResult {
       // not to show fallback while a success message is visible.
       setLaunchMessage('Ikke installert. Last ned installasjonsprogram under.');
       setLaunching(false);
+      // Keep error message visible for 8 seconds
+      setTimeout(() => { setLaunchMessage(null); }, 8000);
       if (onFailure) onFailure();
     } catch {
       setLaunchMessage('Kunne ikke åpne applikasjon.');
       setLaunching(false);
+      // Keep error message visible for 8 seconds
+      setTimeout(() => { setLaunchMessage(null); }, 8000);
       if (onFailure) onFailure();
     }
   }, []);
