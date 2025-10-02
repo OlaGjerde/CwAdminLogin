@@ -92,3 +92,16 @@ export async function refreshTokens(refreshToken: string) {
     validateStatus: s => s < 500
   });
 }
+
+/**
+ * Exchange OAuth authorization code for tokens
+ * This is called after redirect from Cognito Hosted UI
+ */
+export async function exchangeCodeForTokens(code: string, redirectUri: string) {
+  return axios.post<CognitoLikeResponse>(`${CW_AUTH_ENDPOINT}/auth/ExchangeCodeForTokens`, {
+    code,
+    redirectUri
+  }, {
+    validateStatus: s => s < 500
+  });
+}

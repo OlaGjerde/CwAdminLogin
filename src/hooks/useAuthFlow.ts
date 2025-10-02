@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { verifyEmail, signUp, login as apiLogin, respondToMfa, extractTokens, type VerifyEmailResult, type CognitoLikeResponse } from '../api/auth';
+import { getCognitoSignupUrl } from '../config';
 
 export type AuthStep = 'login' | 'password' | 'mfa' | 'signup';
 
@@ -30,23 +31,25 @@ export function useAuthFlow() {
     resetMessages();
     const response = await verifyEmail(email);
     if (response.status === 404) {
+      // User not found - redirect to Cognito Hosted UI for signup
       setUserData(null);
-      setInfo('Fant ingen bruker med denne e-posten. Opprett en konto nedenfor.');
-      setStep('signup');
+      const signupUrl = getCognitoSignupUrl(email);
+      window.location.href = signupUrl;
       return;
     }
     const data = response.data as VerifyEmailResult;
     const userStatus = data.UserStatus?.toUpperCase();
 
     if (userStatus === 'UNCONFIRMED' || userStatus === 'UNKNOWN') {
+      // Unconfirmed or unknown user - redirect to Cognito Hosted UI for signup/confirmation
       setUserData({
         Username: data.Username,
         Email: email,
         PreferredLoginType: data.PreferredLoginType,
         CalWinAppTypes: data.CalWinAppTypes
       });
-      setInfo('Brukeren er ikke bekreftet. Fullfør registreringen nedenfor.');
-      setStep('signup');
+      const signupUrl = getCognitoSignupUrl(email);
+      window.location.href = signupUrl;
       return;
     }
 
@@ -61,8 +64,10 @@ export function useAuthFlow() {
       setStep('password');
       return;
     }
-    setError('Login ikke funnet.');
+    // Login not found - redirect to Cognito Hosted UI for signup
     setUserData(null);
+    const signupUrl = getCognitoSignupUrl(email);
+    window.location.href = signupUrl;
   };
 
   const handleSignUp = async (email: string, password: string, confirm: string) => {

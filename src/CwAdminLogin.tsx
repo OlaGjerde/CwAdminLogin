@@ -12,6 +12,8 @@ import { InstallationsList } from './components/InstallationsList';
 import './CwAdminLogin.css';
 import { TextBox } from 'devextreme-react/text-box';
 import { Button } from 'devextreme-react/button';
+import { exchangeCodeForTokens, extractTokens } from './api/auth';
+import { COGNITO_REDIRECT_URI } from './config';
 
 // UserData shape handled internally by useAuthFlow; no local interface needed
 
@@ -205,6 +207,44 @@ const CwAdminLogin = () => {
     setPasswordStrength(evaluate(password));
   }, [password, step]);
 
+  // Handle OAuth callback from Cognito Hosted UI
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      
+      // Prevent processing the same code twice
+      if (code && !sessionStorage.getItem(`oauth_processed_${code}`)) {
+        // Mark this code as being processed
+        sessionStorage.setItem(`oauth_processed_${code}`, 'true');
+        
+        try {
+          console.log('OAuth Code received:', code);
+          console.log('Redirect URI being sent to backend:', COGNITO_REDIRECT_URI);
+          setInfo('Behandler pålogging fra Cognito...');
+          const response = await exchangeCodeForTokens(code, COGNITO_REDIRECT_URI);
+          console.log('Backend response:', response);
+          const tokenPair = extractTokens(response.data);
+          
+          if (tokenPair) {
+            setRawTokens(tokenPair.accessToken, tokenPair.refreshToken);
+            setInfo('Pålogging vellykket!');
+            // Clean up URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } else {
+            setError('Kunne ikke hente tokens fra Cognito.');
+          }
+        } catch (err: any) {
+          console.error('OAuth callback error:', err);
+          const errorMsg = err?.response?.data?.details || err?.response?.data?.message || err?.message || 'En feil oppstod under pålogging fra Cognito.';
+          setError(`Cognito feil: ${errorMsg}`);
+        }
+      }
+    };
+
+    handleOAuthCallback();
+  }, [setRawTokens, setError, setInfo]);
+
   // Hydrate persisted session once
   useEffect(() => {
     if (hydrated) return;
@@ -357,6 +397,7 @@ const CwAdminLogin = () => {
           ) : (
             <PasswordForm
               userName={userData?.Username}
+              userEmail={userData?.Email}
               password={password}
               setPassword={setPassword}
               showLoginPassword={showLoginPassword}

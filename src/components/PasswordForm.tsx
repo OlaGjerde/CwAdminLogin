@@ -1,9 +1,11 @@
 import React from 'react';
 import { TextBox } from 'devextreme-react/text-box';
 import { Button } from 'devextreme-react/button';
+import { getCognitoForgotPasswordUrl } from '../config';
 
 interface Props {
   userName?: string;
+  userEmail?: string;
   password: string;
   setPassword: (v: string) => void;
   showLoginPassword: boolean;
@@ -14,7 +16,13 @@ interface Props {
   info: string | null;
 }
 
-export const PasswordForm: React.FC<Props> = ({ userName, password, setPassword, showLoginPassword, setShowLoginPassword, submitLogin, isLoginSubmitting, error, info }) => {
+export const PasswordForm: React.FC<Props> = ({ userName, userEmail, password, setPassword, showLoginPassword, setShowLoginPassword, submitLogin, isLoginSubmitting, error, info }) => {
+  const handleForgotPassword = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const forgotPasswordUrl = getCognitoForgotPasswordUrl(userEmail);
+    window.location.href = forgotPasswordUrl;
+  };
+
   return (
     <form autoComplete="on" onSubmit={(e) => { e.preventDefault(); submitLogin(); }}>
       <div className="CwAdminLogin-login-title">Hei {userName}</div>
@@ -40,6 +48,22 @@ export const PasswordForm: React.FC<Props> = ({ userName, password, setPassword,
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
           )}
         </button>
+      </div>
+      <div style={{ width: '100%', maxWidth: 350, marginTop: 8, textAlign: 'right' }}>
+        <a 
+          href="#" 
+          onClick={handleForgotPassword}
+          style={{ 
+            fontSize: '13px', 
+            color: '#1976d2', 
+            textDecoration: 'none',
+            cursor: 'pointer'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.textDecoration = 'underline'}
+          onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}
+        >
+          Glemt passord?
+        </a>
       </div>
       {error && <div className="CwAdminLogin-login-error" role="alert" aria-live="assertive">{error}</div>}
       <div className="CwAdminLogin-login-button">
