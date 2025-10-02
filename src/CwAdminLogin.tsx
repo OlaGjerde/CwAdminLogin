@@ -52,9 +52,10 @@ const CwAdminLogin = () => {
   const [isLoginSubmitting, setIsLoginSubmitting] = useState(false);
   const [isSignupSubmitting, setIsSignupSubmitting] = useState(false);
   const [lastLoginAttempt, setLastLoginAttempt] = useState(0);
-  const [showPasswordForm, setShowPasswordForm] = useState(false);
-  const [showMfaForm, setShowMfaForm] = useState(false);
-  const [showSignupForm, setShowSignupForm] = useState(false);
+  // DISABLED: Future features - commented out to avoid unused variable errors
+  // const [showPasswordForm, setShowPasswordForm] = useState(false);
+  // const [showMfaForm, setShowMfaForm] = useState(false);
+  // const [showSignupForm, setShowSignupForm] = useState(false);
   // Stay logged in (only UI placement for now)
   const [stayLoggedIn, setStayLoggedIn] = useState(false);
   const [showStayInfoModal, setShowStayInfoModal] = useState(false);
