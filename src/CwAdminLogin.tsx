@@ -138,6 +138,7 @@ const CwAdminLogin = () => {
 
   // DISABLED: AppInstaller launch wrapper temporarily disabled (no fallback UI)
   // Hook-based launch wrapper
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const requestLaunch = (appUri: string, _downloadUrl: string, _type?: number) => {
     // Just launch without fallback UI - protocol handlers will still work
     launchWithFallback(appUri, () => {
@@ -249,9 +250,13 @@ const CwAdminLogin = () => {
           } else {
             setError('Kunne ikke hente tokens fra Cognito.');
           }
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error('OAuth callback error:', err);
-          const errorMsg = err?.response?.data?.details || err?.response?.data?.message || err?.message || 'En feil oppstod under pålogging fra Cognito.';
+          let errorMsg = 'En feil oppstod under pålogging fra Cognito.';
+          if (typeof err === 'object' && err !== null) {
+            const e = err as { response?: { data?: { details?: string; message?: string } }; message?: string };
+            errorMsg = e?.response?.data?.details || e?.response?.data?.message || e?.message || errorMsg;
+          }
           setError(`Cognito feil: ${errorMsg}`);
         }
       }

@@ -1,8 +1,8 @@
 {
-  "version": "0.10.5",
-  "commit": "d49eecd",
+  "version": "0.10.7",
+  "commit": "36c3d7c",
   "branch": "onlydownloadlink",
-  "timestamp": "2025-10-02T11:51:25.714Z",
+  "timestamp": "2025-10-03T05:59:31.768Z",
   "buildNumber": "",
-  "node": "v22.19.0"
+  "node": "v22.20.0"
 }

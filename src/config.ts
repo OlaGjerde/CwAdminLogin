@@ -1,6 +1,6 @@
 // Centralized configuration for URLs and endpoints
-//export const API_BASE = 'https://adminapi-dev.calwincloud.com';
-export const API_BASE = 'https://localhost:7059';
+export const API_BASE = 'https://adminapi-dev.calwincloud.com';
+//export const API_BASE = 'https://localhost:7059';
 export const CW_AUTH_ENDPOINT = `${API_BASE}/api`;
 // Per-type installer URLs. Keys correspond to app type numbers (0,1,2).
 // Update these URLs to the correct installer files for each environment as needed.
