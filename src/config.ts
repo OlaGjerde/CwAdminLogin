@@ -12,7 +12,7 @@ export const CW_AUTH_ENDPOINT = `${API_BASE}/api`;
 }; */
 // AWS Cognito Hosted UI configuration
 // TODO: Replace these with your actual Cognito User Pool and App Client details
-export const COGNITO_DOMAIN = 'https://calwincloud.auth.eu-north-1.amazoncognito.com'; // e.g., https://calwin-dev.auth.eu-north-1.amazoncognito.com
+export const COGNITO_DOMAIN = 'https://auth.calwincloud.com'; // e.g., https://calwin-dev.auth.eu-north-1.amazoncognito.com
 export const COGNITO_CLIENT_ID = 'gfm65hj23c2v7m1ncnobrdops'; // Your Cognito App Client ID
 export const COGNITO_REDIRECT_URI = window.location.origin; // Current app URL for callback
 // Supported app protocols
