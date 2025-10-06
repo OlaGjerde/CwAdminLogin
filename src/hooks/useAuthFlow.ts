@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { verifyEmail, signUp, login as apiLogin, respondToMfa, extractTokens, type VerifyEmailResult, type CognitoLikeResponse } from '../api/auth';
-import { getCognitoSignupUrl } from '../config';
+// getCognitoSignupUrl no longer used for automatic redirects; user now explicitly clicks signup link in UI
 
 export type AuthStep = 'login' | 'password' | 'mfa' | 'signup';
 
@@ -29,45 +29,52 @@ export function useAuthFlow() {
 
   const handleVerifyEmail = async (email: string) => {
     resetMessages();
+    if (!email) { setError('E-post er påkrevd.'); return; }
     const response = await verifyEmail(email);
+
+    // 404: Bruker finnes ikke – instruer bruker til å klikke opprett-konto lenken
     if (response.status === 404) {
-      // User not found - redirect to Cognito Hosted UI for signup
       setUserData(null);
-      const signupUrl = getCognitoSignupUrl(email);
-      window.location.href = signupUrl;
+      setError('Bruker finnes ikke.');
       return;
     }
+
     const data = response.data as VerifyEmailResult;
     const userStatus = data.UserStatus?.toUpperCase();
 
-    if (userStatus === 'UNCONFIRMED' || userStatus === 'UNKNOWN') {
-      // Unconfirmed or unknown user - redirect to Cognito Hosted UI for signup/confirmation
+    // UNCONFIRMED / UNKNOWN: fortell bruker hva som skjer uten redirect
+    if (userStatus === 'UNCONFIRMED') {
       setUserData({
         Username: data.Username,
         Email: email,
         PreferredLoginType: data.PreferredLoginType,
         CalWinAppTypes: data.CalWinAppTypes
       });
-      const signupUrl = getCognitoSignupUrl(email);
-      window.location.href = signupUrl;
+      // Do NOT suggest creating a new account here; simply instruct the user to confirm existing one
+      setInfo('Kontoen er opprettet men ikke bekreftet. Sjekk e-post (inkl. spam) for bekreftelse eller be administrator om å aktivere kontoen.');
+      return;
+    }
+    if (userStatus === 'UNKNOWN') {
+      setUserData(null);
+      setError('Fant ikke konto. Bruk lenken for å opprette en ny.');
       return;
     }
 
-    // PreferredLoginType is optional for now; proceed if we got a user record at all
+    // Hvis vi har tilstrekkelig brukerdata, gå til passordsteg
     if (data && (data.Username || data.Email || typeof data.PreferredLoginType !== 'undefined')) {
       setUserData({
         Username: data.Username,
         Email: email,
-        PreferredLoginType: data.PreferredLoginType, // may be undefined
+        PreferredLoginType: data.PreferredLoginType,
         CalWinAppTypes: data.CalWinAppTypes
       });
       setStep('password');
       return;
     }
-    // Login not found - redirect to Cognito Hosted UI for signup
+
+    // Fallback: ingen gyldig bruker
     setUserData(null);
-    const signupUrl = getCognitoSignupUrl(email);
-    window.location.href = signupUrl;
+    setError('Kunne ikke verifisere bruker. Opprett ny konto via lenken.');
   };
 
   const handleSignUp = async (email: string, password: string, confirm: string) => {

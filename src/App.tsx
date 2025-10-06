@@ -15,8 +15,8 @@ function App() {
         className="app-responsive-box"
       >
         <Row ratio={1} />
-        <Col ratio={30} />
-        <Col ratio={70} />
+        <Col ratio={20} />
+        <Col ratio={80} />
         <Item>
           <Location row={0} col={0} />
           <div className="app-left-panel">

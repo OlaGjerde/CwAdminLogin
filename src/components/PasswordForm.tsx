@@ -26,7 +26,7 @@ export const PasswordForm: React.FC<Props> = ({ userName, userEmail, password, s
   return (
     <form autoComplete="on" onSubmit={(e) => { e.preventDefault(); submitLogin(); }}>
       <div className="CwAdminLogin-login-title">Hei {userName}</div>
-      <div className="CwAdminLogin-login-subtitle">Vennligst skriv inn passordet ditt for å fortsette</div>
+      <div className="CwAdminLogin-login-subtitle">Vennligst skriv inn passordet ditt:</div>
       <div style={{ position: 'relative', width: '100%', maxWidth: 350 }}>
         <TextBox
           value={password}

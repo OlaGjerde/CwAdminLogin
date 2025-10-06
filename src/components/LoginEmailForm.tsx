@@ -1,6 +1,7 @@
 import React from 'react';
 import { TextBox } from 'devextreme-react/text-box';
 import { Button } from 'devextreme-react/button';
+import { getCognitoSignupUrl } from '../config';
 
 interface Props {
   login: string;
@@ -15,6 +16,20 @@ interface Props {
 }
 
 export const LoginEmailForm: React.FC<Props> = ({ login, setLogin, handleNext, stayLoggedIn, setStayLoggedIn, showStayInfoModal, setShowStayInfoModal, error, info }) => {
+  // Show the signup link only for specific states produced by verify flow:
+  // - User not found (404)
+  // - UNCONFIRMED
+  // - UNKNOWN
+  // - Generic verification failure (fallback)
+  // We infer these by matching substrings from current Norwegian messages.
+  const lowerErr = (error || '').toLowerCase();
+  const showSignupLink = (
+    // 404 / not found wording
+    lowerErr.includes('finnes ikke') ||
+    lowerErr.includes('fant ikke konto') ||
+    // generic verification failure (fallback)
+    lowerErr.includes('kunne ikke verifisere')
+  ); // UNCONFIRMED no longer triggers link; user must confirm existing account
   return (
     <form autoComplete="on" onSubmit={(e) => { e.preventDefault(); handleNext(); }}>
       <div className="CwAdminLogin-login-title">Velkommen</div>
@@ -81,6 +96,17 @@ export const LoginEmailForm: React.FC<Props> = ({ login, setLogin, handleNext, s
       </div>
       {error && <div className="CwAdminLogin-login-error">{error}</div>}
       {info && <div className="CwAdminLogin-login-info">{info}</div>}
+      {showSignupLink && (
+        <div className="CwAdminLogin-login-signup">
+          <a
+            href={getCognitoSignupUrl(login)}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Vennligst opprett en konto
+          </a>
+        </div>
+      )}
     </form>
   );
 };

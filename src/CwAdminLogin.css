@@ -51,6 +51,7 @@
   min-width: 0;
   box-sizing: border-box;
   max-width: 350px;
+  padding-top: 12px;
 }
 
 .CwAdminLogin-login-button .dx-button {
@@ -547,4 +548,14 @@
 
 .CwAdminLogin-installer-link-simple:active {
   color: #000000;
+}
+.CwAdminLogin-login-signup{
+  margin-top: 50px;
+  font-size: 13px;
+  color: #555;
+}
+.CwAdminLogin-login-signup a{
+  color: #1976d2;
+  text-decoration: underline;
+  font-weight: 600;
 }
