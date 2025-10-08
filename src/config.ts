@@ -11,9 +11,13 @@ export const CW_AUTH_ENDPOINT = `${API_BASE}/api`;
   2: 'https://calwinmedia-dev.calwincloud.com/CalWin8.appinstaller'
 }; */
 // AWS Cognito Hosted UI configuration
-// TODO: Replace these with your actual Cognito User Pool and App Client details
-export const COGNITO_DOMAIN = 'https://auth.calwincloud.com'; // e.g., https://calwin-dev.auth.eu-north-1.amazoncognito.com
-export const COGNITO_CLIENT_ID = 'gfm65hj23c2v7m1ncnobrdops'; // Your Cognito App Client ID
+// You can override COGNITO_DOMAIN via Vite env: VITE_COGNITO_DOMAIN
+export const COGNITO_AWS_REGION_DOMAIN = 'https://calwincloud.auth.eu-north-1.amazoncognito.com';
+// Move env declaration above for usage
+type ViteEnv = { [k: string]: string | undefined };
+const env = (import.meta as unknown as { env?: ViteEnv }).env || {};
+export const COGNITO_DOMAIN = (env.VITE_COGNITO_DOMAIN && env.VITE_COGNITO_DOMAIN.trim()) || 'https://auth.calwincloud.com'; // Custom domain by default
+export const COGNITO_CLIENT_ID = '656e5ues1tvo5tk9e00u5f0ft3'; // Your Cognito App Client ID
 export const COGNITO_REDIRECT_URI = window.location.origin; // Current app URL for callback
 // Supported app protocols
 export const PROTOCOL_CALWIN = 'calwin://';
@@ -25,10 +29,9 @@ export const INSTALLER_DOWNLOAD_URL = 'https://calwinmedia-dev.calwincloud.com/C
 // Refresh scheduling margin (seconds before access token exp when we attempt refresh)
 export const REFRESH_MARGIN_SECONDS = 120;
 // Installations caching & retry configuration (override via Vite env vars if needed)
-type ViteEnv = { [k: string]: string | undefined };
-const env = (import.meta as unknown as { env?: ViteEnv }).env || {};
+// env already declared above; helper num remains
 const num = (v: string | undefined) => (v != null && v !== '' && !Number.isNaN(Number(v))) ? Number(v) : undefined;
-export const INSTALLATIONS_STALE_MS = num(env.VITE_INSTALLATIONS_STALE_MS) || 20_000; // 20s default
+export const INSTALLATIONS_STALE_MS = num(env.VITE_INSTALLATIONS_STALE_MS) || 40_000; // 40s default
 export const INSTALLATIONS_RETRY_BASE_MS = num(env.VITE_INSTALLATIONS_RETRY_BASE_MS) || 2_000; // initial backoff
 export const INSTALLATIONS_RETRY_MAX_MS = num(env.VITE_INSTALLATIONS_RETRY_MAX_MS) || 30_000; // cap
 export const INSTALLATIONS_RETRY_MAX_ATTEMPTS = num(env.VITE_INSTALLATIONS_RETRY_MAX_ATTEMPTS) || 6; // ~ up to ~2min worst case

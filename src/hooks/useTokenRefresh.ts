@@ -10,13 +10,14 @@ interface Params {
   tokens: { accessToken: string; refreshToken: string } | null;
   setRawTokens: (accessToken: string, refreshToken: string) => void;
   logout: () => void;
+  onDebug?: (msg: string) => void;
 }
 
 /**
  * Handles scheduling and executing access token refresh based on exp claim.
  * Returns nothing; side-effects only.
  */
-export function useTokenRefresh({ stayLoggedIn, tokens, setRawTokens, logout }: Params) {
+export function useTokenRefresh({ stayLoggedIn, tokens, setRawTokens, logout, onDebug }: Params) {
   useEffect(() => {
     if (!stayLoggedIn || !tokens?.accessToken || !tokens.refreshToken) return;
     let canceled = false;
@@ -30,14 +31,14 @@ export function useTokenRefresh({ stayLoggedIn, tokens, setRawTokens, logout }: 
     let delayMs = (payload.exp - REFRESH_MARGIN_SECONDS - nowSec) * 1000;
     if (delayMs < 5000) delayMs = 5000;
 
-    if (import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1') {
-      logDebug('[tokenRefresh] scheduled', { delayMs, now: new Date().toISOString(), exp: payload.exp });
-    }
+    const nowIso = new Date().toISOString();
+    logDebug('[tokenRefresh] scheduled', { delayMs, now: nowIso, exp: payload.exp });
+    onDebug?.(`Token refresh scheduled in ${(delayMs/1000).toFixed(0)}s (exp=${payload.exp})`);
     const timer = setTimeout(async () => {
       if (canceled) return;
-      if (import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1') {
-        logDebug('[tokenRefresh] firing', { at: new Date().toISOString() });
-      }
+      const fireIso = new Date().toISOString();
+      logDebug('[tokenRefresh] firing', { at: fireIso });
+      onDebug?.('Token refresh firing');
       try {
         const resp = await refreshTokens(rawRefresh);
         const dataObj = resp.data as Record<string, unknown> & { Cognito?: Record<string, unknown> };
@@ -48,23 +49,33 @@ export function useTokenRefresh({ stayLoggedIn, tokens, setRawTokens, logout }: 
           try {
             localStorage.setItem('cw_tokens', JSON.stringify({ a: obfuscate(at), r: obfuscate(rt), ts: Date.now() }));
           } catch { /* ignore */ }
-          if (import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1') {
-            logDebug('[tokenRefresh] success new access fragment', at.slice(0,12)+'...');
-          }
-        } else if (resp.status === 401) {
+          logDebug('[tokenRefresh] success new access fragment', at.slice(0,12)+'...');
+          onDebug?.('Token refresh success');
+        } else if (resp.status === 401 || resp.status === 403) {
           try {
             localStorage.removeItem('cw_stay');
             localStorage.removeItem('cw_tokens');
             localStorage.removeItem('cw_user');
           } catch { /* ignore */ }
           logout();
-          if (import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1') {
-            logWarn('[tokenRefresh] 401 logout');
-          }
+          logWarn(`[tokenRefresh] ${resp.status} logout`);
+          onDebug?.(`Token refresh failed: ${resp.status}, logging out`);
         }
       } catch (err) {
-        if (import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1') {
+        const anyErr = err as { response?: { status?: number } } | undefined;
+        const status = anyErr?.response?.status;
+        if (status === 401 || status === 403) {
+          try {
+            localStorage.removeItem('cw_stay');
+            localStorage.removeItem('cw_tokens');
+            localStorage.removeItem('cw_user');
+          } catch { /* ignore */ }
+          logout();
+          logWarn(`[tokenRefresh] ${status} in catch -> logout`);
+          onDebug?.(`Token refresh error: ${status}, logging out`);
+        } else {
           logWarn('[tokenRefresh] error', err);
+          onDebug?.('Token refresh error');
         }
       }
     }, delayMs);
@@ -72,9 +83,8 @@ export function useTokenRefresh({ stayLoggedIn, tokens, setRawTokens, logout }: 
     return () => { 
       canceled = true; 
       clearTimeout(timer); 
-      if (import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1') {
-        logDebug('[tokenRefresh] cleanup');
-      }
+      logDebug('[tokenRefresh] cleanup');
+      onDebug?.('Token refresh cleanup');
     };
-  }, [stayLoggedIn, tokens, setRawTokens, logout]);
+  }, [stayLoggedIn, tokens, setRawTokens, logout, onDebug]);
 }

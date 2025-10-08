@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { obfuscate, deobfuscate } from './utils/tokens';
 import { useAuthFlow } from './hooks/useAuthFlow';
 import { useInstallations } from './hooks/useInstallations';
@@ -14,6 +14,7 @@ import { TextBox } from 'devextreme-react/text-box';
 import { Button } from 'devextreme-react/button';
 import { exchangeCodeForTokens, extractTokens } from './api/auth';
 import { COGNITO_REDIRECT_URI, INSTALLER_DOWNLOAD_URL } from './config';
+import { debugLoggingEnabled } from './utils/logger';
 
 // UserData shape handled internally by useAuthFlow; no local interface needed
 
@@ -60,6 +61,7 @@ const CwAdminLogin = () => {
   const [stayLoggedIn, setStayLoggedIn] = useState(false);
   const [showStayInfoModal, setShowStayInfoModal] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [debugMsgs, setDebugMsgs] = useState<string[]>([]);
   // Session control simplified: single click logout button (lock badge)
 
   // DISABLED: AppInstaller fallback scroll behavior temporarily disabled
@@ -298,7 +300,16 @@ const CwAdminLogin = () => {
     setHydrated(true);
   }, [hydrated, setRawTokens, setUserData]);
   // Token refresh scheduling (encapsulated in hook)
-  useTokenRefresh({ stayLoggedIn, tokens, setRawTokens, logout });
+  const onRefreshDebug = useCallback((msg: string) => {
+    if (!debugLoggingEnabled) return;
+    setDebugMsgs(prev => {
+      const next = [...prev, `${new Date().toLocaleTimeString()} ${msg}`];
+      // keep last 10 messages
+      return next.slice(-10);
+    });
+  }, []);
+
+  useTokenRefresh({ stayLoggedIn, tokens, setRawTokens, logout, onDebug: onRefreshDebug });
 
   // handleLogout removed (logic now inline with lock button click)
 
@@ -440,6 +451,50 @@ const CwAdminLogin = () => {
         </>
       )}
     </div>
+    {debugLoggingEnabled && debugMsgs.length > 0 && (
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 12,
+          left: 12,
+          zIndex: 2000,
+          background: 'rgba(17,26,36,0.92)',
+          color: '#e6f0f7',
+          fontSize: 12,
+          maxWidth: 420,
+          boxShadow: '0 6px 18px rgba(0,0,0,.3)',
+          borderRadius: 8,
+          padding: '8px 10px 8px 10px',
+          border: '1px solid rgba(255,255,255,0.08)'
+        }}
+        role="status"
+        aria-live="polite"
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+          <div style={{ fontWeight: 600, fontSize: 12, opacity: 0.9 }}>Debug (refresh)</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              type="button"
+              onClick={() => setDebugMsgs([])}
+              style={{ background: 'transparent', color: '#9ac8f0', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '2px 6px', cursor: 'pointer', fontSize: 11 }}
+            >Tøm</button>
+            <button
+              type="button"
+              onClick={() => setDebugMsgs(prev => prev.length ? [prev[prev.length - 1]] : prev)}
+              title="Vis kun siste"
+              style={{ background: 'transparent', color: '#9ac8f0', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '2px 6px', cursor: 'pointer', fontSize: 11 }}
+            >Sist</button>
+          </div>
+        </div>
+        <div style={{ maxHeight: 140, overflowY: 'auto', paddingRight: 2 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {debugMsgs.map((m, i) => (
+              <li key={i} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', opacity: 0.95 }}>{m}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    )}
     
     {/* DISABLED: AppInstaller download modal temporarily disabled */}
     {/* showDownloadModal && (

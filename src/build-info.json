@@ -1,8 +1,8 @@
 {
-  "version": "0.10.10",
-  "commit": "fa58a67",
+  "version": "0.10.12",
+  "commit": "3d2b498",
   "branch": "onlydownloadlink",
-  "timestamp": "2025-10-06T09:53:29.071Z",
+  "timestamp": "2025-10-08T10:41:38.099Z",
   "buildNumber": "",
   "node": "v22.20.0"
 }
