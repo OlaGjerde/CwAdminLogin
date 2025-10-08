@@ -173,16 +173,18 @@ const CwAdminLogin = () => {
 
   // Merge installation app types into userData legacy appTypes
   useEffect(() => {
-    if (installations.length && userData) {
-      const appTypes = installations.map(i => i.appType).filter((v): v is number => typeof v === 'number');
-      if (appTypes.length) {
-        setUserData(prev => {
-          if (!prev) return prev;
-          const merged = new Set([...(prev.CalWinAppTypes || []), ...appTypes]);
-          return { ...prev, CalWinAppTypes: Array.from(merged).sort() };
-        });
-      }
-    }
+    if (!installations.length || !userData) return;
+    const appTypes = installations
+      .map(i => i.appType)
+      .filter((v): v is number => typeof v === 'number');
+    if (!appTypes.length) return;
+
+    const current = [...(userData.CalWinAppTypes || [])].sort((a, b) => a - b);
+    const merged = Array.from(new Set([...current, ...appTypes])).sort((a, b) => a - b);
+    const isSame = current.length === merged.length && current.every((v, i) => v === merged[i]);
+    if (isSame) return; // nothing to update
+
+    setUserData(prev => (prev ? { ...prev, CalWinAppTypes: merged } : prev));
   }, [installations, userData, setUserData]);
 
   // Autofocus relevant field when step changes

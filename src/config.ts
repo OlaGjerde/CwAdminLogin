@@ -41,7 +41,6 @@ export const INSTALLATIONS_RETRY_MAX_ATTEMPTS = num(env.VITE_INSTALLATIONS_RETRY
  * Redirects directly to the signup page
  */
 export function getCognitoSignupUrl(email?: string): string {
-  console.log('Redirect URI being used:', COGNITO_REDIRECT_URI);
   const params = new URLSearchParams({
     client_id: COGNITO_CLIENT_ID,
     response_type: 'code',
@@ -53,7 +52,6 @@ export function getCognitoSignupUrl(email?: string): string {
   }
   // Use /signup to go directly to signup page
   const url = `${COGNITO_DOMAIN}/signup?${params.toString()}`;
-  console.log('Full Cognito signup URL:', url);
   return url;
 }
 
@@ -61,7 +59,6 @@ export function getCognitoSignupUrl(email?: string): string {
  * Build Cognito Hosted UI URL for forgot password
  */
 export function getCognitoForgotPasswordUrl(email?: string): string {
-  console.log('Redirect URI being used:', COGNITO_REDIRECT_URI);
   const params = new URLSearchParams({
     client_id: COGNITO_CLIENT_ID,
     response_type: 'code',
@@ -72,7 +69,6 @@ export function getCognitoForgotPasswordUrl(email?: string): string {
     params.set('login_hint', email);
   }
   const url = `${COGNITO_DOMAIN}/forgotPassword?${params.toString()}`;
-  console.log('Full Cognito forgot password URL:', url);
   return url;
 }
 

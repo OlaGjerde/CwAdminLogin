@@ -4,12 +4,12 @@
 interface ViteEnv { DEV?: boolean; VITE_DEBUG_LOG?: string; }
 const env: ViteEnv = (import.meta as unknown as { env?: ViteEnv }).env || {};
 const enabled = ((): boolean => {
-  if (env.DEV) return true;
   const flag = env.VITE_DEBUG_LOG;
-  if (flag) {
-    const v = flag.toLowerCase();
-    if (v === '1' || v === 'true' || v === 'yes') return true;
+  if (flag != null) {
+    const v = String(flag).toLowerCase();
+    return v === '1' || v === 'true' || v === 'yes' || v === 'on';
   }
+  // Default: disabled unless explicitly enabled via VITE_DEBUG_LOG
   return false;
 })();
 
