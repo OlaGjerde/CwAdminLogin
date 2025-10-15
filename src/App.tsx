@@ -260,35 +260,50 @@ function AppContent(props: AppContentProps) {
 
   // Handle installation selection - launch the desktop app
   const handleInstallationChange = async (installation: NormalizedInstallation) => {
+    console.log('=== handleInstallationChange called ===');
+    console.log('Installation:', installation);
+    console.log('Installation ID:', installation.id);
+    console.log('Installation AppType:', installation.appType);
+    console.log('Has tokens:', !!props.tokens);
+    
     // First switch the workspace context
     switchWorkspace(installation);
 
     // Then launch the desktop application
-    if (props.tokens?.accessToken) {
-      try {
-        const rawAccessToken = atob(props.tokens.accessToken);
-        const token = await props.generateLaunchToken(rawAccessToken, installation.id);
+    if (!props.tokens?.accessToken) {
+      console.error('No access token available');
+      return;
+    }
+
+    try {
+      console.log('Decoding access token...');
+      const rawAccessToken = atob(props.tokens.accessToken);
+      console.log('Access token decoded, generating launch token...');
+      
+      const token = await props.generateLaunchToken(rawAccessToken, installation.id);
+      console.log('Launch token received:', token ? 'YES' : 'NO');
+      
+      if (token) {
+        // Determine protocol based on app type
+        const protocol = installation.appType === 0 
+          ? PROTOCOL_CALWIN 
+          : installation.appType === 1 
+          ? PROTOCOL_CALWIN_TEST 
+          : PROTOCOL_CALWIN_DEV;
         
-        if (token) {
-          // Determine protocol based on app type
-          const protocol = installation.appType === 0 
-            ? PROTOCOL_CALWIN 
-            : installation.appType === 1 
-            ? PROTOCOL_CALWIN_TEST 
-            : PROTOCOL_CALWIN_DEV;
-          
-          const uri = `${protocol}${encodeURIComponent(token)}`;
-          console.log('Launching installation:', installation.name, 'with URI:', uri);
-          
-          props.launchWithFallback(uri, () => {
-            console.log('Launch failed - protocol handler not installed');
-          });
-        } else {
-          console.error('Failed to generate launch token');
-        }
-      } catch (err) {
-        console.error('Error launching installation:', err);
+        console.log('Selected protocol:', protocol);
+        
+        const uri = `${protocol}${encodeURIComponent(token)}`;
+        console.log('Launching with URI:', uri);
+        
+        await props.launchWithFallback(uri, () => {
+          console.log('Launch failed - protocol handler not installed');
+        });
+      } else {
+        console.error('Failed to generate launch token - token is null');
       }
+    } catch (err) {
+      console.error('Error launching installation:', err);
     }
   };
 
