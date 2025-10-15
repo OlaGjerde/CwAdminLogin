@@ -6,7 +6,6 @@ import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
 import { WorkbenchArea } from './components/WorkbenchArea';
 import { AuthOverlay } from './components/AuthOverlay';
-import NewsFeed from './NewsFeed';
 import './App.css';
 import BuildFooter from './components/BuildFooter';
 import 'devextreme/dist/css/dx.light.css';
@@ -97,9 +96,12 @@ function App() {
   // Refresh installations when logged in
   useEffect(() => {
     if (tokens?.accessToken) {
-      refreshIfStale(tokens.accessToken);
+      // Only fetch installations when we have valid tokens
+      refreshIfStale(tokens.accessToken).catch((err) => {
+        console.error('Failed to fetch installations:', err);
+      });
     }
-  }, [tokens, refreshIfStale]);
+  }, [tokens?.accessToken, refreshIfStale]);
 
   const submitSignup = async () => {
     if (isSignupSubmitting) return;
@@ -194,14 +196,9 @@ function App() {
 
             {/* Main Content Area */}
             <div className="app-content">
-              {/* Left: Workbench Area */}
+              {/* Workbench Area - Full Width */}
               <div className="app-workbench">
                 <WorkbenchArea authTokens={tokens} />
-              </div>
-
-              {/* Right: NewsFeed */}
-              <div className="app-newsfeed">
-                <NewsFeed />
               </div>
             </div>
           </>
