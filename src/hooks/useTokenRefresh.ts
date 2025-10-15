@@ -92,4 +92,37 @@ export function useTokenRefresh({ stayLoggedIn, tokens, setRawTokens, logout, on
       onDebugRef.current?.('Token refresh cleanup');
     };
   }, [stayLoggedIn, tokens]);
+
+  // Periodic expiration check for users who haven't checked "remember me"
+  useEffect(() => {
+    // Only run this check when NOT staying logged in and we have tokens
+    if (stayLoggedIn || !tokens?.accessToken) return;
+
+    const checkExpiration = () => {
+      const rawAccess = (() => { try { return atob(tokens.accessToken); } catch { return null; } })();
+      if (!rawAccess) return;
+
+      const payload = decodeJwt(rawAccess);
+      if (!payload?.exp) return;
+      
+      const nowSec = Math.floor(Date.now() / 1000);
+      if (payload.exp <= nowSec) {
+        onDebugRef.current?.('Token expired (stayLoggedIn=false), logging out');
+        try {
+          localStorage.removeItem('cw_stay');
+          localStorage.removeItem('cw_tokens');
+          localStorage.removeItem('cw_user');
+        } catch { /* ignore */ }
+        logoutRef.current();
+      }
+    };
+
+    // Check immediately on mount
+    checkExpiration();
+    
+    // Then check every 30 seconds
+    const interval = setInterval(checkExpiration, 30000);
+
+    return () => clearInterval(interval);
+  }, [stayLoggedIn, tokens?.accessToken]);
 }
