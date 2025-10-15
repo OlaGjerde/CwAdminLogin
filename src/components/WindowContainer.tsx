@@ -46,8 +46,54 @@ export const WindowContainer: React.FC<WindowContainerProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [taskbarHeight, setTaskbarHeight] = useState(140); // Default fallback
 
   const { x, y, width, height, isMinimized, isMaximized, zIndex } = windowState;
+
+  // Dynamically calculate available workspace height (container height minus taskbar)
+  useEffect(() => {
+    const updateTaskbarHeight = () => {
+      const container = document.querySelector('.workbench-windows-container') as HTMLElement;
+      const taskbar = document.querySelector('.workbench-apps-grid') as HTMLElement;
+      
+      if (container && taskbar) {
+        const containerHeight = container.offsetHeight;
+        const taskbarHeight = taskbar.offsetHeight;
+        const availableHeight = containerHeight - taskbarHeight;
+        
+        // Store just the taskbar height for the calc
+        setTaskbarHeight(taskbarHeight);
+        console.log('Container height:', containerHeight, 'Taskbar height:', taskbarHeight, 'Available:', availableHeight);
+      } else if (taskbar) {
+        // Fallback: just use taskbar height
+        const height = taskbar.offsetHeight;
+        setTaskbarHeight(height);
+        console.log('Taskbar height calculated:', height);
+      }
+    };
+
+    // Initial calculation with a small delay to ensure DOM is ready
+    setTimeout(updateTaskbarHeight, 100);
+
+    // Recalculate on window resize
+    window.addEventListener('resize', updateTaskbarHeight);
+    
+    // Use ResizeObserver if available for more accurate tracking
+    let resizeObserver: ResizeObserver | null = null;
+    const taskbar = document.querySelector('.workbench-apps-grid') as HTMLElement;
+    
+    if (taskbar && 'ResizeObserver' in window) {
+      resizeObserver = new ResizeObserver(updateTaskbarHeight);
+      resizeObserver.observe(taskbar);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateTaskbarHeight);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
+  }, []);
 
   // Handle window dragging
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -59,6 +105,13 @@ export const WindowContainer: React.FC<WindowContainerProps> = ({
       y: e.clientY - y
     });
     onFocus();
+  };
+
+  // Handle double-click to toggle maximize
+  const handleDoubleClick = () => {
+    if (maximizable) {
+      onToggleMaximize();
+    }
   };
 
   // Handle window resizing
@@ -108,7 +161,7 @@ export const WindowContainer: React.FC<WindowContainerProps> = ({
   }, [isDragging, isResizing, dragStart, width, height, minWidth, minHeight, onMove, onResize]);
 
   if (isMinimized) {
-    return null; // TODO: Add taskbar for minimized windows
+    return null; // Window is hidden when minimized
   }
 
   const style: React.CSSProperties = isMaximized
@@ -116,8 +169,10 @@ export const WindowContainer: React.FC<WindowContainerProps> = ({
         position: 'absolute',
         top: 0,
         left: 0,
+        right: 0,
+        bottom: `${taskbarHeight}px`,
         width: '100%',
-        height: '100%',
+        height: 'auto',
         zIndex
       }
     : {
@@ -139,6 +194,7 @@ export const WindowContainer: React.FC<WindowContainerProps> = ({
       <div 
         className="window-header"
         onMouseDown={handleMouseDown}
+        onDoubleClick={handleDoubleClick}
       >
         <div className="window-title">{title}</div>
         <div className="window-controls">

@@ -128,9 +128,15 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
     return {
       close: () => closeApp(instanceId),
       
-      minimize: () => updateWindowState(instanceId, { 
-        isMinimized: true 
-      }),
+      minimize: () => {
+        const app = state.openApps.find(a => a.instanceId === instanceId);
+        if (app) {
+          // Toggle minimize state
+          updateWindowState(instanceId, { 
+            isMinimized: !app.windowState.isMinimized 
+          });
+        }
+      },
       
       toggleMaximize: () => {
         const app = state.openApps.find(a => a.instanceId === instanceId);

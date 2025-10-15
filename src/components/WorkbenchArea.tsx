@@ -25,10 +25,31 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
     return [...customAppRegistry, ...availableApps];
   }, [availableApps]);
 
-  // Handle app icon click
+  // Handle app icon click - restore if minimized, bring to front if open, or open new
   const handleAppClick = (appId: string) => {
     console.log('App icon clicked:', appId);
-    openApp(appId);
+    
+    // Check if app is already open
+    const existingApp = state.openApps.find(app => app.appId === appId);
+    
+    if (existingApp) {
+      // If minimized, restore it
+      if (existingApp.windowState.isMinimized) {
+        console.log('Restoring minimized app:', appId);
+        const windowControl = getWindowControl(existingApp.instanceId);
+        windowControl.minimize(); // Toggle minimize to restore
+        // Also bring to front after restoring
+        openApp(appId);
+      } else {
+        // Already visible, just bring to front
+        console.log('Bringing app to front:', appId);
+        openApp(appId);
+      }
+    } else {
+      // Open new instance
+      console.log('Opening new app instance:', appId);
+      openApp(appId);
+    }
   };
 
   // Handle window focus
