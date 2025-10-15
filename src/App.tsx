@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { useAuthFlow, type AuthStep, type UserData, type TokensEncoded } from './hooks/useAuthFlow';
 import { useInstallations } from './hooks/useInstallations';
 import { useTokenRefresh } from './hooks/useTokenRefresh';
+import { useLauncher } from './hooks/useLauncher';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
 import { WorkbenchArea } from './components/WorkbenchArea';
 import { AuthOverlay } from './components/AuthOverlay';
 import type { NormalizedInstallation } from './types/installations';
+import { PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } from './config';
 import './App.css';
 import BuildFooter from './components/BuildFooter';
 import 'devextreme/dist/css/dx.light.css';
@@ -35,7 +37,9 @@ function App() {
     handleVerifyEmail, handleSignUp, handleLogin, logout, setRawTokens
   } = useAuthFlow();
   
-  const { installations, refreshIfStale } = useInstallations();
+  const { installations, refreshIfStale, generateLaunchToken } = useInstallations();
+  const { launchWithFallback } = useLauncher();
+  
   useTokenRefresh({ 
     stayLoggedIn, 
     tokens, 
@@ -180,6 +184,8 @@ function App() {
         tokens={tokens}
         logout={logout}
         installations={installations}
+        generateLaunchToken={generateLaunchToken}
+        launchWithFallback={launchWithFallback}
       />
     </WorkspaceProvider>
   );
@@ -220,6 +226,8 @@ interface AppContentProps {
   tokens: TokensEncoded | null;
   logout: () => void;
   installations: NormalizedInstallation[];
+  generateLaunchToken: (rawAccessToken: string, installationId: string) => Promise<string | null>;
+  launchWithFallback: (appUri: string, onFailure?: () => void) => Promise<void>;
 }
 
 function AppContent(props: AppContentProps) {
@@ -249,6 +257,40 @@ function AppContent(props: AppContentProps) {
       }
     }
   }, [props.installations, state.currentWorkspace, switchWorkspace]);
+
+  // Handle installation selection - launch the desktop app
+  const handleInstallationChange = async (installation: NormalizedInstallation) => {
+    // First switch the workspace context
+    switchWorkspace(installation);
+
+    // Then launch the desktop application
+    if (props.tokens?.accessToken) {
+      try {
+        const rawAccessToken = atob(props.tokens.accessToken);
+        const token = await props.generateLaunchToken(rawAccessToken, installation.id);
+        
+        if (token) {
+          // Determine protocol based on app type
+          const protocol = installation.appType === 0 
+            ? PROTOCOL_CALWIN 
+            : installation.appType === 1 
+            ? PROTOCOL_CALWIN_TEST 
+            : PROTOCOL_CALWIN_DEV;
+          
+          const uri = `${protocol}${encodeURIComponent(token)}`;
+          console.log('Launching installation:', installation.name, 'with URI:', uri);
+          
+          props.launchWithFallback(uri, () => {
+            console.log('Launch failed - protocol handler not installed');
+          });
+        } else {
+          console.error('Failed to generate launch token');
+        }
+      } catch (err) {
+        console.error('Error launching installation:', err);
+      }
+    }
+  };
 
   return (
     <div className="app-root">
@@ -297,7 +339,7 @@ function AppContent(props: AppContentProps) {
               <WorkspaceSelector
                 currentWorkspace={state.currentWorkspace}
                 workspaces={state.availableWorkspaces}
-                onWorkspaceChange={switchWorkspace}
+                onWorkspaceChange={handleInstallationChange}
                 isLoading={state.isLoading}
               />
             </div>
