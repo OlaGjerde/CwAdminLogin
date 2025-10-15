@@ -97,10 +97,15 @@ function App() {
   // Refresh installations when logged in
   useEffect(() => {
     if (tokens?.accessToken) {
-      // Only fetch installations when we have valid tokens
-      refreshIfStale(tokens.accessToken).catch((err) => {
-        console.error('Failed to fetch installations:', err);
-      });
+      // Decode the obfuscated token before using it
+      try {
+        const rawAccessToken = atob(tokens.accessToken);
+        refreshIfStale(rawAccessToken).catch((err) => {
+          console.error('Failed to fetch installations:', err);
+        });
+      } catch (err) {
+        console.error('Failed to decode access token:', err);
+      }
     }
   }, [tokens?.accessToken, refreshIfStale]);
 
@@ -129,6 +134,12 @@ function App() {
 
   // Show auth overlay if not logged in
   const showAuth = !tokens;
+
+  // Debug logging for installations
+  useEffect(() => {
+    console.log('Installations count:', installations.length);
+    console.log('Installations data:', installations);
+  }, [installations]);
 
   return (
     <WorkspaceProvider 
@@ -213,6 +224,13 @@ interface AppContentProps {
 
 function AppContent(props: AppContentProps) {
   const { state, switchWorkspace } = useWorkspace();
+
+  // Debug workspace state
+  useEffect(() => {
+    console.log('WorkspaceContext state:', state);
+    console.log('Current workspace:', state.currentWorkspace);
+    console.log('Available workspaces:', state.availableWorkspaces);
+  }, [state]);
 
   // Persist selected workspace to localStorage
   useEffect(() => {
