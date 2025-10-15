@@ -4,8 +4,6 @@ import type { WindowState } from '../types/workspace';
 import './WindowContainer.css';
 
 interface WindowContainerProps {
-  /** Unique instance ID */
-  instanceId: string;
   /** Window title */
   title: string;
   /** Window state */
@@ -30,7 +28,6 @@ interface WindowContainerProps {
 }
 
 export const WindowContainer: React.FC<WindowContainerProps> = ({
-  instanceId,
   title,
   windowState,
   children,
@@ -148,30 +145,21 @@ export const WindowContainer: React.FC<WindowContainerProps> = ({
           <Button
             icon="minus"
             stylingMode="text"
-            onClick={(e) => {
-              e.stopPropagation();
-              onMinimize();
-            }}
+            onClick={() => onMinimize()}
             hint="Minimize"
           />
           {maximizable && (
             <Button
               icon={isMaximized ? "restore" : "expand"}
               stylingMode="text"
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleMaximize();
-              }}
+              onClick={() => onToggleMaximize()}
               hint={isMaximized ? "Restore" : "Maximize"}
             />
           )}
           <Button
             icon="close"
             stylingMode="text"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
+            onClick={() => onClose()}
             hint="Close"
           />
         </div>

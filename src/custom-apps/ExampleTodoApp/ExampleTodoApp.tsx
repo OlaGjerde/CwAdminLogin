@@ -14,7 +14,6 @@ interface TodoItem {
 
 export const ExampleTodoAppComponent: React.FC<CustomAppProps> = ({
   workspace,
-  windowControl,
   instanceId
 }) => {
   const [todos, setTodos] = useState<TodoItem[]>([]);
