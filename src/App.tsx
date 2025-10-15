@@ -148,7 +148,7 @@ function App() {
   return (
     <WorkspaceProvider 
       availableWorkspaces={installations}
-      initialWorkspace={installations[0] || null}
+      initialWorkspace={null}
     >
       <AppContent
         showAuth={showAuth}
@@ -234,7 +234,7 @@ function AppContent(props: AppContentProps) {
   const { state, switchWorkspace } = useWorkspace();
   
   // Destructure the props we need for the callback
-  const { tokens, generateLaunchToken, launchWithFallback, installations } = props;
+  const { tokens, generateLaunchToken, launchWithFallback } = props;
 
   // Debug workspace state
   useEffect(() => {
@@ -243,24 +243,8 @@ function AppContent(props: AppContentProps) {
     console.log('Available workspaces:', state.availableWorkspaces);
   }, [state]);
 
-  // Persist selected workspace to localStorage
-  useEffect(() => {
-    if (state.currentWorkspace) {
-      localStorage.setItem('selectedWorkspaceId', state.currentWorkspace.id);
-    }
-  }, [state.currentWorkspace]);
-
-  // Restore selected workspace from localStorage (but don't launch)
-  useEffect(() => {
-    const savedWorkspaceId = localStorage.getItem('selectedWorkspaceId');
-    if (savedWorkspaceId && installations.length > 0) {
-      const savedWorkspace = installations.find(w => w.id === savedWorkspaceId);
-      if (savedWorkspace && state.currentWorkspace?.id !== savedWorkspaceId) {
-        // Only switch workspace context, don't launch
-        switchWorkspace(savedWorkspace);
-      }
-    }
-  }, [installations, state.currentWorkspace, switchWorkspace]);
+  // Note: We don't persist or restore workspace selection anymore
+  // User must explicitly select an installation each time they want to launch
 
   // Handle installation selection - launch the desktop app
   const handleInstallationChange = useCallback(async (installation: NormalizedInstallation) => {
