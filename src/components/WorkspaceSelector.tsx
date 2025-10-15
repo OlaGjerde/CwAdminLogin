@@ -30,22 +30,25 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
 
   const handleWorkspaceChange = (e: { value?: string }) => {
     console.log('WorkspaceSelector handleWorkspaceChange called with value:', e.value);
-    console.log('Available workspaces:', workspaces);
-    console.log('Workspace IDs:', workspaces.map(w => w.id));
+    console.log('Current workspace ID:', currentWorkspace?.id);
     
     if (!e.value) return;
     
+    // Don't trigger if selecting the same workspace
+    if (e.value === currentWorkspace?.id) {
+      console.log('Same workspace selected, skipping');
+      return;
+    }
+    
     const selected = workspaces.find(w => w.id === e.value);
     console.log('Found selected workspace:', selected);
-    console.log('Current workspace ID:', currentWorkspace?.id);
-    console.log('Selected ID:', selected?.id);
     
     if (selected) {
       console.log('Calling onWorkspaceChange with:', selected.name);
       onWorkspaceChange(selected);
       notify({
-        message: `Selected CalWin installation: ${selected.name}`,
-        type: 'success',
+        message: `Launching ${selected.name}...`,
+        type: 'info',
         displayTime: 2000,
         position: { at: 'top center', my: 'top center', offset: '0 20' }
       });

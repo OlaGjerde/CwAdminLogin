@@ -250,12 +250,13 @@ function AppContent(props: AppContentProps) {
     }
   }, [state.currentWorkspace]);
 
-  // Restore selected workspace from localStorage
+  // Restore selected workspace from localStorage (but don't launch)
   useEffect(() => {
     const savedWorkspaceId = localStorage.getItem('selectedWorkspaceId');
     if (savedWorkspaceId && installations.length > 0) {
       const savedWorkspace = installations.find(w => w.id === savedWorkspaceId);
       if (savedWorkspace && state.currentWorkspace?.id !== savedWorkspaceId) {
+        // Only switch workspace context, don't launch
         switchWorkspace(savedWorkspace);
       }
     }
