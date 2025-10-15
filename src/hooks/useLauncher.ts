@@ -10,23 +10,31 @@ export interface UseLauncherResult extends LaunchState {
 }
 
 // Attempt to open a URI and heuristically detect success via visibility / blur.
-// timeout slightly increased to reduce false negatives on slower systems
-function tryLaunchUri(uri: string, timeout = 1800): Promise<boolean> {
+// Reduced timeout to prevent hanging protocol dialogs
+function tryLaunchUri(uri: string, timeout = 500): Promise<boolean> {
   return new Promise((resolve) => {
     let handled = false;
     const onVisibilityChange = () => { if (document.hidden) handled = true; };
     const onBlur = () => { handled = true; };
     document.addEventListener('visibilitychange', onVisibilityChange);
     window.addEventListener('blur', onBlur);
+    
+    // Use a simpler approach - just set location directly
     try {
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      document.body.appendChild(iframe);
-      iframe.src = uri;
-      setTimeout(() => { try { document.body.removeChild(iframe); } catch { /* ignore */ } }, timeout + 100);
+      window.location.href = uri;
+      // Assume it worked if no error thrown
+      handled = true;
     } catch {
-      try { window.location.href = uri; } catch { /* ignore */ }
+      // Fallback: try opening in a new window
+      try {
+        const win = window.open(uri, '_blank');
+        if (win) {
+          win.close();
+          handled = true;
+        }
+      } catch { /* ignore */ }
     }
+    
     setTimeout(() => {
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('blur', onBlur);
