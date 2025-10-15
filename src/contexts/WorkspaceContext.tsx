@@ -70,6 +70,8 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
 
       // Create new app instance
       const instanceId = `${appId}-${Date.now()}`;
+      console.log('Opening app:', appId, 'Instance:', instanceId);
+      
       const newApp: OpenAppInstance = {
         instanceId,
         appId,

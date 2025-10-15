@@ -27,6 +27,7 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
 
   // Handle app icon click
   const handleAppClick = (appId: string) => {
+    console.log('App icon clicked:', appId);
     openApp(appId);
   };
 
@@ -94,7 +95,7 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
               key={app.id}
               app={app}
               onClick={() => handleAppClick(app.id)}
-              disabled={!state.currentWorkspace}
+              disabled={false}
             />
           ))
         )}
