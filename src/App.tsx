@@ -268,13 +268,12 @@ function AppContent(props: AppContentProps) {
     console.log('Installation ID:', installation.id);
     console.log('Installation AppType:', installation.appType);
     console.log('Has tokens:', !!tokens);
-    
-    // First switch the workspace context
-    switchWorkspace(installation);
 
-    // Then launch the desktop application
+    // Launch the desktop application FIRST
     if (!tokens?.accessToken) {
       console.error('No access token available');
+      // Still switch workspace even if we can't launch
+      switchWorkspace(installation);
       return;
     }
 
@@ -285,6 +284,7 @@ function AppContent(props: AppContentProps) {
       
       const token = await generateLaunchToken(rawAccessToken, installation.id);
       console.log('Launch token received:', token ? 'YES' : 'NO');
+      console.log('Launch token value:', token);
       
       if (token) {
         // Determine protocol based on app type
@@ -299,15 +299,22 @@ function AppContent(props: AppContentProps) {
         const uri = `${protocol}${encodeURIComponent(token)}`;
         console.log('Launching with URI:', uri);
         
+        // Launch first, then switch workspace
         await launchWithFallback(uri, () => {
           console.log('Launch failed - protocol handler not installed');
         });
+        
+        console.log('Launch completed, now switching workspace');
       } else {
         console.error('Failed to generate launch token - token is null');
       }
     } catch (err) {
       console.error('Error launching installation:', err);
     }
+    
+    // Switch workspace AFTER launch attempt
+    console.log('Switching workspace context');
+    switchWorkspace(installation);
   }, [tokens, generateLaunchToken, launchWithFallback, switchWorkspace]);
 
   return (

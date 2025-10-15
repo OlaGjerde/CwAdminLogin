@@ -29,9 +29,15 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
   }, [workspaces, currentWorkspace]);
 
   const handleWorkspaceChange = (e: { value?: string }) => {
+    console.log('WorkspaceSelector handleWorkspaceChange called with:', e.value);
     if (!e.value) return;
     const selected = workspaces.find(w => w.id === e.value);
+    console.log('Found selected workspace:', selected);
+    console.log('Current workspace ID:', currentWorkspace?.id);
+    console.log('Selected ID:', selected?.id);
+    
     if (selected && selected.id !== currentWorkspace?.id) {
+      console.log('Calling onWorkspaceChange with:', selected.name);
       onWorkspaceChange(selected);
       notify({
         message: `Selected CalWin installation: ${selected.name}`,
@@ -39,6 +45,8 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
         displayTime: 2000,
         position: { at: 'top center', my: 'top center', offset: '0 20' }
       });
+    } else {
+      console.log('Skipping - same workspace or not found');
     }
   };
 
