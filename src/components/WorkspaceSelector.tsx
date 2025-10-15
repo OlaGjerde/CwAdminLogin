@@ -21,13 +21,20 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
   onWorkspaceChange,
   isLoading = false
 }) => {
+  // Debug logging
+  React.useEffect(() => {
+    console.log('WorkspaceSelector - workspaces:', workspaces);
+    console.log('WorkspaceSelector - currentWorkspace:', currentWorkspace);
+    console.log('WorkspaceSelector - workspaces.length:', workspaces.length);
+  }, [workspaces, currentWorkspace]);
+
   const handleWorkspaceChange = (e: { value?: string }) => {
     if (!e.value) return;
     const selected = workspaces.find(w => w.id === e.value);
     if (selected && selected.id !== currentWorkspace?.id) {
       onWorkspaceChange(selected);
       notify({
-        message: `Switched to workspace: ${selected.name}`,
+        message: `Selected CalWin installation: ${selected.name}`,
         type: 'success',
         displayTime: 2000,
         position: { at: 'top center', my: 'top center', offset: '0 20' }
@@ -37,21 +44,21 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
 
   return (
     <div className="workspace-selector">
-      <label className="workspace-selector-label">Workspace:</label>
+      <label className="workspace-selector-label">CalWin Desktop:</label>
       <SelectBox
         dataSource={workspaces}
         value={currentWorkspace}
         displayExpr="name"
         valueExpr="id"
         onValueChanged={handleWorkspaceChange}
-        placeholder="Select a workspace..."
+        placeholder="Select a CalWin installation..."
         disabled={isLoading || workspaces.length === 0}
         stylingMode="outlined"
         width={300}
         showClearButton={false}
       />
       {workspaces.length === 0 && (
-        <span className="workspace-selector-empty">No workspaces available</span>
+        <span className="workspace-selector-empty">No CalWin installations available</span>
       )}
     </div>
   );
