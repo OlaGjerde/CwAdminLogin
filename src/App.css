@@ -1,53 +1,92 @@
-
 .app-root {
-  padding: 15px;
-  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   height: 100vh;
   width: 100vw;
   background: #f5f5f5;
+  overflow: hidden;
 }
 
-.app-responsive-box {
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  height: 100%;
-}
-
-
-/* Only one definition for each panel, with scaling styles */
-.app-left-panel {
-  height: 100%;
-  width: 100%;
-  padding: 1rem;
-  border-right: 1px solid #fff;
+/* Top Bar */
+.app-top-bar {
   display: flex;
-  align-items: stretch;
-  justify-content: stretch;
-  background: #fff; /* Example background, adjust as needed */
-  box-sizing: border-box;
-  position: relative; /* For absolute positioning of installer link */
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  border-bottom: 2px solid #dee2e6;
+  padding: 0 20px;
+  height: 60px;
+  flex-shrink: 0;
 }
 
-/* Make DummyLogin scale to fill the left panel */
-.app-left-panel > * {
-  flex: 1 1 auto;
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
+.app-top-bar-left {
+  flex: 1;
 }
 
-/* Ensure DummyLogin itself scales to fill parent */
-.app-left-panel .dummy-login-root {
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
+.app-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
 }
 
-.app-right-panel {
-  height: 100%;
-  width: 100%;
-  padding: 1rem;
-  background: #fff; /* Example background, adjust as needed */
-  box-sizing: border-box;
+.app-top-bar-center {
+  flex: 2;
+  display: flex;
+  justify-content: center;
+}
+
+.app-top-bar-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.app-user-info {
+  font-size: 14px;
+  color: #666;
+}
+
+/* Main Content Area */
+.app-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.app-workbench {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app-newsfeed {
+  width: 400px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  background: white;
+  border-left: 1px solid #dee2e6;
+  padding: 20px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .app-newsfeed {
+    width: 300px;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-content {
+    flex-direction: column;
+  }
+  
+  .app-newsfeed {
+    width: 100%;
+    height: 300px;
+    border-left: none;
+    border-top: 1px solid #dee2e6;
+  }
 }
