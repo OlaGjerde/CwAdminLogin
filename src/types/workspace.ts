@@ -73,8 +73,8 @@ export interface WindowControlAPI {
 export interface WorkspaceContextValue {
   /** Current workspace state */
   state: WorkspaceState;
-  /** Switch to a different workspace */
-  switchWorkspace: (installation: NormalizedInstallation) => void;
+  /** Switch to a different workspace (or null to clear selection) */
+  switchWorkspace: (installation: NormalizedInstallation | null) => void;
   /** Open an app in the workspace */
   openApp: (appId: string) => void;
   /** Close an app instance */

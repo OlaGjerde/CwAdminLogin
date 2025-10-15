@@ -34,11 +34,7 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
     
     if (!e.value) return;
     
-    // Don't trigger if selecting the same workspace
-    if (e.value === currentWorkspace?.id) {
-      console.log('Same workspace selected, skipping');
-      return;
-    }
+    // Allow reselecting the same workspace to launch it again
     
     const selected = workspaces.find(w => w.id === e.value);
     console.log('Found selected workspace:', selected);

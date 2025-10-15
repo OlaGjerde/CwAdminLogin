@@ -1,5 +1,6 @@
 import React from 'react';
 import { TextBox } from 'devextreme-react/text-box';
+import type { KeyDownEvent } from 'devextreme/ui/text_box';
 import { Button } from 'devextreme-react/button';
 import { getCognitoForgotPasswordUrl } from '../config';
 
@@ -23,8 +24,24 @@ export const PasswordForm: React.FC<Props> = ({ userName, userEmail, password, s
     window.location.href = forgotPasswordUrl;
   };
 
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    submitLogin();
+  };
+
+  const handleKeyDown = (e: KeyDownEvent) => {
+    if (e.event?.key === 'Enter') {
+      e.event.preventDefault();
+      e.event.stopPropagation();
+      handleSubmit();
+    }
+  };
+
   return (
-    <form autoComplete="on" onSubmit={(e) => { e.preventDefault(); submitLogin(); }}>
+    <form autoComplete="on" onSubmit={handleSubmit}>
       <div className="CwAdminLogin-login-title">Hei {userName}</div>
       <div className="CwAdminLogin-login-subtitle">Vennligst skriv inn passordet ditt:</div>
       <div style={{ position: 'relative', width: '100%', maxWidth: 350 }}>
@@ -32,6 +49,7 @@ export const PasswordForm: React.FC<Props> = ({ userName, userEmail, password, s
           value={password}
           mode={showLoginPassword ? 'text' : 'password'}
           onValueChanged={e => setPassword(e.value)}
+          onKeyDown={handleKeyDown}
           placeholder={'Password'}
           inputAttr={{ autoComplete: 'current-password', name: 'current-password', id: 'login-password' }}
           className="CwAdminLogin-login-input"

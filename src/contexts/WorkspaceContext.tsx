@@ -37,9 +37,9 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
     }));
   }, [availableWorkspaces]);
 
-  // Switch to a different workspace
-  const switchWorkspace = useCallback((installation: NormalizedInstallation) => {
-    console.log('Switching workspace to:', installation.name);
+  // Switch to a different workspace (or null to clear selection)
+  const switchWorkspace = useCallback((installation: NormalizedInstallation | null) => {
+    console.log('Switching workspace to:', installation?.name || 'none (cleared)');
     setState(prev => ({
       ...prev,
       currentWorkspace: installation,

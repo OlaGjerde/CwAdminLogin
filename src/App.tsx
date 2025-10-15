@@ -315,8 +315,12 @@ function AppContent(props: AppContentProps) {
     console.log('Switching workspace context');
     switchWorkspace(installation);
     
-    // Reset launching flag after a delay
-    setTimeout(() => setIsLaunching(false), 1000);
+    // Reset workspace selection after a delay so user can relaunch
+    setTimeout(() => {
+      console.log('Resetting workspace selection to allow relaunch');
+      switchWorkspace(null); // Reset to null to allow reselection
+      setIsLaunching(false);
+    }, 2000);
   }, [tokens, generateLaunchToken, launchWithFallback, switchWorkspace, isLaunching]);
 
   return (

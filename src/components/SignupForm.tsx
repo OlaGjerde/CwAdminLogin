@@ -79,6 +79,7 @@ export const SignupForm: React.FC<Props> = ({
           value={confirmPassword}
           mode={showSignupConfirm ? 'text' : 'password'}
           onValueChanged={e => setConfirmPassword(e.value)}
+          onEnterKey={submitSignup}
           placeholder={'Bekreft passord'}
           inputAttr={{ autoComplete: 'new-password', name: 'confirm-password', id: 'signup-confirm-password' }}
           className="CwAdminLogin-login-input"
