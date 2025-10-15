@@ -48,7 +48,14 @@ export const LoginEmailForm: React.FC<Props> = ({ login, setLogin, handleNext, s
       <div
         style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '12px 0 10px', maxWidth: 360, position: 'relative' }}
         onMouseEnter={() => setShowStayInfoModal(true)}
-        onMouseLeave={() => setShowStayInfoModal(false)}
+        onMouseLeave={(e) => {
+          // Only hide if mouse is leaving the entire container (not moving to the popup)
+          const rect = e.currentTarget.getBoundingClientRect();
+          const isLeavingToPopup = e.clientY > rect.bottom;
+          if (!isLeavingToPopup) {
+            setShowStayInfoModal(false);
+          }
+        }}
         onFocus={() => setShowStayInfoModal(true)}
         onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setShowStayInfoModal(false); }}
       >
@@ -78,6 +85,8 @@ export const LoginEmailForm: React.FC<Props> = ({ login, setLogin, handleNext, s
           <div
             role="dialog"
             aria-label="Informasjon om Forbli innlogget"
+            onMouseEnter={() => setShowStayInfoModal(true)}
+            onMouseLeave={() => setShowStayInfoModal(false)}
             style={{
               position: 'absolute', top: '100%', left: 0, zIndex: 1000, background: '#ffffff', color: '#111', fontSize: 12,
               padding: '10px 12px 12px', borderRadius: 8, marginTop: 6, maxWidth: 300, boxShadow: '0 4px 14px rgba(0,0,0,.18)', lineHeight: 1.45, border: '1px solid #dcdcdc'

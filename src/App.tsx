@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import ResponsiveBox, { Row, Col, Item, Location } from 'devextreme-react/responsive-box';
 import { useAuthFlow, type AuthStep, type UserData, type TokensEncoded } from './hooks/useAuthFlow';
 import { useInstallations } from './hooks/useInstallations';
 import { useTokenRefresh } from './hooks/useTokenRefresh';
@@ -6,10 +7,14 @@ import { useLauncher } from './hooks/useLauncher';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
 import { WorkbenchArea } from './components/WorkbenchArea';
-import { AuthOverlay } from './components/AuthOverlay';
+import { LoginEmailForm } from './components/LoginEmailForm';
+import { PasswordForm } from './components/PasswordForm';
+import { SignupForm } from './components/SignupForm';
+import NewsFeed from './NewsFeed';
 import type { NormalizedInstallation } from './types/installations';
 import { PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } from './config';
 import './App.css';
+import './CwAdminLogin.css';
 import BuildFooter from './components/BuildFooter';
 import 'devextreme/dist/css/dx.light.css';
 import { exchangeCodeForTokens, extractTokens } from './api/auth';
@@ -317,37 +322,78 @@ function AppContent(props: AppContentProps) {
   return (
     <div className="app-root">
       {props.showAuth && (
-        <AuthOverlay
-          step={props.step}
-          login={props.login}
-          setLogin={props.setLogin}
-          password={props.password}
-          setPassword={props.setPassword}
-          confirmPassword={props.confirmPassword}
-          setConfirmPassword={props.setConfirmPassword}
-          passwordStrength={props.passwordStrength}
-          showLoginPassword={props.showLoginPassword}
-          setShowLoginPassword={props.setShowLoginPassword}
-          showSignupPassword={props.showSignupPassword}
-          setShowSignupPassword={props.setShowSignupPassword}
-          showSignupConfirm={props.showSignupConfirm}
-          setShowSignupConfirm={props.setShowSignupConfirm}
-          isLoginSubmitting={props.isLoginSubmitting}
-          isSignupSubmitting={props.isSignupSubmitting}
-          stayLoggedIn={props.stayLoggedIn}
-          setStayLoggedIn={props.setStayLoggedIn}
-          showStayInfoModal={props.showStayInfoModal}
-          setShowStayInfoModal={props.setShowStayInfoModal}
-          error={props.error}
-          info={props.info}
-          userData={props.userData}
-          handleVerifyEmail={props.handleVerifyEmail}
-          submitSignup={props.submitSignup}
-          submitLogin={props.submitLogin}
-          setStep={props.setStep}
-          setError={props.setError}
-          setInfo={props.setInfo}
-        />
+        <>
+          <ResponsiveBox
+            singleColumnScreen="sm"
+            screenByWidth={(width: number) => (width < 700 ? 'sm' : 'lg')}
+            className="app-responsive-box"
+          >
+            <Row ratio={1} />
+            <Col ratio={20} />
+            <Col ratio={80} />
+            <Item>
+              <Location row={0} col={0} />
+              <div className="app-left-panel">
+                <div className="CwAdminLogin-login-container">
+                  {props.step === 'login' && (
+                    <LoginEmailForm
+                      login={props.login}
+                      setLogin={props.setLogin}
+                      handleNext={() => props.handleVerifyEmail(props.login)}
+                      stayLoggedIn={props.stayLoggedIn}
+                      setStayLoggedIn={props.setStayLoggedIn}
+                      showStayInfoModal={props.showStayInfoModal}
+                      setShowStayInfoModal={props.setShowStayInfoModal}
+                      error={props.error}
+                      info={props.info}
+                    />
+                  )}
+                  {props.step === 'password' && (
+                    <PasswordForm
+                      userName={props.userData?.Username || props.userData?.Email?.split('@')[0] || ''}
+                      userEmail={props.userData?.Email}
+                      password={props.password}
+                      setPassword={props.setPassword}
+                      showLoginPassword={props.showLoginPassword}
+                      setShowLoginPassword={props.setShowLoginPassword}
+                      submitLogin={props.submitLogin}
+                      isLoginSubmitting={props.isLoginSubmitting}
+                      error={props.error}
+                      info={props.info}
+                    />
+                  )}
+                  {props.step === 'signup' && (
+                    <SignupForm
+                      login={props.login}
+                      setLogin={props.setLogin}
+                      password={props.password}
+                      setPassword={props.setPassword}
+                      confirmPassword={props.confirmPassword}
+                      setConfirmPassword={props.setConfirmPassword}
+                      passwordStrength={props.passwordStrength}
+                      showSignupPassword={props.showSignupPassword}
+                      setShowSignupPassword={props.setShowSignupPassword}
+                      showSignupConfirm={props.showSignupConfirm}
+                      setShowSignupConfirm={props.setShowSignupConfirm}
+                      submitSignup={props.submitSignup}
+                      isSignupSubmitting={props.isSignupSubmitting}
+                      error={props.error}
+                      info={props.info}
+                      backToLogin={() => props.setStep('login')}
+                    />
+                  )}
+                </div>
+              </div>
+            </Item>
+            <Item>
+              <Location row={0} col={1} />
+              <div className="app-right-panel">
+                <NewsFeed />
+              </div>
+            </Item>
+          </ResponsiveBox>
+          <BuildFooter />
+        </>
       )}
 
       {!props.showAuth && (
