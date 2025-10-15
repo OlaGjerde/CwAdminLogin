@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuthFlow, type AuthStep, type UserData, type TokensEncoded } from './hooks/useAuthFlow';
 import { useInstallations } from './hooks/useInstallations';
 import { useTokenRefresh } from './hooks/useTokenRefresh';
@@ -232,6 +232,9 @@ interface AppContentProps {
 
 function AppContent(props: AppContentProps) {
   const { state, switchWorkspace } = useWorkspace();
+  
+  // Destructure the props we need for the callback
+  const { tokens, generateLaunchToken, launchWithFallback, installations } = props;
 
   // Debug workspace state
   useEffect(() => {
@@ -250,37 +253,37 @@ function AppContent(props: AppContentProps) {
   // Restore selected workspace from localStorage
   useEffect(() => {
     const savedWorkspaceId = localStorage.getItem('selectedWorkspaceId');
-    if (savedWorkspaceId && props.installations.length > 0) {
-      const savedWorkspace = props.installations.find(w => w.id === savedWorkspaceId);
+    if (savedWorkspaceId && installations.length > 0) {
+      const savedWorkspace = installations.find(w => w.id === savedWorkspaceId);
       if (savedWorkspace && state.currentWorkspace?.id !== savedWorkspaceId) {
         switchWorkspace(savedWorkspace);
       }
     }
-  }, [props.installations, state.currentWorkspace, switchWorkspace]);
+  }, [installations, state.currentWorkspace, switchWorkspace]);
 
   // Handle installation selection - launch the desktop app
-  const handleInstallationChange = async (installation: NormalizedInstallation) => {
+  const handleInstallationChange = useCallback(async (installation: NormalizedInstallation) => {
     console.log('=== handleInstallationChange called ===');
     console.log('Installation:', installation);
     console.log('Installation ID:', installation.id);
     console.log('Installation AppType:', installation.appType);
-    console.log('Has tokens:', !!props.tokens);
+    console.log('Has tokens:', !!tokens);
     
     // First switch the workspace context
     switchWorkspace(installation);
 
     // Then launch the desktop application
-    if (!props.tokens?.accessToken) {
+    if (!tokens?.accessToken) {
       console.error('No access token available');
       return;
     }
 
     try {
       console.log('Decoding access token...');
-      const rawAccessToken = atob(props.tokens.accessToken);
+      const rawAccessToken = atob(tokens.accessToken);
       console.log('Access token decoded, generating launch token...');
       
-      const token = await props.generateLaunchToken(rawAccessToken, installation.id);
+      const token = await generateLaunchToken(rawAccessToken, installation.id);
       console.log('Launch token received:', token ? 'YES' : 'NO');
       
       if (token) {
@@ -296,7 +299,7 @@ function AppContent(props: AppContentProps) {
         const uri = `${protocol}${encodeURIComponent(token)}`;
         console.log('Launching with URI:', uri);
         
-        await props.launchWithFallback(uri, () => {
+        await launchWithFallback(uri, () => {
           console.log('Launch failed - protocol handler not installed');
         });
       } else {
@@ -305,7 +308,7 @@ function AppContent(props: AppContentProps) {
     } catch (err) {
       console.error('Error launching installation:', err);
     }
-  };
+  }, [tokens, generateLaunchToken, launchWithFallback, switchWorkspace]);
 
   return (
     <div className="app-root">
