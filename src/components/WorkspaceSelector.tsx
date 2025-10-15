@@ -29,14 +29,18 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
   }, [workspaces, currentWorkspace]);
 
   const handleWorkspaceChange = (e: { value?: string }) => {
-    console.log('WorkspaceSelector handleWorkspaceChange called with:', e.value);
+    console.log('WorkspaceSelector handleWorkspaceChange called with value:', e.value);
+    console.log('Available workspaces:', workspaces);
+    console.log('Workspace IDs:', workspaces.map(w => w.id));
+    
     if (!e.value) return;
+    
     const selected = workspaces.find(w => w.id === e.value);
     console.log('Found selected workspace:', selected);
     console.log('Current workspace ID:', currentWorkspace?.id);
     console.log('Selected ID:', selected?.id);
     
-    if (selected && selected.id !== currentWorkspace?.id) {
+    if (selected) {
       console.log('Calling onWorkspaceChange with:', selected.name);
       onWorkspaceChange(selected);
       notify({
@@ -46,7 +50,7 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
         position: { at: 'top center', my: 'top center', offset: '0 20' }
       });
     } else {
-      console.log('Skipping - same workspace or not found');
+      console.log('ERROR: Selected workspace not found in workspaces array!');
     }
   };
 
@@ -55,7 +59,7 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
       <label className="workspace-selector-label">CalWin Desktop:</label>
       <SelectBox
         dataSource={workspaces}
-        value={currentWorkspace}
+        value={currentWorkspace?.id}
         displayExpr="name"
         valueExpr="id"
         onValueChanged={handleWorkspaceChange}
