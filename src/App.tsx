@@ -235,6 +235,9 @@ function AppContent(props: AppContentProps) {
   
   // Destructure the props we need for the callback
   const { tokens, generateLaunchToken, launchWithFallback } = props;
+  
+  // Prevent multiple simultaneous launches
+  const [isLaunching, setIsLaunching] = useState(false);
 
   // Debug workspace state
   useEffect(() => {
@@ -248,6 +251,12 @@ function AppContent(props: AppContentProps) {
 
   // Handle installation selection - launch the desktop app
   const handleInstallationChange = useCallback(async (installation: NormalizedInstallation) => {
+    if (isLaunching) {
+      console.log('Already launching, ignoring duplicate request');
+      return;
+    }
+    
+    setIsLaunching(true);
     console.log('=== handleInstallationChange called ===');
     console.log('Installation:', installation);
     console.log('Installation ID:', installation.id);
@@ -300,7 +309,10 @@ function AppContent(props: AppContentProps) {
     // Switch workspace AFTER launch attempt
     console.log('Switching workspace context');
     switchWorkspace(installation);
-  }, [tokens, generateLaunchToken, launchWithFallback, switchWorkspace]);
+    
+    // Reset launching flag after a delay
+    setTimeout(() => setIsLaunching(false), 1000);
+  }, [tokens, generateLaunchToken, launchWithFallback, switchWorkspace, isLaunching]);
 
   return (
     <div className="app-root">
