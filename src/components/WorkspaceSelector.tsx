@@ -1,5 +1,6 @@
 import React from 'react';
 import { SelectBox } from 'devextreme-react/select-box';
+import notify from 'devextreme/ui/notify';
 import type { NormalizedInstallation } from '../types/installations';
 import './WorkspaceSelector.css';
 
@@ -20,6 +21,20 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
   onWorkspaceChange,
   isLoading = false
 }) => {
+  const handleWorkspaceChange = (e: { value?: string }) => {
+    if (!e.value) return;
+    const selected = workspaces.find(w => w.id === e.value);
+    if (selected && selected.id !== currentWorkspace?.id) {
+      onWorkspaceChange(selected);
+      notify({
+        message: `Switched to workspace: ${selected.name}`,
+        type: 'success',
+        displayTime: 2000,
+        position: { at: 'top center', my: 'top center', offset: '0 20' }
+      });
+    }
+  };
+
   return (
     <div className="workspace-selector">
       <label className="workspace-selector-label">Workspace:</label>
@@ -28,12 +43,7 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
         value={currentWorkspace}
         displayExpr="name"
         valueExpr="id"
-        onValueChanged={(e) => {
-          const selected = workspaces.find(w => w.id === e.value);
-          if (selected) {
-            onWorkspaceChange(selected);
-          }
-        }}
+        onValueChanged={handleWorkspaceChange}
         placeholder="Select a workspace..."
         disabled={isLoading || workspaces.length === 0}
         stylingMode="outlined"

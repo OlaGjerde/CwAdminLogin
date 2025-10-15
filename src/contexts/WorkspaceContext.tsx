@@ -39,12 +39,22 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
 
   // Switch to a different workspace
   const switchWorkspace = useCallback((installation: NormalizedInstallation) => {
+    console.log('Switching workspace to:', installation.name);
     setState(prev => ({
       ...prev,
       currentWorkspace: installation,
+      isLoading: true,
       // Optionally close all apps when switching workspace
       // openApps: [],
     }));
+
+    // Simulate brief loading for smooth transition
+    setTimeout(() => {
+      setState(prev => ({
+        ...prev,
+        isLoading: false
+      }));
+    }, 300);
   }, []);
 
   // Open an app in the workspace

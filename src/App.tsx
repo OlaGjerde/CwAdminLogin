@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useAuthFlow } from './hooks/useAuthFlow';
+import { useAuthFlow, type AuthStep, type UserData, type TokensEncoded } from './hooks/useAuthFlow';
 import { useInstallations } from './hooks/useInstallations';
 import { useTokenRefresh } from './hooks/useTokenRefresh';
-import { WorkspaceProvider } from './contexts/WorkspaceContext';
+import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
 import { WorkbenchArea } from './components/WorkbenchArea';
 import { AuthOverlay } from './components/AuthOverlay';
+import type { NormalizedInstallation } from './types/installations';
 import './App.css';
 import BuildFooter from './components/BuildFooter';
 import 'devextreme/dist/css/dx.light.css';
@@ -134,79 +135,177 @@ function App() {
       availableWorkspaces={installations}
       initialWorkspace={installations[0] || null}
     >
-      <div className="app-root">
-        {showAuth && (
-          <AuthOverlay
-            step={step}
-            login={login}
-            setLogin={setLogin}
-            password={password}
-            setPassword={setPassword}
-            confirmPassword={confirmPassword}
-            setConfirmPassword={setConfirmPassword}
-            passwordStrength={passwordStrength}
-            showLoginPassword={showLoginPassword}
-            setShowLoginPassword={setShowLoginPassword}
-            showSignupPassword={showSignupPassword}
-            setShowSignupPassword={setShowSignupPassword}
-            showSignupConfirm={showSignupConfirm}
-            setShowSignupConfirm={setShowSignupConfirm}
-            isLoginSubmitting={isLoginSubmitting}
-            isSignupSubmitting={isSignupSubmitting}
-            stayLoggedIn={stayLoggedIn}
-            setStayLoggedIn={setStayLoggedIn}
-            showStayInfoModal={showStayInfoModal}
-            setShowStayInfoModal={setShowStayInfoModal}
-            error={error}
-            info={info}
-            userData={userData}
-            handleVerifyEmail={handleVerifyEmail}
-            submitSignup={submitSignup}
-            submitLogin={submitLogin}
-            setStep={setStep}
-            setError={setError}
-            setInfo={setInfo}
-          />
-        )}
-
-        {!showAuth && (
-          <>
-            {/* Top Bar with Workspace Selector */}
-            <div className="app-top-bar">
-              <div className="app-top-bar-left">
-                <h1 className="app-title">CalWin Workspace</h1>
-              </div>
-              <div className="app-top-bar-center">
-                <WorkspaceSelector
-                  currentWorkspace={installations[0] || null}
-                  workspaces={installations}
-                  onWorkspaceChange={() => {}}
-                />
-              </div>
-              <div className="app-top-bar-right">
-                <span className="app-user-info">{userData?.Email || userData?.Username}</span>
-                <Button
-                  icon="runner"
-                  text="Logg ut"
-                  onClick={logout}
-                  stylingMode="outlined"
-                />
-              </div>
-            </div>
-
-            {/* Main Content Area */}
-            <div className="app-content">
-              {/* Workbench Area - Full Width */}
-              <div className="app-workbench">
-                <WorkbenchArea authTokens={tokens} />
-              </div>
-            </div>
-          </>
-        )}
-
-        <BuildFooter />
-      </div>
+      <AppContent
+        showAuth={showAuth}
+        step={step}
+        login={login}
+        setLogin={setLogin}
+        password={password}
+        setPassword={setPassword}
+        confirmPassword={confirmPassword}
+        setConfirmPassword={setConfirmPassword}
+        passwordStrength={passwordStrength}
+        showLoginPassword={showLoginPassword}
+        setShowLoginPassword={setShowLoginPassword}
+        showSignupPassword={showSignupPassword}
+        setShowSignupPassword={setShowSignupPassword}
+        showSignupConfirm={showSignupConfirm}
+        setShowSignupConfirm={setShowSignupConfirm}
+        isLoginSubmitting={isLoginSubmitting}
+        isSignupSubmitting={isSignupSubmitting}
+        stayLoggedIn={stayLoggedIn}
+        setStayLoggedIn={setStayLoggedIn}
+        showStayInfoModal={showStayInfoModal}
+        setShowStayInfoModal={setShowStayInfoModal}
+        error={error}
+        info={info}
+        userData={userData}
+        handleVerifyEmail={handleVerifyEmail}
+        submitSignup={submitSignup}
+        submitLogin={submitLogin}
+        setStep={setStep}
+        setError={setError}
+        setInfo={setInfo}
+        tokens={tokens}
+        logout={logout}
+        installations={installations}
+      />
     </WorkspaceProvider>
+  );
+}
+
+// Separate component that uses workspace context
+interface AppContentProps {
+  showAuth: boolean;
+  step: AuthStep;
+  login: string;
+  setLogin: (value: string) => void;
+  password: string;
+  setPassword: (value: string) => void;
+  confirmPassword: string;
+  setConfirmPassword: (value: string) => void;
+  passwordStrength: { score: number; label: string; percent: number };
+  showLoginPassword: boolean;
+  setShowLoginPassword: (value: boolean) => void;
+  showSignupPassword: boolean;
+  setShowSignupPassword: (value: boolean) => void;
+  showSignupConfirm: boolean;
+  setShowSignupConfirm: (value: boolean) => void;
+  isLoginSubmitting: boolean;
+  isSignupSubmitting: boolean;
+  stayLoggedIn: boolean;
+  setStayLoggedIn: (value: boolean) => void;
+  showStayInfoModal: boolean;
+  setShowStayInfoModal: (value: boolean) => void;
+  error: string | null;
+  info: string | null;
+  userData: UserData | null;
+  handleVerifyEmail: (code: string) => Promise<void>;
+  submitSignup: () => Promise<void>;
+  submitLogin: () => Promise<void>;
+  setStep: (step: AuthStep) => void;
+  setError: (error: string | null) => void;
+  setInfo: (info: string | null) => void;
+  tokens: TokensEncoded | null;
+  logout: () => void;
+  installations: NormalizedInstallation[];
+}
+
+function AppContent(props: AppContentProps) {
+  const { state, switchWorkspace } = useWorkspace();
+
+  // Persist selected workspace to localStorage
+  useEffect(() => {
+    if (state.currentWorkspace) {
+      localStorage.setItem('selectedWorkspaceId', state.currentWorkspace.id);
+    }
+  }, [state.currentWorkspace]);
+
+  // Restore selected workspace from localStorage
+  useEffect(() => {
+    const savedWorkspaceId = localStorage.getItem('selectedWorkspaceId');
+    if (savedWorkspaceId && props.installations.length > 0) {
+      const savedWorkspace = props.installations.find(w => w.id === savedWorkspaceId);
+      if (savedWorkspace && state.currentWorkspace?.id !== savedWorkspaceId) {
+        switchWorkspace(savedWorkspace);
+      }
+    }
+  }, [props.installations, state.currentWorkspace, switchWorkspace]);
+
+  return (
+    <div className="app-root">
+      {props.showAuth && (
+        <AuthOverlay
+          step={props.step}
+          login={props.login}
+          setLogin={props.setLogin}
+          password={props.password}
+          setPassword={props.setPassword}
+          confirmPassword={props.confirmPassword}
+          setConfirmPassword={props.setConfirmPassword}
+          passwordStrength={props.passwordStrength}
+          showLoginPassword={props.showLoginPassword}
+          setShowLoginPassword={props.setShowLoginPassword}
+          showSignupPassword={props.showSignupPassword}
+          setShowSignupPassword={props.setShowSignupPassword}
+          showSignupConfirm={props.showSignupConfirm}
+          setShowSignupConfirm={props.setShowSignupConfirm}
+          isLoginSubmitting={props.isLoginSubmitting}
+          isSignupSubmitting={props.isSignupSubmitting}
+          stayLoggedIn={props.stayLoggedIn}
+          setStayLoggedIn={props.setStayLoggedIn}
+          showStayInfoModal={props.showStayInfoModal}
+          setShowStayInfoModal={props.setShowStayInfoModal}
+          error={props.error}
+          info={props.info}
+          userData={props.userData}
+          handleVerifyEmail={props.handleVerifyEmail}
+          submitSignup={props.submitSignup}
+          submitLogin={props.submitLogin}
+          setStep={props.setStep}
+          setError={props.setError}
+          setInfo={props.setInfo}
+        />
+      )}
+
+      {!props.showAuth && (
+        <>
+          {/* Top Bar with Workspace Selector */}
+          <div className="app-top-bar">
+            <div className="app-top-bar-left">
+              <h1 className="app-title">CalWin Workspace</h1>
+            </div>
+            <div className="app-top-bar-center">
+              <WorkspaceSelector
+                currentWorkspace={state.currentWorkspace}
+                workspaces={state.availableWorkspaces}
+                onWorkspaceChange={switchWorkspace}
+                isLoading={state.isLoading}
+              />
+            </div>
+            <div className="app-top-bar-right">
+              <span className="app-user-info">{props.userData?.Email || props.userData?.Username}</span>
+              <Button
+                icon="runner"
+                text="Logg ut"
+                onClick={props.logout}
+                stylingMode="outlined"
+              />
+            </div>
+          </div>
+
+          {/* Main Content Area */}
+          <div className="app-content">
+            {/* Workbench Area - Full Width */}
+            <div className="app-workbench">
+              <WorkbenchArea authTokens={props.tokens} />
+            </div>
+          </div>
+        </>
+      )}
+
+      <BuildFooter />
+    </div>
   );
 }
 
