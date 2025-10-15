@@ -291,7 +291,7 @@ function AppContent(props: AppContentProps) {
           {/* Top Bar with Installation Selector */}
           <div className="app-top-bar">
             <div className="app-top-bar-left">
-              <h1 className="app-title">CalWin Admin Portal</h1>
+              <h1 className="app-title">CalWin Solutions</h1>
             </div>
             <div className="app-top-bar-center">
               <WorkspaceSelector
