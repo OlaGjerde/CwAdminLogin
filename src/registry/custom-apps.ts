@@ -21,8 +21,8 @@ import type { CustomAppDefinition } from '../types/custom-app';
  */
 
 // Import your custom apps here
-// Example app (uncomment to enable):
-// import { ExampleTodoApp } from '../custom-apps/ExampleTodoApp';
+// Example app (enabled by default):
+import { ExampleTodoApp } from '../custom-apps/ExampleTodoApp';
 
 // Your custom apps:
 // import { YourApp } from '../custom-apps/YourApp';
@@ -32,8 +32,8 @@ import type { CustomAppDefinition } from '../types/custom-app';
  * Add your custom app definitions to this array
  */
 export const customAppRegistry: CustomAppDefinition[] = [
-  // Uncomment to enable example todo app:
-  // ExampleTodoApp,
+  // Example todo app (enabled):
+  ExampleTodoApp,
   
   // Add your custom apps here:
   // YourApp,

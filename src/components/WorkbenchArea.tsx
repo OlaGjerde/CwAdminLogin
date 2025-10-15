@@ -42,29 +42,7 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
 
   return (
     <div className="workbench-area">
-      {/* App Icons Grid */}
-      <div className="workbench-apps-grid">
-        {allApps.length === 0 ? (
-          <div className="workbench-empty-state">
-            <i className="dx-icon dx-icon-box" style={{ fontSize: 48, color: '#ccc' }} />
-            <p>No apps available</p>
-            <p className="workbench-empty-hint">
-              Add custom apps to get started
-            </p>
-          </div>
-        ) : (
-          allApps.map(app => (
-            <AppIcon
-              key={app.id}
-              app={app}
-              onClick={() => handleAppClick(app.id)}
-              disabled={!state.currentWorkspace}
-            />
-          ))
-        )}
-      </div>
-
-      {/* Open App Windows */}
+      {/* Open App Windows - Full Screen */}
       <div className="workbench-windows-container">
         {state.openApps.map(openApp => {
           const appDef = allApps.find(a => a.id === openApp.appId);
@@ -84,7 +62,6 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
           return (
             <WindowContainer
               key={openApp.instanceId}
-              instanceId={openApp.instanceId}
               title={appDef.name}
               windowState={openApp.windowState}
               minWidth={appDef.windowOptions?.minWidth}
@@ -102,6 +79,25 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
             </WindowContainer>
           );
         })}
+      </div>
+
+      {/* App Icons Taskbar at Bottom */}
+      <div className="workbench-apps-grid">
+        {allApps.length === 0 ? (
+          <div className="workbench-empty-state">
+            <i className="dx-icon dx-icon-box" style={{ fontSize: 32, color: '#ccc' }} />
+            <p>No apps available</p>
+          </div>
+        ) : (
+          allApps.map(app => (
+            <AppIcon
+              key={app.id}
+              app={app}
+              onClick={() => handleAppClick(app.id)}
+              disabled={!state.currentWorkspace}
+            />
+          ))
+        )}
       </div>
     </div>
   );
