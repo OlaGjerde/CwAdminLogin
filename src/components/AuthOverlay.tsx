@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { LoginEmailForm } from './LoginEmailForm';
 import { SignupForm } from './SignupForm';
 import { PasswordForm } from './PasswordForm';
@@ -24,8 +24,6 @@ interface AuthOverlayProps {
   isSignupSubmitting: boolean;
   stayLoggedIn: boolean;
   setStayLoggedIn: (v: boolean) => void;
-  showStayInfoModal: boolean;
-  setShowStayInfoModal: (v: boolean) => void;
   error: string | null;
   info: string | null;
   userData: UserData | null;
@@ -56,8 +54,6 @@ export const AuthOverlay: React.FC<AuthOverlayProps> = ({
   isSignupSubmitting,
   stayLoggedIn,
   setStayLoggedIn,
-  showStayInfoModal,
-  setShowStayInfoModal,
   error,
   info,
   userData,
@@ -68,9 +64,9 @@ export const AuthOverlay: React.FC<AuthOverlayProps> = ({
   setError,
   setInfo
 }) => {
-  const handleNext = async () => {
+  const handleNext = useCallback(async () => {
     await handleVerifyEmail(login);
-  };
+  }, [handleVerifyEmail, login]);
 
   return (
     <div className="auth-overlay">
@@ -89,8 +85,6 @@ export const AuthOverlay: React.FC<AuthOverlayProps> = ({
               handleNext={handleNext}
               stayLoggedIn={stayLoggedIn}
               setStayLoggedIn={setStayLoggedIn}
-              showStayInfoModal={showStayInfoModal}
-              setShowStayInfoModal={setShowStayInfoModal}
               error={error}
               info={info}
             />

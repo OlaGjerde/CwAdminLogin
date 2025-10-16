@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ResponsiveBox, { Row, Col, Item, Location } from 'devextreme-react/responsive-box';
 import { useAuthFlow, type AuthStep, type UserData, type TokensEncoded } from './hooks/useAuthFlow';
 import { useInstallations } from './hooks/useInstallations';
@@ -34,7 +34,6 @@ function App() {
   const [isSignupSubmitting, setIsSignupSubmitting] = useState(false);
   const [lastLoginAttempt, setLastLoginAttempt] = useState(0);
   const [stayLoggedIn, setStayLoggedIn] = useState(false);
-  const [showStayInfoModal, setShowStayInfoModal] = useState(false);
 
   // Auth hooks
   const {
@@ -118,7 +117,7 @@ function App() {
     }
   }, [tokens?.accessToken, refreshIfStale]);
 
-  const submitSignup = async () => {
+  const submitSignup = useCallback(async () => {
     if (isSignupSubmitting) return;
     setIsSignupSubmitting(true);
     try {
@@ -126,9 +125,9 @@ function App() {
     } finally {
       setIsSignupSubmitting(false);
     }
-  };
+  }, [isSignupSubmitting, handleSignUp, login, password, confirmPassword]);
 
-  const submitLogin = async () => {
+  const submitLogin = useCallback(async () => {
     const now = Date.now();
     if (now - lastLoginAttempt < 900) return;
     setLastLoginAttempt(now);
@@ -139,7 +138,11 @@ function App() {
     } finally {
       setIsLoginSubmitting(false);
     }
-  };
+  }, [lastLoginAttempt, isLoginSubmitting, handleLogin, login, password]);
+
+  const handleNextLogin = useCallback(() => {
+    handleVerifyEmail(login);
+  }, [handleVerifyEmail, login]);
 
   // Show auth overlay if not logged in
   const showAuth = !tokens;
@@ -175,12 +178,11 @@ function App() {
         isSignupSubmitting={isSignupSubmitting}
         stayLoggedIn={stayLoggedIn}
         setStayLoggedIn={setStayLoggedIn}
-        showStayInfoModal={showStayInfoModal}
-        setShowStayInfoModal={setShowStayInfoModal}
         error={error}
         info={info}
         userData={userData}
         handleVerifyEmail={handleVerifyEmail}
+        handleNextLogin={handleNextLogin}
         submitSignup={submitSignup}
         submitLogin={submitLogin}
         setStep={setStep}
@@ -217,12 +219,11 @@ interface AppContentProps {
   isSignupSubmitting: boolean;
   stayLoggedIn: boolean;
   setStayLoggedIn: (value: boolean) => void;
-  showStayInfoModal: boolean;
-  setShowStayInfoModal: (value: boolean) => void;
   error: string | null;
   info: string | null;
   userData: UserData | null;
   handleVerifyEmail: (code: string) => Promise<void>;
+  handleNextLogin: () => void;
   submitSignup: () => Promise<void>;
   submitLogin: () => Promise<void>;
   setStep: (step: AuthStep) => void;
@@ -235,7 +236,7 @@ interface AppContentProps {
   launchWithFallback: (appUri: string, onFailure?: () => void) => Promise<void>;
 }
 
-function AppContent(props: AppContentProps) {
+const AppContent = React.memo(function AppContent(props: AppContentProps) {
   const { state, switchWorkspace } = useWorkspace();
   
   // Destructure the props we need for the callback
@@ -243,6 +244,18 @@ function AppContent(props: AppContentProps) {
   
   // Prevent multiple simultaneous launches
   const [isLaunching, setIsLaunching] = useState(false);
+
+  // Debug: Track AppContent re-renders
+  const renderCount = useRef(0);
+  useEffect(() => {
+    renderCount.current++;
+    console.log(`🔄 AppContent RE-RENDER #${renderCount.current}`, {
+      step: props.step,
+      showAuth: props.showAuth,
+      isLaunching,
+      hasTokens: !!tokens
+    });
+  });
 
   // Debug workspace state
   useEffect(() => {
@@ -343,11 +356,9 @@ function AppContent(props: AppContentProps) {
                     <LoginEmailForm
                       login={props.login}
                       setLogin={props.setLogin}
-                      handleNext={() => props.handleVerifyEmail(props.login)}
+                      handleNext={props.handleNextLogin}
                       stayLoggedIn={props.stayLoggedIn}
                       setStayLoggedIn={props.setStayLoggedIn}
-                      showStayInfoModal={props.showStayInfoModal}
-                      setShowStayInfoModal={props.setShowStayInfoModal}
                       error={props.error}
                       info={props.info}
                     />
@@ -439,6 +450,6 @@ function AppContent(props: AppContentProps) {
       <BuildFooter />
     </div>
   );
-}
+});
 
 export default App

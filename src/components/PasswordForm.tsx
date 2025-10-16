@@ -17,7 +17,23 @@ interface Props {
   info: string | null;
 }
 
-export const PasswordForm: React.FC<Props> = ({ userName, userEmail, password, setPassword, showLoginPassword, setShowLoginPassword, submitLogin, isLoginSubmitting, error, info }) => {
+export const PasswordForm: React.FC<Props> = React.memo(({ userName, userEmail, password, setPassword, showLoginPassword, setShowLoginPassword, submitLogin, isLoginSubmitting, error, info }) => {
+  // Debug: Track re-renders
+  const renderCount = React.useRef(0);
+  React.useEffect(() => {
+    renderCount.current++;
+    console.log(`🔄 PasswordForm RE-RENDER #${renderCount.current}`, {
+      userName,
+      password: password ? '***' : '',
+      showLoginPassword,
+      isLoginSubmitting,
+      error,
+      info,
+      submitLogin_type: typeof submitLogin,
+      submitLogin_string: submitLogin.toString().substring(0, 100)
+    });
+  });
+
   const handleForgotPassword = (e: React.MouseEvent) => {
     e.preventDefault();
     const forgotPasswordUrl = getCognitoForgotPasswordUrl(userEmail);
@@ -91,4 +107,4 @@ export const PasswordForm: React.FC<Props> = ({ userName, userEmail, password, s
       {info && <div className="CwAdminLogin-login-info">{info}</div>}
     </form>
   );
-};
+});

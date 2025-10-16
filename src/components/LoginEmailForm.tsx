@@ -10,13 +10,27 @@ interface Props {
   handleNext: () => void;
   stayLoggedIn: boolean;
   setStayLoggedIn: (v: boolean) => void;
-  showStayInfoModal: boolean;
-  setShowStayInfoModal: (v: boolean) => void;
   error: string | null;
   info: string | null;
 }
 
-export const LoginEmailForm: React.FC<Props> = ({ login, setLogin, handleNext, stayLoggedIn, setStayLoggedIn, showStayInfoModal, setShowStayInfoModal, error, info }) => {
+export const LoginEmailForm: React.FC<Props> = React.memo(({ login, setLogin, handleNext, stayLoggedIn, setStayLoggedIn, error, info }) => {
+  // Debug: Track re-renders
+  const renderCount = React.useRef(0);
+  React.useEffect(() => {
+    renderCount.current++;
+    console.log(`🔄 LoginEmailForm RE-RENDER #${renderCount.current}`, {
+      login,
+      stayLoggedIn,
+      error,
+      info,
+      handleNext_type: typeof handleNext,
+      handleNext_string: handleNext.toString().substring(0, 100)
+    });
+  });
+
+  // Local state for info modal to prevent parent re-renders
+  const [showStayInfoModal, setShowStayInfoModal] = React.useState(false);
   // Show the signup link only for specific states produced by verify flow:
   // - User not found (404)
   // - UNCONFIRMED
@@ -31,6 +45,24 @@ export const LoginEmailForm: React.FC<Props> = ({ login, setLogin, handleNext, s
     // generic verification failure (fallback)
     lowerErr.includes('kunne ikke verifisere')
   ); // UNCONFIRMED no longer triggers link; user must confirm existing account
+  
+  const [hideTimeout, setHideTimeout] = React.useState<number | null>(null);
+
+  const handleMouseEnter = () => {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      setHideTimeout(null);
+    }
+    setShowStayInfoModal(true);
+  };
+
+  const handleMouseLeave = () => {
+    const timeout = setTimeout(() => {
+      setShowStayInfoModal(false);
+    }, 100);
+    setHideTimeout(timeout);
+  };
+
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) {
       e.preventDefault();
@@ -48,21 +80,27 @@ export const LoginEmailForm: React.FC<Props> = ({ login, setLogin, handleNext, s
   };
 
   return (
-    <form autoComplete="on" onSubmit={handleSubmit}>
-      <div className="CwAdminLogin-login-title">Velkommen</div>
-      <div className="CwAdminLogin-login-subtitle">Vennligst skriv inn epost for å fortsette</div>
-      <TextBox
-        value={login}
-        onValueChanged={e => setLogin(e.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="E-post"
-        mode="email"
-        inputAttr={{ autoComplete: 'username email', name: 'username', id: 'login-email' }}
-        className="CwAdminLogin-login-input"
-      />
-      <div className="CwAdminLogin-login-button">
-        <Button text="Neste" type="default" onClick={handleNext} />
-      </div>
+    <>
+      <form autoComplete="on" onSubmit={handleSubmit}>
+        <div className="CwAdminLogin-login-title">Velkommen</div>
+        <div className="CwAdminLogin-login-subtitle">Vennligst skriv inn epost for å fortsette</div>
+        <TextBox
+          value={login}
+          onValueChanged={e => setLogin(e.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="E-post"
+          mode="email"
+          inputAttr={{ autoComplete: 'username email', name: 'username', id: 'login-email' }}
+          className="CwAdminLogin-login-input"
+        />
+        <div className="CwAdminLogin-login-button">
+          <Button 
+            text="Neste" 
+            type="default"
+            useSubmitBehavior={true}
+          />
+        </div>
+      </form>
       <div
         style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '12px 0 10px', maxWidth: 360, position: 'relative' }}
       >
@@ -70,19 +108,31 @@ export const LoginEmailForm: React.FC<Props> = ({ login, setLogin, handleNext, s
           id="stay-logged-in"
           type="checkbox"
           checked={stayLoggedIn}
-          onChange={e => setStayLoggedIn(e.target.checked)}
+          onChange={e => {
+            e.stopPropagation();
+            setStayLoggedIn(e.target.checked);
+          }}
           style={{ cursor: 'pointer' }}
         />
-        <label htmlFor="stay-logged-in" style={{ cursor: 'pointer', userSelect: 'none' }}>Forbli innlogget</label>
+        <label 
+          htmlFor="stay-logged-in" 
+          style={{ cursor: 'pointer', userSelect: 'none' }}
+          onClick={e => {
+            e.stopPropagation();
+          }}
+        >
+          Forbli innlogget
+        </label>
         <button
           type="button"
-          tabIndex={0}
+          tabIndex={-1}
           aria-label="Mer informasjon om 'Forbli innlogget' (hold musepekeren over)"
           style={{ border: 'none', background: 'transparent', cursor: 'help', padding: 2, lineHeight: 1, display: 'flex', alignItems: 'center', position: 'relative' }}
           aria-expanded={showStayInfoModal}
           aria-haspopup="dialog"
-          onMouseEnter={() => setShowStayInfoModal(true)}
-          onMouseLeave={() => setShowStayInfoModal(false)}
+          onClick={e => { e.preventDefault(); e.stopPropagation(); }}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="10" />
@@ -93,8 +143,8 @@ export const LoginEmailForm: React.FC<Props> = ({ login, setLogin, handleNext, s
             <div
               role="dialog"
               aria-label="Informasjon om Forbli innlogget"
-              onMouseEnter={() => setShowStayInfoModal(true)}
-              onMouseLeave={() => setShowStayInfoModal(false)}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
               style={{
                 position: 'absolute', 
                 top: '100%', 
@@ -138,6 +188,6 @@ export const LoginEmailForm: React.FC<Props> = ({ login, setLogin, handleNext, s
           </a>
         </div>
       )}
-    </form>
+    </>
   );
-};
+});
