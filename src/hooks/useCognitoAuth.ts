@@ -132,6 +132,13 @@ export function useCognitoAuth() {
     try {
       console.log('🔐 Initiating Cognito login flow');
       
+      // Clear any previous errors
+      setState((prev) => ({
+        ...prev,
+        error: null,
+        isLoading: true,
+      }));
+      
       // Generate PKCE parameters
       const verifier = generateCodeVerifier();
       const challenge = await generateCodeChallenge(verifier);
@@ -170,10 +177,33 @@ export function useCognitoAuth() {
     
     // Check for errors from Cognito
     if (params.error) {
-      console.error('❌ Cognito returned error:', params.error, params.error_description);
+      console.error('❌ Cognito returned error:', params.error);
+      console.error('❌ Error description:', params.error_description);
+      
+      // Format a user-friendly error message
+      let userMessage = params.error_description || params.error || 'Authentication failed';
+      
+      // Common Cognito errors
+      if (params.error === 'access_denied') {
+        userMessage = 'Tilgang nektet. Du avbrøt innloggingen eller har ikke tilgang.';
+      } else if (params.error === 'invalid_request') {
+        // Check if it's a scope issue
+        if (params.error_description?.includes('scope')) {
+          userMessage = 'Konfigurasjonsfeil med tilganger (scopes). Kontakt administrator.';
+        } else {
+          userMessage = 'Ugyldig forespørsel. Vennligst prøv igjen.';
+        }
+      } else if (params.error === 'unauthorized_client') {
+        userMessage = 'Klienten er ikke autorisert. Kontakt administrator.';
+      } else if (params.error === 'unsupported_response_type') {
+        userMessage = 'Konfigurasjonsfeil. Kontakt administrator.';
+      } else if (params.error === 'invalid_scope') {
+        userMessage = 'Ugyldig scope-konfigurasjon. Kontakt administrator.';
+      }
+      
       setState((prev) => ({
         ...prev,
-        error: params.error_description || params.error || 'Authentication failed',
+        error: userMessage,
         isLoading: false,
       }));
       clearOAuthParams();

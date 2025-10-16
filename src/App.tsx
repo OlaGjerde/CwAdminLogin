@@ -47,12 +47,13 @@ function App() {
   }, [isAuthenticated, getAccessToken, refreshIfStale]);
 
   // If not authenticated and not loading, redirect to Cognito
+  // BUT: Don't redirect if there's an error (user needs to see it and manually retry)
   useEffect(() => {
-    if (!isAuthenticated && !isLoading) {
+    if (!isAuthenticated && !isLoading && !authError) {
       console.log('🔐 Not authenticated - initiating login flow');
       login();
     }
-  }, [isAuthenticated, isLoading, login]);
+  }, [isAuthenticated, isLoading, authError, login]);
 
   // Show loading while checking auth status
   if (isLoading) {

@@ -110,7 +110,8 @@ export function buildCognitoAuthUrl(params: CognitoAuthParams): string {
   
   url.searchParams.append('client_id', COGNITO_CLIENT_ID);
   url.searchParams.append('response_type', params.responseType || 'code');
-  url.searchParams.append('scope', params.scope || 'openid email profile');
+  // Using only 'openid email' - 'profile' scope might not be enabled in Cognito App Client
+  url.searchParams.append('scope', params.scope || 'openid email');
   url.searchParams.append('redirect_uri', COGNITO_REDIRECT_URI);
   url.searchParams.append('state', params.state);
   url.searchParams.append('code_challenge', params.codeChallenge);
