@@ -1,8 +1,8 @@
 {
-  "version": "0.10.16",
-  "commit": "cb6177a",
-  "branch": "onlydownloadlink",
-  "timestamp": "2025-10-14T07:03:33.636Z",
+  "version": "0.10.17",
+  "commit": "a1a38a6",
+  "branch": "cognito-hosted-ui",
+  "timestamp": "2025-10-16T07:27:13.605Z",
   "buildNumber": "",
   "node": "v22.20.0"
 }
