@@ -15,7 +15,6 @@ import {
   buildCognitoLogoutUrl,
   exchangeCodeForTokens,
   parseCallbackParams,
-  isOAuthCallback,
   clearOAuthParams,
   getUserEmail,
   isTokenExpired,
@@ -119,7 +118,7 @@ export interface CognitoAuthState {
 export function useCognitoAuth() {
   const [state, setState] = useState<CognitoAuthState>({
     isAuthenticated: false,
-    isLoading: true, // Start as loading to check for existing session
+    isLoading: false, // No loading screen - redirects happen immediately
     tokens: null,
     userEmail: null,
     error: null,
@@ -132,11 +131,10 @@ export function useCognitoAuth() {
     try {
       console.log('🔐 Initiating Cognito login flow');
       
-      // Clear any previous errors
+      // Clear any previous errors (no loading state - redirect happens immediately)
       setState((prev) => ({
         ...prev,
         error: null,
-        isLoading: true,
       }));
       
       // Generate PKCE parameters
@@ -155,7 +153,7 @@ export function useCognitoAuth() {
       
       console.log('🌐 Redirecting to Cognito:', authUrl);
       
-      // Redirect to Cognito
+      // Redirect to Cognito (happens immediately, no loading screen needed)
       window.location.href = authUrl;
     } catch (error) {
       console.error('❌ Login initiation failed:', error);
@@ -174,6 +172,18 @@ export function useCognitoAuth() {
     console.log('🔄 Processing OAuth callback');
     
     const params = parseCallbackParams();
+    
+    // Check if we're already processing this code (prevent double execution in StrictMode)
+    const processingCode = sessionStorage.getItem('cognito_processing_code');
+    if (processingCode === params.code) {
+      console.log('⏭️ Already processing this code, skipping duplicate execution');
+      return;
+    }
+    
+    // Mark this code as being processed
+    if (params.code) {
+      sessionStorage.setItem('cognito_processing_code', params.code);
+    }
     
     // Check for errors from Cognito
     if (params.error) {
@@ -207,6 +217,7 @@ export function useCognitoAuth() {
         isLoading: false,
       }));
       clearOAuthParams();
+      sessionStorage.removeItem('cognito_processing_code');
       return;
     }
     
@@ -219,6 +230,7 @@ export function useCognitoAuth() {
         isLoading: false,
       }));
       clearOAuthParams();
+      sessionStorage.removeItem('cognito_processing_code');
       return;
     }
     
@@ -232,6 +244,7 @@ export function useCognitoAuth() {
         isLoading: false,
       }));
       clearOAuthParams();
+      sessionStorage.removeItem('cognito_processing_code');
       return;
     }
     
@@ -245,6 +258,7 @@ export function useCognitoAuth() {
       }));
       clearPKCEData();
       clearOAuthParams();
+      sessionStorage.removeItem('cognito_processing_code');
       return;
     }
     
@@ -273,6 +287,7 @@ export function useCognitoAuth() {
       // Clean up
       clearPKCEData();
       clearOAuthParams();
+      sessionStorage.removeItem('cognito_processing_code'); // Clear processing flag
       
       console.log('✅ Authentication complete for:', email);
     } catch (error) {
@@ -284,33 +299,57 @@ export function useCognitoAuth() {
       }));
       clearPKCEData();
       clearOAuthParams();
+      sessionStorage.removeItem('cognito_processing_code'); // Clear processing flag even on error
     }
   }, []);
 
   /**
-   * Logout - clear tokens and redirect to Cognito logout
+   * Logout - clear all local data and redirect to Cognito logout
    */
   const logout = useCallback(() => {
-    console.log('🚪 Logging out');
+    console.log('🚪 Logging out - clearing all local data and Cognito session');
     
-    // Clear stored tokens
-    clearStoredTokens();
+    // Clear all localStorage first
+    try {
+      const itemCount = localStorage.length;
+      localStorage.clear();
+      console.log(`✅ localStorage cleared (${itemCount} items removed)`);
+    } catch (e) {
+      console.error('❌ Failed to clear localStorage:', e);
+    }
     
-    // Clear local state
-    setState({
-      isAuthenticated: false,
-      isLoading: false,
-      tokens: null,
-      userEmail: null,
-      error: null,
-    });
+    // Clear all sessionStorage
+    try {
+      const itemCount = sessionStorage.length;
+      sessionStorage.clear();
+      console.log(`✅ sessionStorage cleared (${itemCount} items removed)`);
+    } catch (e) {
+      console.error('❌ Failed to clear sessionStorage:', e);
+    }
     
-    // Clear PKCE data
-    clearPKCEData();
+    // Clear all cookies
+    try {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i];
+        const eqPos = cookie.indexOf('=');
+        const name = eqPos > -1 ? cookie.substring(0, eqPos).trim() : cookie.trim();
+        // Delete cookie for current domain and all parent domains
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+      }
+      console.log('✅ Cookies cleared');
+    } catch (e) {
+      console.warn('⚠️ Failed to clear cookies:', e);
+    }
     
-    // Redirect to Cognito logout (which will redirect back to app)
+    // Build Cognito logout URL - this will clear Cognito session and redirect back to login
     const logoutUrl = buildCognitoLogoutUrl();
-    console.log('🌐 Redirecting to Cognito logout:', logoutUrl);
+    console.log('🔄 Redirecting to Cognito logout:', logoutUrl);
+    
+    // Redirect to Cognito logout - this will:
+    // 1. Clear Cognito session
+    // 2. Redirect back to our app (login page)
     window.location.href = logoutUrl;
   }, []);
 
@@ -338,9 +377,25 @@ export function useCognitoAuth() {
    */
   useEffect(() => {
     const checkAuth = async () => {
-      if (isOAuthCallback()) {
-        console.log('🔍 Detected OAuth callback');
+      // Parse OAuth callback parameters
+      const params = parseCallbackParams();
+      
+      // Only process callback if we have BOTH code AND state (valid OAuth callback)
+      if (params.code && params.state) {
+        console.log('🔍 Detected valid OAuth callback');
         await handleCallback();
+      } else if (params.error) {
+        // Handle OAuth error callback
+        console.log('🔍 Detected OAuth error callback');
+        await handleCallback();
+      } else if (params.code) {
+        // Code without state - likely stale/invalid, clear it
+        console.log('⚠️ Found code without state - clearing stale OAuth params');
+        clearOAuthParams();
+        setState((prev) => ({
+          ...prev,
+          isLoading: false,
+        }));
       } else {
         // No callback - check if we have existing tokens in localStorage
         console.log('🔍 No OAuth callback, checking for stored tokens...');

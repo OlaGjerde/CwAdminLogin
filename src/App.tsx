@@ -28,6 +28,22 @@ function App() {
   const { installations, refreshIfStale, generateLaunchToken } = useInstallations();
   const { launchWithFallback } = useLauncher();
 
+  // Debug logging for auth state
+  useEffect(() => {
+    console.log('📊 App Auth State:', {
+      isAuthenticated,
+      isLoading,
+      userEmail,
+      hasError: !!authError,
+      error: authError,
+    });
+    
+    // Safety check: if authenticated but error still showing, this is a bug
+    if (isAuthenticated && authError) {
+      console.warn('⚠️ WARNING: Authenticated but error still set!', authError);
+    }
+  }, [isAuthenticated, isLoading, userEmail, authError]);
+
   // Debug logging for installations
   useEffect(() => {
     console.log('Installations count:', installations.length);
@@ -48,10 +64,20 @@ function App() {
 
   // If not authenticated and not loading, redirect to Cognito
   // BUT: Don't redirect if there's an error (user needs to see it and manually retry)
+  // ALSO: Don't redirect if user just logged out manually
+  // ALSO: Don't redirect if we're processing an OAuth callback
   useEffect(() => {
-    if (!isAuthenticated && !isLoading && !authError) {
+    const userLoggedOut = sessionStorage.getItem('user_logged_out');
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasOAuthCallback = urlParams.has('code') || urlParams.has('error');
+    
+    if (!isAuthenticated && !isLoading && !authError && !userLoggedOut && !hasOAuthCallback) {
       console.log('🔐 Not authenticated - initiating login flow');
       login();
+    } else if (userLoggedOut) {
+      console.log('🚫 User logged out - not auto-logging in');
+    } else if (hasOAuthCallback) {
+      console.log('🔄 OAuth callback detected - waiting for processing');
     }
   }, [isAuthenticated, isLoading, authError, login]);
 
@@ -128,6 +154,18 @@ function App() {
         </div>
       </div>
     );
+  }
+
+  // Don't render the app if not authenticated - prevents flash of content before redirect
+  // BUT: Allow rendering during OAuth callback processing (code/error in URL)
+  if (!isAuthenticated) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasOAuthCallback = urlParams.has('code') || urlParams.has('error');
+    
+    if (!hasOAuthCallback) {
+      return null;
+    }
+    // If we have OAuth callback, continue to render (processing will happen in background)
   }
 
   return (
@@ -281,7 +319,10 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
               <Button
                 icon="runner"
                 text="Logg ut"
-                onClick={props.logout}
+                onClick={() => {
+                  console.log('🔘 Logout button clicked');
+                  props.logout();
+                }}
                 stylingMode="outlined"
               />
             </div>
