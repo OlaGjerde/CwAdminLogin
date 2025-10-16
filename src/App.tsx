@@ -1,12 +1,10 @@
-import React, { useEffect, useCallback, useRef, useState } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useCognitoAuth } from './hooks/useCognitoAuth';
 import { useInstallations } from './hooks/useInstallations';
-import { useLauncher } from './hooks/useLauncher';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
 import { WorkbenchArea } from './components/WorkbenchArea';
 import type { NormalizedInstallation } from './types/installations';
-import { PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } from './config';
 import './App.css';
 import BuildFooter from './components/BuildFooter';
 import 'devextreme/dist/css/dx.light.css';
@@ -25,8 +23,7 @@ function App() {
     getAccessToken,
   } = useCognitoAuth();
 
-  const { installations, refreshIfStale, generateLaunchToken } = useInstallations();
-  const { launchWithFallback } = useLauncher();
+  const { installations, refreshIfStale } = useInstallations();
 
   // Debug logging for auth state
   useEffect(() => {
@@ -178,8 +175,6 @@ function App() {
         logout={logout}
         installations={installations}
         getAccessToken={getAccessToken}
-        generateLaunchToken={generateLaunchToken}
-        launchWithFallback={launchWithFallback}
       />
     </WorkspaceProvider>
   );
@@ -191,31 +186,25 @@ interface AppContentProps {
   logout: () => void;
   installations: NormalizedInstallation[];
   getAccessToken: () => string | null;
-  generateLaunchToken: (rawAccessToken: string, installationId: string) => Promise<string | null>;
-  launchWithFallback: (appUri: string, onFailure?: () => void) => Promise<void>;
 }
 
 const AppContent = React.memo(function AppContent(props: AppContentProps) {
   const { state, switchWorkspace } = useWorkspace();
   
   // Destructure the props we need for the callback
-  const { getAccessToken, generateLaunchToken, launchWithFallback, userEmail } = props;
+  const { getAccessToken, userEmail } = props;
   
   // Create authTokens object for WorkbenchArea
   const authTokens = React.useMemo(() => {
     const accessToken = getAccessToken();
     return accessToken ? { accessToken, refreshToken: '' } : null;
   }, [getAccessToken]);
-  
-  // Prevent multiple simultaneous launches
-  const [isLaunching, setIsLaunching] = useState(false);
 
   // Debug: Track AppContent re-renders
   const renderCount = useRef(0);
   useEffect(() => {
     renderCount.current++;
     console.log(`🔄 AppContent RE-RENDER #${renderCount.current}`, {
-      isLaunching,
       hasAccessToken: !!getAccessToken()
     });
   });
@@ -230,72 +219,17 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
   // Note: We don't persist or restore workspace selection anymore
   // User must explicitly select an installation each time they want to launch
 
-  // Handle installation selection - launch the desktop app
-  const handleInstallationChange = useCallback(async (installation: NormalizedInstallation) => {
-    if (isLaunching) {
-      console.log('Already launching, ignoring duplicate request');
-      return;
-    }
-    
-    setIsLaunching(true);
+  // Handle installation selection - just switch workspace, don't launch
+  const handleInstallationChange = useCallback((installation: NormalizedInstallation) => {
     console.log('=== handleInstallationChange called ===');
     console.log('Installation:', installation);
     console.log('Installation ID:', installation.id);
     console.log('Installation AppType:', installation.appType);
 
-    // Get access token from Cognito
-    const accessToken = getAccessToken();
-    if (!accessToken) {
-      console.error('No access token available');
-      // Still switch workspace even if we can't launch
-      switchWorkspace(installation);
-      setIsLaunching(false);
-      return;
-    }
-
-    try {
-      console.log('Generating launch token...');
-      const token = await generateLaunchToken(accessToken, installation.id);
-      console.log('Launch token received:', token ? 'YES' : 'NO');
-      console.log('Launch token value:', token);
-      
-      if (token) {
-        // Determine protocol based on app type
-        const protocol = installation.appType === 0 
-          ? PROTOCOL_CALWIN 
-          : installation.appType === 1 
-          ? PROTOCOL_CALWIN_TEST 
-          : PROTOCOL_CALWIN_DEV;
-        
-        console.log('Selected protocol:', protocol);
-        
-        const uri = `${protocol}${encodeURIComponent(token)}`;
-        console.log('Launching with URI:', uri);
-        
-        // Launch first, then switch workspace
-        await launchWithFallback(uri, () => {
-          console.log('Launch failed - protocol handler not installed');
-        });
-        
-        console.log('Launch completed, now switching workspace');
-      } else {
-        console.error('Failed to generate launch token - token is null');
-      }
-    } catch (err) {
-      console.error('Error launching installation:', err);
-    }
-    
-    // Switch workspace AFTER launch attempt
-    console.log('Switching workspace context');
+    // Just switch workspace - user will launch via the Start Installation button
+    console.log('Switching workspace context (no auto-launch)');
     switchWorkspace(installation);
-    
-    // Reset workspace selection after a delay so user can relaunch
-    setTimeout(() => {
-      console.log('Resetting workspace selection to allow relaunch');
-      switchWorkspace(null); // Reset to null to allow reselection
-      setIsLaunching(false);
-    }, 2000);
-  }, [getAccessToken, generateLaunchToken, launchWithFallback, switchWorkspace, isLaunching]);
+  }, [switchWorkspace]);
 
   // Authenticated - show workspace
   return (

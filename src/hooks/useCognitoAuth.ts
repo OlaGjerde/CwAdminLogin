@@ -309,6 +309,9 @@ export function useCognitoAuth() {
   const logout = useCallback(() => {
     console.log('🚪 Logging out - clearing all local data and Cognito session');
     
+    // Save workspace selection before clearing
+    const workspaceSelection = localStorage.getItem('calwin-selected-workspace');
+    
     // Clear all localStorage first
     try {
       const itemCount = localStorage.length;
@@ -316,6 +319,16 @@ export function useCognitoAuth() {
       console.log(`✅ localStorage cleared (${itemCount} items removed)`);
     } catch (e) {
       console.error('❌ Failed to clear localStorage:', e);
+    }
+    
+    // Restore workspace selection after clearing
+    if (workspaceSelection) {
+      try {
+        localStorage.setItem('calwin-selected-workspace', workspaceSelection);
+        console.log('✅ Workspace selection preserved after logout');
+      } catch (e) {
+        console.error('❌ Failed to restore workspace selection:', e);
+      }
     }
     
     // Clear all sessionStorage

@@ -34,8 +34,6 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
     
     if (!e.value) return;
     
-    // Allow reselecting the same workspace to launch it again
-    
     const selected = workspaces.find(w => w.id === e.value);
     console.log('Found selected workspace:', selected);
     
@@ -43,10 +41,10 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
       console.log('Calling onWorkspaceChange with:', selected.name);
       onWorkspaceChange(selected);
       notify({
-        message: `Launching ${selected.name}...`,
+        message: `${selected.name} selected`,
         type: 'info',
-        displayTime: 2000,
-        position: { at: 'top center', my: 'top center', offset: '0 20' }
+        displayTime: 3000,
+        position: { at: 'bottom center', my: 'bottom center', offset: '0 -120' }
       });
     } else {
       console.log('ERROR: Selected workspace not found in workspaces array!');

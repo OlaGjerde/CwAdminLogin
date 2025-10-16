@@ -54,6 +54,14 @@
   color: white;
 }
 
+.app-icon-initials {
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -1px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
 .app-icon-spinner {
   animation: spin 1s linear infinite;
 }
@@ -81,3 +89,76 @@
 .app-icon.disabled .app-icon-label {
   color: #999;
 }
+
+/* Start Installation Button - Special Highlight */
+.app-icon.start-installation {
+  position: relative;
+  background: linear-gradient(135deg, rgba(51, 122, 183, 0.1) 0%, rgba(51, 122, 183, 0.05) 100%);
+  border: 2px solid #337ab7;
+  animation: pulse-border-once 0.6s ease-out;
+}
+
+.app-icon.start-installation::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  background: linear-gradient(135deg, #337ab7, #2e6da4);
+  border-radius: 10px;
+  opacity: 0;
+  animation: pulse-glow-once 0.6s ease-out;
+  z-index: -1;
+}
+
+.app-icon.start-installation:hover:not(.disabled):not(.loading) {
+  background: linear-gradient(135deg, rgba(51, 122, 183, 0.2) 0%, rgba(51, 122, 183, 0.1) 100%);
+  transform: translateY(-4px);
+  border-color: #2e6da4;
+  box-shadow: 0 4px 12px rgba(51, 122, 183, 0.3);
+}
+
+.app-icon.start-installation .app-icon-image {
+  background: linear-gradient(135deg, #337ab7 0%, #2e6da4 100%);
+  box-shadow: 0 4px 12px rgba(51, 122, 183, 0.4);
+}
+
+.app-icon.start-installation .app-icon-label {
+  color: #337ab7;
+  font-weight: 600;
+}
+
+@keyframes pulse-border-once {
+  0% {
+    border-color: #337ab7;
+    box-shadow: 0 0 0 0 rgba(51, 122, 183, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    border-color: #2e6da4;
+    box-shadow: 0 0 0 8px rgba(51, 122, 183, 0);
+    transform: scale(1.05);
+  }
+  100% {
+    border-color: #337ab7;
+    box-shadow: 0 0 0 0 rgba(51, 122, 183, 0);
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse-glow-once {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+

@@ -11,6 +11,8 @@ import { getCustomAppById } from '../registry/custom-apps';
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
+const SELECTED_WORKSPACE_KEY = 'calwin-selected-workspace';
+
 interface WorkspaceProviderProps {
   children: React.ReactNode;
   availableWorkspaces: NormalizedInstallation[];
@@ -22,8 +24,29 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
   availableWorkspaces,
   initialWorkspace = null
 }) => {
+  // Try to restore previously selected workspace from localStorage
+  const getInitialWorkspace = (): NormalizedInstallation | null => {
+    if (initialWorkspace) return initialWorkspace;
+    
+    try {
+      const saved = localStorage.getItem(SELECTED_WORKSPACE_KEY);
+      if (saved) {
+        const savedId = JSON.parse(saved);
+        const workspace = availableWorkspaces.find(w => w.id === savedId);
+        if (workspace) {
+          console.log('Restored workspace from localStorage:', workspace.name);
+          return workspace;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to restore workspace from localStorage:', error);
+    }
+    
+    return null;
+  };
+
   const [state, setState] = useState<WorkspaceState>({
-    currentWorkspace: initialWorkspace,
+    currentWorkspace: getInitialWorkspace(),
     availableWorkspaces,
     openApps: [],
     isLoading: false,
@@ -38,9 +61,43 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
     }));
   }, [availableWorkspaces]);
 
+  // Restore workspace from localStorage when installations become available
+  React.useEffect(() => {
+    if (availableWorkspaces.length > 0 && !state.currentWorkspace) {
+      try {
+        const saved = localStorage.getItem(SELECTED_WORKSPACE_KEY);
+        if (saved) {
+          const savedId = JSON.parse(saved);
+          const workspace = availableWorkspaces.find(w => w.id === savedId);
+          if (workspace) {
+            console.log('Restoring workspace after installations loaded:', workspace.name);
+            setState(prev => ({
+              ...prev,
+              currentWorkspace: workspace
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to restore workspace:', error);
+      }
+    }
+  }, [availableWorkspaces, state.currentWorkspace]);
+
   // Switch to a different workspace (or null to clear selection)
   const switchWorkspace = useCallback((installation: NormalizedInstallation | null) => {
     console.log('Switching workspace to:', installation?.name || 'none (cleared)');
+    
+    // Persist to localStorage
+    try {
+      if (installation) {
+        localStorage.setItem(SELECTED_WORKSPACE_KEY, JSON.stringify(installation.id));
+      } else {
+        localStorage.removeItem(SELECTED_WORKSPACE_KEY);
+      }
+    } catch (error) {
+      console.error('Failed to persist workspace to localStorage:', error);
+    }
+    
     setState(prev => ({
       ...prev,
       currentWorkspace: installation,

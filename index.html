@@ -6,27 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CalWin Solutions - Login</title>
     
-    <!-- Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="
-      default-src 'self';
-      script-src 'self' 'unsafe-inline';
-      style-src 'self' 'unsafe-inline' https://cdn3.devexpress.com;
-      img-src 'self' data: https:;
-      font-src 'self' data: https://cdn3.devexpress.com;
-      connect-src 'self' 
-        https://adminapi-dev.calwincloud.com 
-        https://auth.calwincloud.com 
-        https://calwincloud.auth.eu-north-1.amazoncognito.com
-        https://calwinmedia.calwincloud.com
-        https://calwinmedia-test.calwincloud.com
-        https://calwinmedia-dev.calwincloud.com;
-      frame-src 'self';
-      object-src 'none';
-      base-uri 'self';
-      form-action 'self' 
-        https://auth.calwincloud.com 
-        https://calwincloud.auth.eu-north-1.amazoncognito.com;
-    ">
+    <!-- Content Security Policy is configured via Vite plugin (see vite-csp-plugin.ts and src/config/csp.ts) -->
   </head>
   <body>
     <div id="root"></div>

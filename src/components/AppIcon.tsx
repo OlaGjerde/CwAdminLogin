@@ -11,13 +11,16 @@ interface AppIconProps {
   isLoading?: boolean;
   /** Disabled state */
   disabled?: boolean;
+  /** Additional CSS class name */
+  className?: string;
 }
 
 export const AppIcon: React.FC<AppIconProps> = ({
   app,
   onClick,
   isLoading = false,
-  disabled = false
+  disabled = false,
+  className = ''
 }) => {
   const handleClick = () => {
     if (!disabled && !isLoading) {
@@ -27,6 +30,11 @@ export const AppIcon: React.FC<AppIconProps> = ({
 
   const renderIcon = () => {
     if (typeof app.icon === 'string') {
+      // Check if it's an icon name (contains 'dx-icon-' or starts with icon name) or text initials
+      if (app.icon.length <= 3 && app.icon === app.icon.toUpperCase()) {
+        // Text initials (2-3 uppercase letters)
+        return <span className="app-icon-initials">{app.icon}</span>;
+      }
       // DevExtreme icon name
       return <i className={`dx-icon dx-icon-${app.icon}`} />;
     } else {
@@ -38,7 +46,7 @@ export const AppIcon: React.FC<AppIconProps> = ({
 
   return (
     <div
-      className={`app-icon ${disabled ? 'disabled' : ''} ${isLoading ? 'loading' : ''}`}
+      className={`app-icon ${disabled ? 'disabled' : ''} ${isLoading ? 'loading' : ''} ${className}`}
       onClick={handleClick}
       title={app.description || app.name}
     >

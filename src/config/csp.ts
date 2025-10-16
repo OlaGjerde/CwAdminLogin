@@ -18,6 +18,7 @@ const API_DOMAINS = [
   'https://calwinmedia.calwincloud.com',
   'https://calwinmedia-test.calwincloud.com',
   'https://calwinmedia-dev.calwincloud.com',
+  'https://dev.calwincloud.com', // Production domain
 ];
 
 /**
