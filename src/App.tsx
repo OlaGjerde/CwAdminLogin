@@ -1,20 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import ResponsiveBox, { Row, Col, Item, Location } from 'devextreme-react/responsive-box';
-import { useAuthFlow, type AuthStep, type UserData, type TokensEncoded } from './hooks/useAuthFlow';
+import { useAuthFlow, type TokensEncoded } from './hooks/useAuthFlow';
 import { useInstallations } from './hooks/useInstallations';
 import { useTokenRefresh } from './hooks/useTokenRefresh';
 import { useLauncher } from './hooks/useLauncher';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
 import { WorkbenchArea } from './components/WorkbenchArea';
-import { LoginEmailForm } from './components/LoginEmailForm';
-import { PasswordForm } from './components/PasswordForm';
-import { SignupForm } from './components/SignupForm';
-import NewsFeed from './NewsFeed';
 import type { NormalizedInstallation } from './types/installations';
 import { PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } from './config';
 import './App.css';
-import './CwAdminLogin.css';
 import BuildFooter from './components/BuildFooter';
 import 'devextreme/dist/css/dx.light.css';
 import { exchangeCodeForTokens, extractTokens } from './api/auth';
@@ -160,34 +154,6 @@ function App() {
     >
       <AppContent
         showAuth={showAuth}
-        step={step}
-        login={login}
-        setLogin={setLogin}
-        password={password}
-        setPassword={setPassword}
-        confirmPassword={confirmPassword}
-        setConfirmPassword={setConfirmPassword}
-        passwordStrength={passwordStrength}
-        showLoginPassword={showLoginPassword}
-        setShowLoginPassword={setShowLoginPassword}
-        showSignupPassword={showSignupPassword}
-        setShowSignupPassword={setShowSignupPassword}
-        showSignupConfirm={showSignupConfirm}
-        setShowSignupConfirm={setShowSignupConfirm}
-        isLoginSubmitting={isLoginSubmitting}
-        isSignupSubmitting={isSignupSubmitting}
-        stayLoggedIn={stayLoggedIn}
-        setStayLoggedIn={setStayLoggedIn}
-        error={error}
-        info={info}
-        userData={userData}
-        handleVerifyEmail={handleVerifyEmail}
-        handleNextLogin={handleNextLogin}
-        submitSignup={submitSignup}
-        submitLogin={submitLogin}
-        setStep={setStep}
-        setError={setError}
-        setInfo={setInfo}
         tokens={tokens}
         logout={logout}
         installations={installations}
@@ -201,34 +167,6 @@ function App() {
 // Separate component that uses workspace context
 interface AppContentProps {
   showAuth: boolean;
-  step: AuthStep;
-  login: string;
-  setLogin: (value: string) => void;
-  password: string;
-  setPassword: (value: string) => void;
-  confirmPassword: string;
-  setConfirmPassword: (value: string) => void;
-  passwordStrength: { score: number; label: string; percent: number };
-  showLoginPassword: boolean;
-  setShowLoginPassword: (value: boolean) => void;
-  showSignupPassword: boolean;
-  setShowSignupPassword: (value: boolean) => void;
-  showSignupConfirm: boolean;
-  setShowSignupConfirm: (value: boolean) => void;
-  isLoginSubmitting: boolean;
-  isSignupSubmitting: boolean;
-  stayLoggedIn: boolean;
-  setStayLoggedIn: (value: boolean) => void;
-  error: string | null;
-  info: string | null;
-  userData: UserData | null;
-  handleVerifyEmail: (code: string) => Promise<void>;
-  handleNextLogin: () => void;
-  submitSignup: () => Promise<void>;
-  submitLogin: () => Promise<void>;
-  setStep: (step: AuthStep) => void;
-  setError: (error: string | null) => void;
-  setInfo: (info: string | null) => void;
   tokens: TokensEncoded | null;
   logout: () => void;
   installations: NormalizedInstallation[];
@@ -250,7 +188,6 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
   useEffect(() => {
     renderCount.current++;
     console.log(`🔄 AppContent RE-RENDER #${renderCount.current}`, {
-      step: props.step,
       showAuth: props.showAuth,
       isLaunching,
       hasTokens: !!tokens
@@ -336,82 +273,29 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
     }, 2000);
   }, [tokens, generateLaunchToken, launchWithFallback, switchWorkspace, isLaunching]);
 
+  // If not authenticated, show redirect message (actual redirect will happen in parent App component)
+  if (props.showAuth) {
+    return (
+      <div className="app-root">
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh',
+          flexDirection: 'column',
+          gap: '20px'
+        }}>
+          <h2>Omdirigerer til pålogging...</h2>
+          <p>Du vil bli sendt til AWS Cognito for autentisering.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Authenticated - show workspace
   return (
     <div className="app-root">
-      {props.showAuth && (
-        <>
-          <ResponsiveBox
-            singleColumnScreen="sm"
-            screenByWidth={(width: number) => (width < 700 ? 'sm' : 'lg')}
-            className="app-responsive-box"
-          >
-            <Row ratio={1} />
-            <Col ratio={20} />
-            <Col ratio={80} />
-            <Item>
-              <Location row={0} col={0} />
-              <div className="app-left-panel">
-                <div className="CwAdminLogin-login-container">
-                  {props.step === 'login' && (
-                    <LoginEmailForm
-                      login={props.login}
-                      setLogin={props.setLogin}
-                      handleNext={props.handleNextLogin}
-                      stayLoggedIn={props.stayLoggedIn}
-                      setStayLoggedIn={props.setStayLoggedIn}
-                      error={props.error}
-                      info={props.info}
-                    />
-                  )}
-                  {props.step === 'password' && (
-                    <PasswordForm
-                      userName={props.userData?.Username || props.userData?.Email?.split('@')[0] || ''}
-                      userEmail={props.userData?.Email}
-                      password={props.password}
-                      setPassword={props.setPassword}
-                      showLoginPassword={props.showLoginPassword}
-                      setShowLoginPassword={props.setShowLoginPassword}
-                      submitLogin={props.submitLogin}
-                      isLoginSubmitting={props.isLoginSubmitting}
-                      error={props.error}
-                      info={props.info}
-                    />
-                  )}
-                  {props.step === 'signup' && (
-                    <SignupForm
-                      login={props.login}
-                      setLogin={props.setLogin}
-                      password={props.password}
-                      setPassword={props.setPassword}
-                      confirmPassword={props.confirmPassword}
-                      setConfirmPassword={props.setConfirmPassword}
-                      passwordStrength={props.passwordStrength}
-                      showSignupPassword={props.showSignupPassword}
-                      setShowSignupPassword={props.setShowSignupPassword}
-                      showSignupConfirm={props.showSignupConfirm}
-                      setShowSignupConfirm={props.setShowSignupConfirm}
-                      submitSignup={props.submitSignup}
-                      isSignupSubmitting={props.isSignupSubmitting}
-                      error={props.error}
-                      info={props.info}
-                      backToLogin={() => props.setStep('login')}
-                    />
-                  )}
-                </div>
-              </div>
-            </Item>
-            <Item>
-              <Location row={0} col={1} />
-              <div className="app-right-panel">
-                <NewsFeed />
-              </div>
-            </Item>
-          </ResponsiveBox>
-          <BuildFooter />
-        </>
-      )}
-
-      {!props.showAuth && (
+      {(
         <>
           {/* Top Bar with Installation Selector */}
           <div className="app-top-bar">
@@ -427,7 +311,7 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
               />
             </div>
             <div className="app-top-bar-right">
-              <span className="app-user-info">{props.userData?.Email || props.userData?.Username}</span>
+              <span className="app-user-info">Bruker</span>
               <Button
                 icon="runner"
                 text="Logg ut"
