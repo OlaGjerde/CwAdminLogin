@@ -83,8 +83,8 @@ function App() {
     );
   }
 
-  // Show error if authentication failed
-  if (authError) {
+  // Show error if authentication failed (but not while loading or already authenticated)
+  if (authError && !isLoading && !isAuthenticated) {
     return (
       <div className="app-root" style={{ 
         display: 'flex', 
