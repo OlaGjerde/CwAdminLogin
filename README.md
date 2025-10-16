@@ -1,11 +1,34 @@
-# React + TypeScript + Vite
+# AWS Login Manager
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern web application for managing AWS Cognito authentication and workspace installations. Built with React, TypeScript, Vite, and DevExtreme 25.1.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 🔐 **AWS Cognito Authentication**: Secure OAuth2 login with PKCE
+- 🚀 **Workspace Management**: Launch and manage multiple workspaces
+- 📱 **Modern UI**: Built with DevExtreme components
+- 🔄 **Automatic Token Refresh**: Seamless session management
+- 📦 **Installation Manager**: View and launch installations
+
+## Authentication
+
+This application uses **AWS Cognito Hosted UI** for authentication with OAuth2 Authorization Code flow + PKCE.
+
+For detailed authentication documentation, see [COGNITO_AUTH.md](./COGNITO_AUTH.md).
+
+### Quick Overview
+- Users are redirected to `auth.calwincloud.com` for login
+- Multi-factor authentication (MFA) is handled by Cognito
+- Tokens are automatically refreshed in the background
+- Session persists across page reloads
+
+## Technology Stack
+
+- **React 18** with TypeScript
+- **Vite** for fast development and building
+- **DevExtreme 25.1** for UI components
+- **AWS Cognito** for authentication
+- **OAuth2 + PKCE** for secure authorization
 
 ## Expanding the ESLint configuration
 
