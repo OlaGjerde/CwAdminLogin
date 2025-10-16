@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuthFlow, type TokensEncoded } from './hooks/useAuthFlow';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
+import { useCognitoAuth } from './hooks/useCognitoAuth';
 import { useInstallations } from './hooks/useInstallations';
-import { useTokenRefresh } from './hooks/useTokenRefresh';
 import { useLauncher } from './hooks/useLauncher';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
@@ -11,135 +10,22 @@ import { PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } from './co
 import './App.css';
 import BuildFooter from './components/BuildFooter';
 import 'devextreme/dist/css/dx.light.css';
-import { exchangeCodeForTokens, extractTokens } from './api/auth';
-import { COGNITO_REDIRECT_URI } from './config';
 import { Button } from 'devextreme-react/button';
 
 function App() {
-  // Form inputs for auth
-  const [login, setLogin] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showLoginPassword, setShowLoginPassword] = useState(false);
-  const [showSignupPassword, setShowSignupPassword] = useState(false);
-  const [showSignupConfirm, setShowSignupConfirm] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState<{ score: number; label: string; percent: number }>({ score: 0, label: 'Svært svakt', percent: 0 });
-  const [isLoginSubmitting, setIsLoginSubmitting] = useState(false);
-  const [isSignupSubmitting, setIsSignupSubmitting] = useState(false);
-  const [lastLoginAttempt, setLastLoginAttempt] = useState(0);
-  const [stayLoggedIn, setStayLoggedIn] = useState(false);
-
-  // Auth hooks
+  // New Cognito auth hook - handles everything!
   const {
-    step, setStep, userData, tokens, error, info, setError, setInfo,
-    handleVerifyEmail, handleSignUp, handleLogin, logout, setRawTokens
-  } = useAuthFlow();
-  
+    isAuthenticated,
+    isLoading,
+    userEmail,
+    error: authError,
+    login,
+    logout,
+    getAccessToken,
+  } = useCognitoAuth();
+
   const { installations, refreshIfStale, generateLaunchToken } = useInstallations();
   const { launchWithFallback } = useLauncher();
-  
-  useTokenRefresh({ 
-    stayLoggedIn, 
-    tokens, 
-    setRawTokens, 
-    logout 
-  });
-
-  // Evaluate password strength
-  useEffect(() => {
-    if (step !== 'signup') return;
-    const evaluate = (pwd: string) => {
-      if (!pwd) return { score: 0, label: 'Svært svakt', percent: 0 };
-      let score = 0;
-      const len = pwd.length;
-      if (len >= 8) score++;
-      if (len >= 12) score++;
-      if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) score++;
-      if (/[0-9]/.test(pwd) && /[^A-Za-z0-9]/.test(pwd)) score++;
-      if (score > 4) score = 4;
-      const labels = ['Svært svakt', 'Svakt', 'Ok', 'Sterkt', 'Veldig sterkt'];
-      const label = labels[score] || labels[0];
-      const percent = (score / 4) * 100;
-      return { score, label, percent };
-    };
-    setPasswordStrength(evaluate(password));
-  }, [password, step]);
-
-  // Handle OAuth callback
-  useEffect(() => {
-    const handleOAuthCallback = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      
-      if (code && !sessionStorage.getItem(`oauth_processed_${code}`)) {
-        sessionStorage.setItem(`oauth_processed_${code}`, 'true');
-        
-        try {
-          setInfo('Behandler pålogging fra Cognito...');
-          const response = await exchangeCodeForTokens(code, COGNITO_REDIRECT_URI);
-          const tokenPair = extractTokens(response.data);
-          
-          if (tokenPair) {
-            setRawTokens(tokenPair.accessToken, tokenPair.refreshToken);
-            setInfo('Pålogging vellykket!');
-            window.history.replaceState({}, document.title, window.location.pathname);
-          } else {
-            setError('Kunne ikke hente tokens fra Cognito');
-          }
-        } catch (err) {
-          const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Feil ved OAuth-callback';
-          setError(errorMessage);
-        }
-      }
-    };
-    
-    handleOAuthCallback();
-  }, [setInfo, setError, setRawTokens]);
-
-  // Refresh installations when logged in
-  useEffect(() => {
-    if (tokens?.accessToken) {
-      // Decode the obfuscated token before using it
-      try {
-        const rawAccessToken = atob(tokens.accessToken);
-        refreshIfStale(rawAccessToken).catch((err) => {
-          console.error('Failed to fetch installations:', err);
-        });
-      } catch (err) {
-        console.error('Failed to decode access token:', err);
-      }
-    }
-  }, [tokens?.accessToken, refreshIfStale]);
-
-  const submitSignup = useCallback(async () => {
-    if (isSignupSubmitting) return;
-    setIsSignupSubmitting(true);
-    try {
-      await handleSignUp(login, password, confirmPassword);
-    } finally {
-      setIsSignupSubmitting(false);
-    }
-  }, [isSignupSubmitting, handleSignUp, login, password, confirmPassword]);
-
-  const submitLogin = useCallback(async () => {
-    const now = Date.now();
-    if (now - lastLoginAttempt < 900) return;
-    setLastLoginAttempt(now);
-    if (isLoginSubmitting) return;
-    setIsLoginSubmitting(true);
-    try {
-      await handleLogin(login, password);
-    } finally {
-      setIsLoginSubmitting(false);
-    }
-  }, [lastLoginAttempt, isLoginSubmitting, handleLogin, login, password]);
-
-  const handleNextLogin = useCallback(() => {
-    handleVerifyEmail(login);
-  }, [handleVerifyEmail, login]);
-
-  // Show auth overlay if not logged in
-  const showAuth = !tokens;
 
   // Debug logging for installations
   useEffect(() => {
@@ -147,16 +33,79 @@ function App() {
     console.log('Installations data:', installations);
   }, [installations]);
 
+  // Refresh installations when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const accessToken = getAccessToken();
+      if (accessToken) {
+        refreshIfStale(accessToken).catch((err) => {
+          console.error('Failed to fetch installations:', err);
+        });
+      }
+    }
+  }, [isAuthenticated, getAccessToken, refreshIfStale]);
+
+  // If not authenticated and not loading, redirect to Cognito
+  useEffect(() => {
+    if (!isAuthenticated && !isLoading) {
+      console.log('🔐 Not authenticated - initiating login flow');
+      login();
+    }
+  }, [isAuthenticated, isLoading, login]);
+
+  // Show loading while checking auth status
+  if (isLoading) {
+    return (
+      <div className="app-root">
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh',
+          flexDirection: 'column',
+          gap: '20px'
+        }}>
+          <h2>Sjekker autentisering...</h2>
+          <p>Vennligst vent...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if authentication failed
+  if (authError) {
+    return (
+      <div className="app-root">
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh',
+          flexDirection: 'column',
+          gap: '20px'
+        }}>
+          <h2>Autentiseringsfeil</h2>
+          <p>{authError}</p>
+          <Button
+            text="Prøv igjen"
+            onClick={login}
+            type="default"
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <WorkspaceProvider 
       availableWorkspaces={installations}
       initialWorkspace={null}
     >
       <AppContent
-        showAuth={showAuth}
-        tokens={tokens}
+        userEmail={userEmail}
         logout={logout}
         installations={installations}
+        getAccessToken={getAccessToken}
         generateLaunchToken={generateLaunchToken}
         launchWithFallback={launchWithFallback}
       />
@@ -166,10 +115,10 @@ function App() {
 
 // Separate component that uses workspace context
 interface AppContentProps {
-  showAuth: boolean;
-  tokens: TokensEncoded | null;
+  userEmail: string | null;
   logout: () => void;
   installations: NormalizedInstallation[];
+  getAccessToken: () => string | null;
   generateLaunchToken: (rawAccessToken: string, installationId: string) => Promise<string | null>;
   launchWithFallback: (appUri: string, onFailure?: () => void) => Promise<void>;
 }
@@ -178,7 +127,13 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
   const { state, switchWorkspace } = useWorkspace();
   
   // Destructure the props we need for the callback
-  const { tokens, generateLaunchToken, launchWithFallback } = props;
+  const { getAccessToken, generateLaunchToken, launchWithFallback, userEmail } = props;
+  
+  // Create authTokens object for WorkbenchArea
+  const authTokens = React.useMemo(() => {
+    const accessToken = getAccessToken();
+    return accessToken ? { accessToken, refreshToken: '' } : null;
+  }, [getAccessToken]);
   
   // Prevent multiple simultaneous launches
   const [isLaunching, setIsLaunching] = useState(false);
@@ -188,9 +143,8 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
   useEffect(() => {
     renderCount.current++;
     console.log(`🔄 AppContent RE-RENDER #${renderCount.current}`, {
-      showAuth: props.showAuth,
       isLaunching,
-      hasTokens: !!tokens
+      hasAccessToken: !!getAccessToken()
     });
   });
 
@@ -216,22 +170,20 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
     console.log('Installation:', installation);
     console.log('Installation ID:', installation.id);
     console.log('Installation AppType:', installation.appType);
-    console.log('Has tokens:', !!tokens);
 
-    // Launch the desktop application FIRST
-    if (!tokens?.accessToken) {
+    // Get access token from Cognito
+    const accessToken = getAccessToken();
+    if (!accessToken) {
       console.error('No access token available');
       // Still switch workspace even if we can't launch
       switchWorkspace(installation);
+      setIsLaunching(false);
       return;
     }
 
     try {
-      console.log('Decoding access token...');
-      const rawAccessToken = atob(tokens.accessToken);
-      console.log('Access token decoded, generating launch token...');
-      
-      const token = await generateLaunchToken(rawAccessToken, installation.id);
+      console.log('Generating launch token...');
+      const token = await generateLaunchToken(accessToken, installation.id);
       console.log('Launch token received:', token ? 'YES' : 'NO');
       console.log('Launch token value:', token);
       
@@ -271,34 +223,14 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
       switchWorkspace(null); // Reset to null to allow reselection
       setIsLaunching(false);
     }, 2000);
-  }, [tokens, generateLaunchToken, launchWithFallback, switchWorkspace, isLaunching]);
-
-  // If not authenticated, show redirect message (actual redirect will happen in parent App component)
-  if (props.showAuth) {
-    return (
-      <div className="app-root">
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          height: '100vh',
-          flexDirection: 'column',
-          gap: '20px'
-        }}>
-          <h2>Omdirigerer til pålogging...</h2>
-          <p>Du vil bli sendt til AWS Cognito for autentisering.</p>
-        </div>
-      </div>
-    );
-  }
+  }, [getAccessToken, generateLaunchToken, launchWithFallback, switchWorkspace, isLaunching]);
 
   // Authenticated - show workspace
   return (
     <div className="app-root">
-      {(
-        <>
-          {/* Top Bar with Installation Selector */}
-          <div className="app-top-bar">
+      <>
+        {/* Top Bar with Installation Selector */}
+        <div className="app-top-bar">
             <div className="app-top-bar-left">
               <h1 className="app-title">CalWin Solutions</h1>
             </div>
@@ -311,7 +243,7 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
               />
             </div>
             <div className="app-top-bar-right">
-              <span className="app-user-info">Bruker</span>
+              <span className="app-user-info">{userEmail || 'Bruker'}</span>
               <Button
                 icon="runner"
                 text="Logg ut"
@@ -325,11 +257,10 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
           <div className="app-content">
             {/* Workbench Area - Full Width */}
             <div className="app-workbench">
-              <WorkbenchArea authTokens={props.tokens} />
+              <WorkbenchArea authTokens={authTokens} />
             </div>
           </div>
         </>
-      )}
 
       <BuildFooter />
     </div>
