@@ -21,6 +21,84 @@ import {
   isTokenExpired,
   type CognitoTokenResponse,
 } from '../utils/cognitoHelpers';
+import { COGNITO_DOMAIN, COGNITO_CLIENT_ID } from '../config';
+
+// ============================================================================
+// Token Persistence
+// ============================================================================
+
+const STORAGE_KEY_TOKENS = 'cognito_tokens';
+
+function saveTokens(tokens: CognitoTokenResponse): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_TOKENS, JSON.stringify(tokens));
+  } catch (error) {
+    console.error('Failed to save tokens to localStorage:', error);
+  }
+}
+
+function loadTokens(): CognitoTokenResponse | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_TOKENS);
+    if (!stored) return null;
+    return JSON.parse(stored) as CognitoTokenResponse;
+  } catch (error) {
+    console.error('Failed to load tokens from localStorage:', error);
+    return null;
+  }
+}
+
+function clearStoredTokens(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY_TOKENS);
+  } catch (error) {
+    console.error('Failed to clear tokens from localStorage:', error);
+  }
+}
+
+/**
+ * Refresh access token using refresh token
+ */
+async function refreshAccessToken(refreshToken: string): Promise<CognitoTokenResponse | null> {
+  try {
+    const tokenUrl = `${COGNITO_DOMAIN}/oauth2/token`;
+    
+    const body = new URLSearchParams({
+      grant_type: 'refresh_token',
+      client_id: COGNITO_CLIENT_ID,
+      refresh_token: refreshToken,
+    });
+    
+    const response = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: body.toString(),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Token refresh failed:', response.status, errorText);
+      return null;
+    }
+    
+    const data = await response.json();
+    
+    // Refresh token response might not include a new refresh_token
+    // If not provided, keep the old one
+    return {
+      access_token: data.access_token,
+      id_token: data.id_token,
+      refresh_token: data.refresh_token || refreshToken,
+      token_type: data.token_type || 'Bearer',
+      expires_in: data.expires_in,
+    };
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    return null;
+  }
+}
 
 // ============================================================================
 // Types
@@ -150,6 +228,9 @@ export function useCognitoAuth() {
       // Extract user email from ID token
       const email = getUserEmail(tokens.id_token);
       
+      // Save tokens to localStorage
+      saveTokens(tokens);
+      
       // Update state
       setState({
         isAuthenticated: true,
@@ -181,6 +262,9 @@ export function useCognitoAuth() {
    */
   const logout = useCallback(() => {
     console.log('🚪 Logging out');
+    
+    // Clear stored tokens
+    clearStoredTokens();
     
     // Clear local state
     setState({
@@ -220,7 +304,7 @@ export function useCognitoAuth() {
   // ============================================================================
 
   /**
-   * On mount: Check if we're handling an OAuth callback
+   * On mount: Check if we're handling an OAuth callback or have stored tokens
    */
   useEffect(() => {
     const checkAuth = async () => {
@@ -228,19 +312,98 @@ export function useCognitoAuth() {
         console.log('🔍 Detected OAuth callback');
         await handleCallback();
       } else {
-        // No callback - check if we have existing tokens
-        // For now, just set loading to false
-        // In the future, we could check for stored tokens or session
-        console.log('🔍 No OAuth callback detected');
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-        }));
+        // No callback - check if we have existing tokens in localStorage
+        console.log('🔍 No OAuth callback, checking for stored tokens...');
+        const storedTokens = loadTokens();
+        
+        if (storedTokens) {
+          // Check if access token is expired
+          if (isTokenExpired(storedTokens.access_token)) {
+            console.log('🔄 Access token expired, attempting refresh...');
+            // Try to refresh
+            const refreshedTokens = await refreshAccessToken(storedTokens.refresh_token);
+            
+            if (refreshedTokens) {
+              console.log('✅ Token refreshed successfully');
+              saveTokens(refreshedTokens);
+              const email = getUserEmail(refreshedTokens.id_token);
+              
+              setState({
+                isAuthenticated: true,
+                isLoading: false,
+                tokens: refreshedTokens,
+                userEmail: email,
+                error: null,
+              });
+            } else {
+              console.log('❌ Token refresh failed, clearing session');
+              clearStoredTokens();
+              setState((prev) => ({
+                ...prev,
+                isLoading: false,
+              }));
+            }
+          } else {
+            // Tokens are still valid
+            console.log('✅ Found valid stored tokens');
+            const email = getUserEmail(storedTokens.id_token);
+            
+            setState({
+              isAuthenticated: true,
+              isLoading: false,
+              tokens: storedTokens,
+              userEmail: email,
+              error: null,
+            });
+          }
+        } else {
+          console.log('ℹ️ No stored tokens found');
+          setState((prev) => ({
+            ...prev,
+            isLoading: false,
+          }));
+        }
       }
     };
     
     checkAuth();
   }, [handleCallback]);
+
+  /**
+   * Set up automatic token refresh before expiration
+   */
+  useEffect(() => {
+    if (!state.isAuthenticated || !state.tokens) {
+      return;
+    }
+
+    // Check token expiration every minute
+    const checkInterval = setInterval(async () => {
+      if (state.tokens && isTokenExpired(state.tokens.access_token)) {
+        console.log('🔄 Access token expired, refreshing...');
+        const refreshedTokens = await refreshAccessToken(state.tokens.refresh_token);
+        
+        if (refreshedTokens) {
+          console.log('✅ Token auto-refreshed');
+          saveTokens(refreshedTokens);
+          const email = getUserEmail(refreshedTokens.id_token);
+          
+          setState({
+            isAuthenticated: true,
+            isLoading: false,
+            tokens: refreshedTokens,
+            userEmail: email,
+            error: null,
+          });
+        } else {
+          console.log('❌ Auto-refresh failed, logging out');
+          logout();
+        }
+      }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(checkInterval);
+  }, [state.isAuthenticated, state.tokens, logout]);
 
   // ============================================================================
   // Return
