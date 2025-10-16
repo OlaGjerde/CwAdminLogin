@@ -21,8 +21,8 @@ export const ExampleTodoApp: CustomAppDefinition = {
   windowOptions: {
     minWidth: 300,
     minHeight: 400,
-    defaultWidth: 400,
-    defaultHeight: 500,
+    defaultWidth: 600,
+    defaultHeight: 800,
     resizable: true,
     maximizable: true
   },

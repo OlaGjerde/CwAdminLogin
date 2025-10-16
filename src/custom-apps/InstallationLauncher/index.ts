@@ -11,10 +11,10 @@ export const InstallationLauncherApp: CustomAppDefinition = {
   category: 'System',
   author: 'CalWin Solutions',
   windowOptions: {
-    minWidth: 600,
+    minWidth: 500,
     minHeight: 400,
-    defaultWidth: 900,
-    defaultHeight: 600,
+    defaultWidth: 950,
+    defaultHeight: 540,
     resizable: true,
     maximizable: true,
   },

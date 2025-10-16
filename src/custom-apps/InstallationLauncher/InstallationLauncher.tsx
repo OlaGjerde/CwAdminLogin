@@ -30,23 +30,33 @@ export const InstallationLauncherComponent: React.FC<CustomAppProps> = ({
     return groups;
   }, {} as Record<string, NormalizedInstallation[]>);
 
-  // Get icon for app type
-  const getAppTypeIcon = (appType?: number): string => {
-    switch (appType) {
-      case 0: return 'globe'; // Production
-      case 1: return 'coffee'; // Test
-      case 2: return 'preferences'; // Development
-      default: return 'box';
+  // Get initials from installation name (first 2 letters)
+  const getInstallationInitials = (name: string): string => {
+    // Remove special characters and split into words
+    const cleanName = name.replace(/[^\w\s]/g, '').trim();
+    const words = cleanName.split(/\s+/);
+    
+    if (words.length >= 2) {
+      // Take first letter of first two words
+      return (words[0][0] + words[1][0]).toUpperCase();
+    } else if (words.length === 1 && words[0].length >= 2) {
+      // Take first two letters of single word
+      return words[0].substring(0, 2).toUpperCase();
+    } else if (words.length === 1 && words[0].length === 1) {
+      // Single letter word
+      return words[0][0].toUpperCase();
     }
+    
+    return 'CW'; // Default fallback
   };
 
-  // Get color for app type
-  const getAppTypeColor = (appType?: number): string => {
+  // Get gradient for app type (bluish color scheme)
+  const getAppTypeGradient = (appType?: number): string => {
     switch (appType) {
-      case 0: return '#28a745'; // Green - Production
-      case 1: return '#ffc107'; // Yellow - Test
-      case 2: return '#17a2b8'; // Blue - Development
-      default: return '#6c757d'; // Gray
+      case 0: return 'linear-gradient(135deg, #4e73df 0%, #224abe 100%)'; // Deep blue - Production
+      case 1: return 'linear-gradient(135deg, #36b9cc 0%, #258391 100%)'; // Cyan blue - Test
+      case 2: return 'linear-gradient(135deg, #5a96e3 0%, #3867d6 100%)'; // Bright blue - Development
+      default: return 'linear-gradient(135deg, #6c757d 0%, #495057 100%)'; // Gray gradient
     }
   };
 
@@ -66,35 +76,36 @@ export const InstallationLauncherComponent: React.FC<CustomAppProps> = ({
       if (!authTokens?.accessToken) {
         console.error('No access token available');
         alert('Ikke tilgjengelig tilgangstoken. Vennligst logg inn på nytt.');
+        setLaunching(null);
         return;
       }
 
       // Import required modules
-      const { API_BASE } = await import('../../config');
+      const { createOneTimeToken } = await import('../../api/auth');
       const { PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } = await import('../../config');
 
-      // Generate launch token
-      const response = await fetch(`${API_BASE}/api/LaunchToken/GenerateLaunchToken`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authTokens.accessToken}`,
-        },
-        body: JSON.stringify({
-          accessToken: authTokens.accessToken,
-          installationId: installation.id,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to generate launch token: ${response.status}`);
+      // Generate launch token using the same API as the main app
+      console.log('Generating launch token...');
+      const resp = await createOneTimeToken(authTokens.accessToken, installation.id);
+      
+      if (resp.status !== 200) {
+        throw new Error(`Failed to generate launch token: ${resp.status}`);
       }
 
-      const token = await response.text();
+      const data = resp.data;
+      let token: string | null = null;
+      
+      if (typeof data === 'string') {
+        token = data;
+      } else {
+        token = data.oneTimeToken || data.OneTimeToken || data.token || data.Token || data.linkToken || data.LinkToken || null;
+      }
       
       if (!token) {
-        throw new Error('No launch token received');
+        throw new Error('No launch token received from server');
       }
+
+      console.log('✅ Launch token received');
 
       // Determine protocol based on app type
       const protocol = installation.appType === 0 
@@ -104,7 +115,7 @@ export const InstallationLauncherComponent: React.FC<CustomAppProps> = ({
         : PROTOCOL_CALWIN_DEV;
       
       const uri = `${protocol}${encodeURIComponent(token)}`;
-      console.log('🔗 Launch URI:', uri);
+      console.log('🔗 Launching with URI:', uri);
       
       // Try to launch via protocol handler
       const anchor = document.createElement('a');
@@ -130,47 +141,16 @@ export const InstallationLauncherComponent: React.FC<CustomAppProps> = ({
 
   return (
     <div className="installation-launcher">
-      {/* Header with search */}
-      <div className="launcher-header">
-        <div className="launcher-title">
-          <i className="dx-icon-box"></i>
-          <h2>CalWin Installasjoner</h2>
-        </div>
-        <div className="launcher-search">
-          <TextBox
-            placeholder="Søk etter installasjon..."
-            value={searchText}
-            onValueChanged={(e) => setSearchText(e.value || '')}
-            mode="search"
-            width="100%"
-          />
-        </div>
-        <div className="launcher-stats">
-          <span>{filteredInstallations.length} installasjon(er)</span>
-        </div>
-      </div>
-
       {/* Installation grid */}
       <ScrollView className="launcher-content">
         {Object.keys(groupedInstallations).length === 0 ? (
-          <div className="launcher-empty">
-            <i className="dx-icon-search"></i>
-            <p>Ingen installasjoner funnet</p>
-            {searchText && (
-              <Button
-                text="Nullstill søk"
-                onClick={() => setSearchText('')}
-                stylingMode="outlined"
-              />
-            )}
+          <div className="no-installations">
+            <h3>Ingen CalWin-installasjoner funnet</h3>
+            <p>Vennligst legg til CalWin-installasjoner i innstillingene.</p>
           </div>
         ) : (
           Object.entries(groupedInstallations).map(([typeName, installs]) => (
             <div key={typeName} className="launcher-group">
-              <div className="launcher-group-header">
-                <h3>{typeName}</h3>
-                <span className="launcher-group-count">{installs.length}</span>
-              </div>
               <div className="launcher-grid">
                 {installs.map((installation) => (
                   <div
@@ -179,13 +159,14 @@ export const InstallationLauncherComponent: React.FC<CustomAppProps> = ({
                   >
                     <div
                       className="launcher-card-icon"
-                      style={{ backgroundColor: getAppTypeColor(installation.appType) }}
+                      style={{ background: getAppTypeGradient(installation.appType) }}
                     >
-                      <i className={`dx-icon-${getAppTypeIcon(installation.appType)}`}></i>
+                      <span className="launcher-card-initials">
+                        {getInstallationInitials(installation.name)}
+                      </span>
                     </div>
                     <div className="launcher-card-content">
                       <h4 className="launcher-card-title">{installation.name}</h4>
-                      <p className="launcher-card-type">{typeName}</p>
                     </div>
                     <div className="launcher-card-actions">
                       <Button

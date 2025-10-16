@@ -7,6 +7,7 @@ import type {
   OpenAppInstance
 } from '../types/workspace';
 import type { NormalizedInstallation } from '../types/installations';
+import { getCustomAppById } from '../registry/custom-apps';
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
@@ -82,14 +83,22 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
       const instanceId = `${appId}-${Date.now()}`;
       console.log('Opening app:', appId, 'Instance:', instanceId);
       
+      // Get app definition to read window options
+      const appDef = getCustomAppById(appId);
+      const windowOptions = appDef?.windowOptions || {};
+      
+      // Use window options from app definition with fallbacks
+      const defaultWidth = windowOptions.defaultWidth || 600;
+      const defaultHeight = windowOptions.defaultHeight || 500;
+      
       const newApp: OpenAppInstance = {
         instanceId,
         appId,
         windowState: {
           x: 100,
           y: 100,
-          width: 600,
-          height: 500,
+          width: defaultWidth,
+          height: defaultHeight,
           isMinimized: false,
           isMaximized: false,
           zIndex: Math.max(0, ...prev.openApps.map(a => a.windowState.zIndex)) + 1
