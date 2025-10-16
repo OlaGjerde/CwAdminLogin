@@ -11,6 +11,7 @@ import './App.css';
 import BuildFooter from './components/BuildFooter';
 import 'devextreme/dist/css/dx.light.css';
 import { Button } from 'devextreme-react/button';
+import { LoadIndicator } from 'devextreme-react/load-indicator';
 
 function App() {
   // New Cognito auth hook - handles everything!
@@ -56,17 +57,26 @@ function App() {
   // Show loading while checking auth status
   if (isLoading) {
     return (
-      <div className="app-root">
+      <div className="app-root" style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        backgroundColor: '#f5f5f5'
+      }}>
         <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          height: '100vh',
-          flexDirection: 'column',
-          gap: '20px'
+          textAlign: 'center',
+          padding: '40px',
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          minWidth: '300px'
         }}>
-          <h2>Sjekker autentisering...</h2>
-          <p>Vennligst vent...</p>
+          <LoadIndicator height={60} width={60} />
+          <h2 style={{ marginTop: '20px', marginBottom: '10px', color: '#333' }}>
+            Sjekker autentisering
+          </h2>
+          <p style={{ color: '#666', margin: 0 }}>Vennligst vent...</p>
         </div>
       </div>
     );
@@ -75,21 +85,44 @@ function App() {
   // Show error if authentication failed
   if (authError) {
     return (
-      <div className="app-root">
+      <div className="app-root" style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        backgroundColor: '#f5f5f5'
+      }}>
         <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          height: '100vh',
-          flexDirection: 'column',
-          gap: '20px'
+          textAlign: 'center',
+          padding: '40px',
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          minWidth: '400px',
+          maxWidth: '500px'
         }}>
-          <h2>Autentiseringsfeil</h2>
-          <p>{authError}</p>
+          <div style={{ 
+            fontSize: '48px', 
+            color: '#d9534f',
+            marginBottom: '20px'
+          }}>⚠️</div>
+          <h2 style={{ marginBottom: '15px', color: '#d9534f' }}>
+            Autentiseringsfeil
+          </h2>
+          <p style={{ 
+            color: '#666', 
+            marginBottom: '25px',
+            lineHeight: '1.5'
+          }}>
+            {authError}
+          </p>
           <Button
-            text="Prøv igjen"
+            text="Prøv på nytt"
+            icon="refresh"
             onClick={login}
             type="default"
+            stylingMode="contained"
+            width="100%"
           />
         </div>
       </div>
