@@ -243,6 +243,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
  * Hook to access workspace context
  * Must be used within WorkspaceProvider
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export const useWorkspace = (): WorkspaceContextValue => {
   const context = useContext(WorkspaceContext);
   if (!context) {
