@@ -44,6 +44,14 @@ function App() {
     }
   }, [isAuthenticated, refreshIfStale]);
 
+  // ⭐ Auto-redirect to Cognito login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && !authError) {
+      console.log('🔐 Not authenticated - redirecting to Cognito login...');
+      login();
+    }
+  }, [isLoading, isAuthenticated, authError, login]);
+
   // Show loading while checking auth status
   if (isLoading) {
     return (
@@ -72,8 +80,8 @@ function App() {
     );
   }
 
-  // Show error OR login prompt if not authenticated
-  if (!isAuthenticated) {
+  // Show error with retry button if authentication failed
+  if (!isAuthenticated && authError) {
     return (
       <div className="app-root" style={{ 
         display: 'flex', 
@@ -91,47 +99,25 @@ function App() {
           minWidth: '400px',
           maxWidth: '500px'
         }}>
-          {authError ? (
-            <>
-              <div style={{ 
-                fontSize: '48px', 
-                color: '#d9534f',
-                marginBottom: '20px'
-              }}>⚠️</div>
-              <h2 style={{ marginBottom: '15px', color: '#d9534f' }}>
-                Autentiseringsfeil
-              </h2>
-              <p style={{ 
-                color: '#666', 
-                marginBottom: '25px',
-                lineHeight: '1.5'
-              }}>
-                {authError}
-              </p>
-            </>
-          ) : (
-            <>
-              <div style={{ 
-                fontSize: '48px', 
-                color: '#5cb85c',
-                marginBottom: '20px'
-              }}>🔐</div>
-              <h2 style={{ marginBottom: '15px', color: '#333' }}>
-                Vennligst logg inn
-              </h2>
-              <p style={{ 
-                color: '#666', 
-                marginBottom: '25px',
-                lineHeight: '1.5'
-              }}>
-                Du må logge inn for å fortsette
-              </p>
-            </>
-          )}
+          <div style={{ 
+            fontSize: '48px', 
+            color: '#d9534f',
+            marginBottom: '20px'
+          }}>⚠️</div>
+          <h2 style={{ marginBottom: '15px', color: '#d9534f' }}>
+            Autentiseringsfeil
+          </h2>
+          <p style={{ 
+            color: '#666', 
+            marginBottom: '25px',
+            lineHeight: '1.5'
+          }}>
+            {authError}
+          </p>
           <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
             <Button
-              text={authError ? "Prøv på nytt" : "Logg inn"}
-              icon={authError ? "refresh" : "key"}
+              text="Prøv på nytt"
+              icon="refresh"
               onClick={login}
               type="default"
               stylingMode="contained"
@@ -154,6 +140,11 @@ function App() {
         </div>
       </div>
     );
+  }
+
+  // ⭐ If not authenticated and no error, return null (login redirect is happening)
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (
@@ -181,7 +172,7 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
   const { state, switchWorkspace } = useWorkspace();
   
   const { userEmail } = props;
-  const authTokens = { accessToken: '', refreshToken: '' };
+  // ⭐ authTokens no longer needed - using cookie-based auth
 
   const handleInstallationChange = useCallback((installation: NormalizedInstallation) => {
     console.log('=== handleInstallationChange called ===');
@@ -220,7 +211,7 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
 
           <div className="app-content">
             <div className="app-workbench">
-              <WorkbenchArea authTokens={authTokens} />
+              <WorkbenchArea />
             </div>
           </div>
         </>

@@ -44,7 +44,7 @@ export interface CognitoAuthState {
 export function useCognitoAuth() {
   const [state, setState] = useState<CognitoAuthState>({
     isAuthenticated: false,
-    isLoading: false, // CHANGED: Start with FALSE to prevent immediate redirect
+    isLoading: true, // ⭐ Start with loading to prevent auto-redirect before auth check
     userInfo: null,
     error: null,
   });
@@ -210,15 +210,12 @@ export function useCognitoAuth() {
       
       console.log('✅ Tokens received and cookies set by backend');
       
-      // Wait a bit for cookies to be set properly
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Get user information from backend
+      // Get user information from backend (wait for it before setting authenticated)
       try {
         const userInfo = await getCurrentUser();
         console.log('✅ User info received:', userInfo.email);
         
-        // Update state
+        // Update state with authentication and user info together
         setState({
           isAuthenticated: true,
           isLoading: false,
@@ -298,7 +295,7 @@ export function useCognitoAuth() {
   const checkAuthStatus = useCallback(async () => {
     try {
       console.log('🔍 Checking authentication status...');
-      setState(prev => ({ ...prev, isLoading: true })); // Set loading while checking
+      // Don't set loading here - use initial state
       
       const userInfo = await getCurrentUser();
       
@@ -426,6 +423,22 @@ export function useCognitoAuth() {
    */
   useEffect(() => {
     const initAuth = async () => {
+      // ⭐ Check if returning from logout
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('logout') === 'true') {
+        console.log('🚪 Returned from Cognito logout - staying logged out');
+        // Clear the logout flag from URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        // Set state to logged out
+        setState({
+          isAuthenticated: false,
+          isLoading: false,
+          userInfo: null,
+          error: null,
+        });
+        return; // ⭐ Don't check auth status!
+      }
+      
       // Parse OAuth callback parameters
       const params = parseCallbackParams();
       

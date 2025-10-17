@@ -17,8 +17,8 @@ export interface AuthTokens {
 export interface CustomAppProps {
   /** Current workspace/installation */
   workspace: NormalizedInstallation | null;
-  /** Authentication tokens for API calls */
-  authTokens: AuthTokens | null;
+  /** Authentication tokens for API calls - DEPRECATED: Now using httpOnly cookies */
+  authTokens?: AuthTokens | null;
   /** All available installations */
   installations: NormalizedInstallation[];
   /** Window control API */

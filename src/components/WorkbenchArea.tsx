@@ -9,14 +9,11 @@ import notify from 'devextreme/ui/notify';
 import './WorkbenchArea.css';
 
 interface WorkbenchAreaProps {
-  /** Authentication tokens to pass to apps */
-  authTokens: { accessToken: string; refreshToken: string } | null;
   /** Available apps (system + custom) */
   availableApps?: AppDefinition[];
 }
 
 export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
-  authTokens,
   availableApps = []
 }) => {
   const workspace = useWorkspace();
@@ -42,15 +39,8 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
       return;
     }
 
-    if (!authTokens?.accessToken) {
-      notify({
-        message: 'No access token available',
-        type: 'error',
-        displayTime: 3000,
-        position: { at: 'bottom center', my: 'bottom center', offset: '0 -120' }
-      });
-      return;
-    }
+    // ⭐ Cookie-based auth - no need to check authTokens
+    // Backend will validate authentication via httpOnly cookies
 
     setIsLaunching(true);
 
@@ -167,7 +157,7 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
 
           const appProps: CustomAppProps = {
             workspace: state.currentWorkspace,
-            authTokens,
+            // ⭐ authTokens removed - using cookie-based auth now
             installations: state.availableWorkspaces,
             windowControl,
             instanceId: openApp.instanceId

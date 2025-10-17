@@ -181,7 +181,7 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
   const { state, switchWorkspace } = useWorkspace();
   
   const { userEmail } = props;
-  const authTokens = { accessToken: '', refreshToken: '' };
+  // ⭐ authTokens no longer needed - using cookie-based auth
 
   const handleInstallationChange = useCallback((installation: NormalizedInstallation) => {
     console.log('=== handleInstallationChange called ===');
@@ -220,7 +220,7 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
 
           <div className="app-content">
             <div className="app-workbench">
-              <WorkbenchArea authTokens={authTokens} />
+              <WorkbenchArea />
             </div>
           </div>
         </>
