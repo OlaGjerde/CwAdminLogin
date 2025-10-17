@@ -9,8 +9,8 @@ const enabled = ((): boolean => {
     const v = String(flag).toLowerCase();
     return v === '1' || v === 'true' || v === 'yes' || v === 'on';
   }
-  // Default: disabled unless explicitly enabled via VITE_DEBUG_LOG
-  return false;
+  // Default: enabled in development, disabled in production
+  return env.DEV === true;
 })();
 
 export function logDebug(...args: unknown[]) {
@@ -22,7 +22,13 @@ export function logWarn(...args: unknown[]) {
 }
 
 export function logError(...args: unknown[]) {
-  if (enabled) console.error(...args);
+  // Always log errors, even in production
+  console.error(...args);
+}
+
+export function logInfo(...args: unknown[]) {
+  // Info logs only in debug mode
+  if (enabled) console.info(...args);
 }
 
 export const debugLoggingEnabled = enabled;

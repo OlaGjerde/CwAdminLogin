@@ -167,6 +167,48 @@ var logoutUriBase = "https://your-frontend-domain.com";
 
 ---
 
+### 6. Console Logging Cleanup
+
+**DEVELOPMENT (Current):**
+- 100+ `console.log()`, `console.warn()`, `console.error()` statements
+- All debug logging visible in production
+
+**PRODUCTION (Required):**
+```typescript
+import { logDebug, logWarn, logError } from '../utils/logger';
+
+// Development only logs
+logDebug('🔐 Initiating Cognito login flow');
+logWarn('⚠️ Something might be wrong');
+
+// Always logs (even in production)
+logError('❌ Critical error occurred');
+```
+
+**Why?**
+- **Security:** Debug logs may expose sensitive information
+- **Performance:** Reduces console overhead in production
+- **Debugging:** Can re-enable with `VITE_DEBUG_LOG=true` if needed
+
+**How to replace:**
+See detailed instructions in `docs/REPLACE_CONSOLE_LOGS.md`
+
+Quick method using VS Code Find & Replace:
+1. Find: `console\.log\(` → Replace: `logDebug(`
+2. Find: `console\.warn\(` → Replace: `logWarn(`
+3. Find: `console\.error\(` → Replace: `logError(`
+4. Add imports: `import { logDebug, logWarn, logError } from '../utils/logger';`
+
+**Action Items:**
+- [ ] Replace all `console.log` with `logDebug`
+- [ ] Replace all `console.warn` with `logWarn`
+- [ ] Replace all `console.error` with `logError`
+- [ ] Add logger imports to all affected files
+- [ ] Test with `yarn build && yarn preview` (should have no debug logs)
+- [ ] Test with `VITE_DEBUG_LOG=true yarn preview` (should show all logs)
+
+---
+
 ## 📋 Pre-Deployment Checklist
 
 ### Frontend
