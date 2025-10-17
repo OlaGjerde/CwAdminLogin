@@ -12,6 +12,7 @@ import notify from 'devextreme/ui/notify';
 
 export const TokenRefreshTester: React.FC = () => {
   const [testing, setTesting] = React.useState(false);
+  const [isVisible, setIsVisible] = React.useState(true);
 
   const testManualRefresh = async () => {
     setTesting(true);

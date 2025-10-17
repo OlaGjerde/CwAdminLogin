@@ -4,7 +4,7 @@ import { useInstallations } from './hooks/useInstallations';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
 import { WorkbenchArea } from './components/WorkbenchArea';
-import { TokenRefreshTester } from './components/TokenRefreshTester';
+// import { TokenRefreshTester } from './components/TokenRefreshTester';
 import type { NormalizedInstallation } from './types/installations';
 import './App.css';
 import BuildFooter from './components/BuildFooter';
@@ -219,7 +219,7 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
         </>
 
       <BuildFooter />
-      <TokenRefreshTester />
+      {/* <TokenRefreshTester /> */}
     </div>
   );
 });
