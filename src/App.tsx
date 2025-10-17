@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useCognitoAuth } from './hooks/useCognitoAuth';
 import { useInstallations } from './hooks/useInstallations';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
@@ -10,6 +10,7 @@ import BuildFooter from './components/BuildFooter';
 import 'devextreme/dist/css/dx.light.css';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
+import { logDebug, logError } from './utils/logger';
 
 function App() {
   // Cookie-based Cognito auth hook
@@ -26,7 +27,7 @@ function App() {
 
   // Debug logging for auth state
   useEffect(() => {
-    console.log('📊 App Auth State:', {
+    logDebug('📊 App Auth State:', {
       isAuthenticated,
       isLoading,
       userEmail,
@@ -39,7 +40,7 @@ function App() {
   useEffect(() => {
     if (isAuthenticated) {
       refreshIfStale().catch((err) => {
-        console.error('Failed to fetch installations:', err);
+        logError('Failed to fetch installations:', err);
       });
     }
   }, [isAuthenticated, refreshIfStale]);
@@ -47,7 +48,7 @@ function App() {
   // ⭐ Auto-redirect to Cognito login if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated && !authError) {
-      console.log('🔐 Not authenticated - redirecting to Cognito login...');
+      logDebug('🔐 Not authenticated - redirecting to Cognito login...');
       login();
     }
   }, [isLoading, isAuthenticated, authError, login]);
@@ -129,7 +130,7 @@ function App() {
               onClick={() => {
                 localStorage.clear();
                 sessionStorage.clear();
-                console.log('✅ Cleared all storage - reloading...');
+                logDebug('✅ Cleared all storage - reloading...');
                 window.location.href = '/';
               }}
               type="danger"
@@ -175,8 +176,8 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
   // ⭐ authTokens no longer needed - using cookie-based auth
 
   const handleInstallationChange = useCallback((installation: NormalizedInstallation) => {
-    console.log('=== handleInstallationChange called ===');
-    console.log('Installation:', installation);
+    logDebug('=== handleInstallationChange called ===');
+    logDebug('Installation:', installation);
     switchWorkspace(installation);
   }, [switchWorkspace]);
 
@@ -201,7 +202,7 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
                 icon="runner"
                 text="Logg ut"
                 onClick={() => {
-                  console.log('🔘 Logout button clicked');
+                  logDebug('🔘 Logout button clicked');
                   props.logout();
                 }}
                 stylingMode="outlined"

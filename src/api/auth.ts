@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { CW_AUTH_ENDPOINT, INSTALLATIONS_ENDPOINT, AUTH_ENDPOINTS, COGNITO_REDIRECT_URI } from '../config';
+import { logDebug } from '../utils/logger';
 
 /**
  * Configure axios to send cookies with all requests
@@ -45,7 +46,7 @@ export interface UserInfo {
  * Exchange OAuth authorization code for tokens (sets httpOnly cookies)
  */
 export async function exchangeCodeForTokens(code: string, codeVerifier: string): Promise<CodeExchangeResponse> {
-  console.log('🔄 Sending token exchange request:', {
+  logDebug('🔄 Sending token exchange request:', {
     url: AUTH_ENDPOINTS.EXCHANGE_CODE,
     code: code.substring(0, 20) + '...',
     redirectUri: COGNITO_REDIRECT_URI,
@@ -61,17 +62,17 @@ export async function exchangeCodeForTokens(code: string, codeVerifier: string):
     } as CodeExchangeRequest
   );
   
-  console.log('✅ Token exchange response:', response.data);
-  console.log('🍪 Cookies after exchange:', document.cookie);
+  logDebug('✅ Token exchange response:', response.data);
+  logDebug('🍪 Cookies after exchange:', document.cookie);
   
   // ⭐ Log ALL response headers to see if Set-Cookie is there
-  console.log('📋 ALL Response Headers:');
+  logDebug('📋 ALL Response Headers:');
   Object.entries(response.headers).forEach(([key, value]) => {
-    console.log(`  ${key}: ${value}`);
+    logDebug(`  ${key}: ${value}`);
   });
   
   // ⭐ Specifically check for Set-Cookie (won't be visible in JS, but good to try)
-  console.log('🍪 Set-Cookie header (if accessible):', response.headers['set-cookie']);
+  logDebug('🍪 Set-Cookie header (if accessible):', response.headers['set-cookie']);
   
   return response.data;
 }
@@ -96,10 +97,10 @@ export async function logout(): Promise<LogoutResponse> {
  * Get current user info (checks authentication status)
  */
 export async function getCurrentUser(): Promise<UserInfo> {
-  console.log('🔍 Calling /Me endpoint...');
-  console.log('🍪 All cookies:', document.cookie);
+  logDebug('🔍 Calling /Me endpoint...');
+  logDebug('🍪 All cookies:', document.cookie);
   const response = await axios.get<UserInfo>(AUTH_ENDPOINTS.ME);
-  console.log('✅ /Me response:', response.data);
+  logDebug('✅ /Me response:', response.data);
   return response.data;
 }
 

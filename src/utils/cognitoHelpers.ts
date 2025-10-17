@@ -4,6 +4,7 @@
  */
 
 import { COGNITO_DOMAIN, COGNITO_CLIENT_ID, COGNITO_REDIRECT_URI } from '../config';
+import { logError } from './logger';
 
 // ============================================================================
 // PKCE (Proof Key for Code Exchange) Implementation
@@ -201,7 +202,7 @@ export function decodeJWT(token: string): CognitoJWTPayload | null {
     const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
     return JSON.parse(decoded);
   } catch (error) {
-    console.error('Failed to decode JWT:', error);
+    logError('Failed to decode JWT:', error);
     return null;
   }
 }

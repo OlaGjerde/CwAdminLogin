@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { logError } from '../utils/logger';
 
 export interface LaunchState {
   launching: boolean;
@@ -26,7 +27,7 @@ function tryLaunchUri(uri: string): Promise<boolean> {
       // Immediately resolve - we can't reliably detect if protocol handler succeeded
       resolve(true);
     } catch (err) {
-      console.error('Failed to launch URI:', err);
+      logError('Failed to launch URI:', err);
       resolve(false);
     }
   });

@@ -4,6 +4,7 @@ import type { NormalizedInstallation } from '../../types/installations';
 import { Button } from 'devextreme-react/button';
 import { ScrollView } from 'devextreme-react/scroll-view';
 import './InstallationLauncher.css';
+import { logDebug, logError } from '../../utils/logger';
 
 export const InstallationLauncherComponent: React.FC<CustomAppProps> = ({
   installations,
@@ -62,21 +63,21 @@ export const InstallationLauncherComponent: React.FC<CustomAppProps> = ({
   // Launch installation
   const handleLaunchInstallation = useCallback(async (installation: NormalizedInstallation) => {
     if (launching) {
-      console.log('Already launching an installation');
+      logDebug('Already launching an installation');
       return;
     }
 
     setLaunching(installation.id);
 
     try {
-      console.log('🚀 Launching installation:', installation.name);
+      logDebug('🚀 Launching installation:', installation.name);
       
       // Import required modules (cookies sent automatically for auth)
       const { createOneTimeToken } = await import('../../api/auth');
       const { PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } = await import('../../config');
 
       // Generate launch token using cookie-based auth
-      console.log('Generating launch token...');
+      logDebug('Generating launch token...');
       const resp = await createOneTimeToken(installation.id);
       
       if (resp.status !== 200) {
@@ -96,7 +97,7 @@ export const InstallationLauncherComponent: React.FC<CustomAppProps> = ({
         throw new Error('No launch token received from server');
       }
 
-      console.log('✅ Launch token received');
+      logDebug('✅ Launch token received');
 
       // Determine protocol based on app type
       const protocol = installation.appType === 0 
@@ -106,7 +107,7 @@ export const InstallationLauncherComponent: React.FC<CustomAppProps> = ({
         : PROTOCOL_CALWIN_DEV;
       
       const uri = `${protocol}${encodeURIComponent(token)}`;
-      console.log('🔗 Launching with URI:', uri);
+      logDebug('🔗 Launching with URI:', uri);
       
       // Try to launch via protocol handler
       const anchor = document.createElement('a');
@@ -116,7 +117,7 @@ export const InstallationLauncherComponent: React.FC<CustomAppProps> = ({
       anchor.click();
       document.body.removeChild(anchor);
 
-      console.log('✅ Launch initiated successfully');
+      logDebug('✅ Launch initiated successfully');
       
       // Show success feedback
       setTimeout(() => {
@@ -124,7 +125,7 @@ export const InstallationLauncherComponent: React.FC<CustomAppProps> = ({
       }, 2000);
       
     } catch (error) {
-      console.error('❌ Launch failed:', error);
+      logError('❌ Launch failed:', error);
       alert(`Kunne ikke starte installasjonen: ${error}`);
       setLaunching(null);
     }

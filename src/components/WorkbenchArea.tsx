@@ -7,6 +7,7 @@ import { customAppRegistry } from '../registry/custom-apps';
 import { PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } from '../config';
 import notify from 'devextreme/ui/notify';
 import './WorkbenchArea.css';
+import { logDebug, logError } from '../utils/logger';
 
 interface WorkbenchAreaProps {
   /** Available apps (system + custom) */
@@ -45,13 +46,13 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
     setIsLaunching(true);
 
     try {
-      console.log('🚀 Launching installation:', state.currentWorkspace.name);
+      logDebug('🚀 Launching installation:', state.currentWorkspace.name);
       
       // Import required modules
       const { createOneTimeToken } = await import('../api/auth');
 
       // Generate launch token using cookie-based auth (cookies sent automatically)
-      console.log('Generating launch token...');
+      logDebug('Generating launch token...');
       const resp = await createOneTimeToken(state.currentWorkspace.id);
       
       if (resp.status !== 200) {
@@ -72,7 +73,7 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
         throw new Error('No launch token received from server');
       }
 
-      console.log('✅ Launch token received');
+      logDebug('✅ Launch token received');
 
       // Determine protocol based on app type
       const protocol = state.currentWorkspace.appType === 0 
@@ -82,7 +83,7 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
         : PROTOCOL_CALWIN_DEV;
       
       const uri = `${protocol}${encodeURIComponent(token)}`;
-      console.log('🔗 Launching with URI:', uri);
+      logDebug('🔗 Launching with URI:', uri);
       
       // Try to launch via protocol handler
       const anchor = document.createElement('a');
@@ -92,10 +93,10 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
       anchor.click();
       document.body.removeChild(anchor);
 
-      console.log('✅ Launch initiated successfully');
+      logDebug('✅ Launch initiated successfully');
 
     } catch (error) {
-      console.error('❌ Launch failed:', error);
+      logError('❌ Launch failed:', error);
       notify({
         message: `Failed to launch: ${error instanceof Error ? error.message : 'Unknown error'}`,
         type: 'error',
@@ -109,7 +110,7 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
 
   // Handle app icon click - restore if minimized, bring to front if open, or open new
   const handleAppClick = (appId: string) => {
-    console.log('App icon clicked:', appId);
+    logDebug('App icon clicked:', appId);
     
     // Check if app is already open
     const existingApp = state.openApps.find(app => app.appId === appId);
@@ -117,19 +118,19 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
     if (existingApp) {
       // If minimized, restore it
       if (existingApp.windowState.isMinimized) {
-        console.log('Restoring minimized app:', appId);
+        logDebug('Restoring minimized app:', appId);
         const windowControl = getWindowControl(existingApp.instanceId);
         windowControl.minimize(); // Toggle minimize to restore
         // Also bring to front after restoring
         openApp(appId);
       } else {
         // Already visible, just bring to front
-        console.log('Bringing app to front:', appId);
+        logDebug('Bringing app to front:', appId);
         openApp(appId);
       }
     } else {
       // Open new instance
-      console.log('Opening new app instance:', appId);
+      logDebug('Opening new app instance:', appId);
       openApp(appId);
     }
   };
