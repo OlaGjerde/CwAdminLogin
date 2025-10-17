@@ -8,4 +8,7 @@ export default defineConfig({
     react(),
     cspPlugin()
   ],
+  server: {
+    port: 5173,
+  },
 })

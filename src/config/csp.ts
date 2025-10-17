@@ -74,8 +74,9 @@ export const CSP_POLICIES: CSPConfig = {
 
 /**
  * Get CSP policy based on environment
+ * @param isDev - Whether to use development or production CSP policy
  */
-export function getCSPPolicy(isDev: boolean = import.meta.env.DEV): string {
+export function getCSPPolicy(isDev: boolean): string {
   return isDev ? CSP_POLICIES.dev : CSP_POLICIES.prod;
 }
 

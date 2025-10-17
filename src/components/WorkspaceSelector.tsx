@@ -3,6 +3,7 @@ import { SelectBox } from 'devextreme-react/select-box';
 import notify from 'devextreme/ui/notify';
 import type { NormalizedInstallation } from '../types/installations';
 import './WorkspaceSelector.css';
+import { logDebug } from '../utils/logger';
 
 interface WorkspaceSelectorProps {
   /** Currently selected workspace */
@@ -23,22 +24,22 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
 }) => {
   // Debug logging
   React.useEffect(() => {
-    console.log('WorkspaceSelector - workspaces:', workspaces);
-    console.log('WorkspaceSelector - currentWorkspace:', currentWorkspace);
-    console.log('WorkspaceSelector - workspaces.length:', workspaces.length);
+    logDebug('WorkspaceSelector - workspaces:', workspaces);
+    logDebug('WorkspaceSelector - currentWorkspace:', currentWorkspace);
+    logDebug('WorkspaceSelector - workspaces.length:', workspaces.length);
   }, [workspaces, currentWorkspace]);
 
   const handleWorkspaceChange = (e: { value?: string }) => {
-    console.log('WorkspaceSelector handleWorkspaceChange called with value:', e.value);
-    console.log('Current workspace ID:', currentWorkspace?.id);
+    logDebug('WorkspaceSelector handleWorkspaceChange called with value:', e.value);
+    logDebug('Current workspace ID:', currentWorkspace?.id);
     
     if (!e.value) return;
     
     const selected = workspaces.find(w => w.id === e.value);
-    console.log('Found selected workspace:', selected);
+    logDebug('Found selected workspace:', selected);
     
     if (selected) {
-      console.log('Calling onWorkspaceChange with:', selected.name);
+      logDebug('Calling onWorkspaceChange with:', selected.name);
       onWorkspaceChange(selected);
       notify({
         message: `${selected.name} selected`,
@@ -47,7 +48,7 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
         position: { at: 'bottom center', my: 'bottom center', offset: '0 -120' }
       });
     } else {
-      console.log('ERROR: Selected workspace not found in workspaces array!');
+      logDebug('ERROR: Selected workspace not found in workspaces array!');
     }
   };
 

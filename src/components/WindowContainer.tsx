@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Button } from 'devextreme-react/button';
 import type { WindowState } from '../types/workspace';
 import './WindowContainer.css';
+import { logDebug } from '../utils/logger';
 
 interface WindowContainerProps {
   /** Window title */
@@ -63,12 +64,12 @@ export const WindowContainer: React.FC<WindowContainerProps> = ({
         
         // Store just the taskbar height for the calc
         setTaskbarHeight(taskbarHeight);
-        console.log('Container height:', containerHeight, 'Taskbar height:', taskbarHeight, 'Available:', availableHeight);
+        logDebug('Container height:', containerHeight, 'Taskbar height:', taskbarHeight, 'Available:', availableHeight);
       } else if (taskbar) {
         // Fallback: just use taskbar height
         const height = taskbar.offsetHeight;
         setTaskbarHeight(height);
-        console.log('Taskbar height calculated:', height);
+        logDebug('Taskbar height calculated:', height);
       }
     };
 

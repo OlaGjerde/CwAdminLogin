@@ -8,6 +8,7 @@ import type {
 } from '../types/workspace';
 import type { NormalizedInstallation } from '../types/installations';
 import { getCustomAppById } from '../registry/custom-apps';
+import { logDebug, logError } from '../utils/logger';
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
@@ -34,12 +35,12 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
         const savedId = JSON.parse(saved);
         const workspace = availableWorkspaces.find(w => w.id === savedId);
         if (workspace) {
-          console.log('Restored workspace from localStorage:', workspace.name);
+          logDebug('Restored workspace from localStorage:', workspace.name);
           return workspace;
         }
       }
     } catch (error) {
-      console.error('Failed to restore workspace from localStorage:', error);
+      logError('Failed to restore workspace from localStorage:', error);
     }
     
     return null;
@@ -70,7 +71,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
           const savedId = JSON.parse(saved);
           const workspace = availableWorkspaces.find(w => w.id === savedId);
           if (workspace) {
-            console.log('Restoring workspace after installations loaded:', workspace.name);
+            logDebug('Restoring workspace after installations loaded:', workspace.name);
             setState(prev => ({
               ...prev,
               currentWorkspace: workspace
@@ -78,14 +79,14 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
           }
         }
       } catch (error) {
-        console.error('Failed to restore workspace:', error);
+        logError('Failed to restore workspace:', error);
       }
     }
   }, [availableWorkspaces, state.currentWorkspace]);
 
   // Switch to a different workspace (or null to clear selection)
   const switchWorkspace = useCallback((installation: NormalizedInstallation | null) => {
-    console.log('Switching workspace to:', installation?.name || 'none (cleared)');
+    logDebug('Switching workspace to:', installation?.name || 'none (cleared)');
     
     // Persist to localStorage
     try {
@@ -95,7 +96,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
         localStorage.removeItem(SELECTED_WORKSPACE_KEY);
       }
     } catch (error) {
-      console.error('Failed to persist workspace to localStorage:', error);
+      logError('Failed to persist workspace to localStorage:', error);
     }
     
     setState(prev => ({
@@ -138,7 +139,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
 
       // Create new app instance
       const instanceId = `${appId}-${Date.now()}`;
-      console.log('Opening app:', appId, 'Instance:', instanceId);
+      logDebug('Opening app:', appId, 'Instance:', instanceId);
       
       // Get app definition to read window options
       const appDef = getCustomAppById(appId);
