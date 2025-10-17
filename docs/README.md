@@ -5,7 +5,6 @@ This directory contains all documentation files for the CalWin Admin Login appli
 ## Documentation Structure
 
 ### Authentication & Security
-- **COGNITO_AUTH.md** - AWS Cognito authentication implementation guide
 - **CSP_CONFIGURATION.md** - Content Security Policy setup
 - **CSP_IMPLEMENTATION_SUMMARY.md** - CSP implementation details
 - **CSP_TESTING_GUIDE.md** - How to test CSP configuration
