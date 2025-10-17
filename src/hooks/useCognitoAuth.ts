@@ -1,6 +1,9 @@
 /**
- * AWS Cognito Authentication Hook
- * Manages OAuth2 Authorization Code flow with PKCE
+ * AWS Cognito Authentication Hook (Cookie-Based)
+ * Manages OAuth2 Authorization Code flow with httpOnly cookies
+ * 
+ * Security: Tokens are stored in httpOnly cookies by the backend,
+ * never exposed to JavaScript, protecting against XSS attacks.
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -12,92 +15,16 @@ import {
   retrievePKCEData,
   clearPKCEData,
   buildCognitoAuthUrl,
-  buildCognitoLogoutUrl,
-  exchangeCodeForTokens,
   parseCallbackParams,
   clearOAuthParams,
-  getUserEmail,
-  isTokenExpired,
-  type CognitoTokenResponse,
 } from '../utils/cognitoHelpers';
-import { COGNITO_DOMAIN, COGNITO_CLIENT_ID } from '../config';
-
-// ============================================================================
-// Token Persistence
-// ============================================================================
-
-const STORAGE_KEY_TOKENS = 'cognito_tokens';
-
-function saveTokens(tokens: CognitoTokenResponse): void {
-  try {
-    localStorage.setItem(STORAGE_KEY_TOKENS, JSON.stringify(tokens));
-  } catch (error) {
-    console.error('Failed to save tokens to localStorage:', error);
-  }
-}
-
-function loadTokens(): CognitoTokenResponse | null {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY_TOKENS);
-    if (!stored) return null;
-    return JSON.parse(stored) as CognitoTokenResponse;
-  } catch (error) {
-    console.error('Failed to load tokens from localStorage:', error);
-    return null;
-  }
-}
-
-function clearStoredTokens(): void {
-  try {
-    localStorage.removeItem(STORAGE_KEY_TOKENS);
-  } catch (error) {
-    console.error('Failed to clear tokens from localStorage:', error);
-  }
-}
-
-/**
- * Refresh access token using refresh token
- */
-async function refreshAccessToken(refreshToken: string): Promise<CognitoTokenResponse | null> {
-  try {
-    const tokenUrl = `${COGNITO_DOMAIN}/oauth2/token`;
-    
-    const body = new URLSearchParams({
-      grant_type: 'refresh_token',
-      client_id: COGNITO_CLIENT_ID,
-      refresh_token: refreshToken,
-    });
-    
-    const response = await fetch(tokenUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: body.toString(),
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Token refresh failed:', response.status, errorText);
-      return null;
-    }
-    
-    const data = await response.json();
-    
-    // Refresh token response might not include a new refresh_token
-    // If not provided, keep the old one
-    return {
-      access_token: data.access_token,
-      id_token: data.id_token,
-      refresh_token: data.refresh_token || refreshToken,
-      token_type: data.token_type || 'Bearer',
-      expires_in: data.expires_in,
-    };
-  } catch (error) {
-    console.error('Token refresh error:', error);
-    return null;
-  }
-}
+import {
+  exchangeCodeForTokens,
+  refreshToken,
+  logout as apiLogout,
+  getCurrentUser,
+  type UserInfo,
+} from '../api/auth';
 
 // ============================================================================
 // Types
@@ -106,8 +33,7 @@ async function refreshAccessToken(refreshToken: string): Promise<CognitoTokenRes
 export interface CognitoAuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
-  tokens: CognitoTokenResponse | null;
-  userEmail: string | null;
+  userInfo: UserInfo | null;
   error: string | null;
 }
 
@@ -118,9 +44,8 @@ export interface CognitoAuthState {
 export function useCognitoAuth() {
   const [state, setState] = useState<CognitoAuthState>({
     isAuthenticated: false,
-    isLoading: false, // No loading screen - redirects happen immediately
-    tokens: null,
-    userEmail: null,
+    isLoading: false, // CHANGED: Start with FALSE to prevent immediate redirect
+    userInfo: null,
     error: null,
   });
 
@@ -131,7 +56,7 @@ export function useCognitoAuth() {
     try {
       console.log('🔐 Initiating Cognito login flow');
       
-      // Clear any previous errors (no loading state - redirect happens immediately)
+      // Clear any previous errors
       setState((prev) => ({
         ...prev,
         error: null,
@@ -153,7 +78,7 @@ export function useCognitoAuth() {
       
       console.log('🌐 Redirecting to Cognito:', authUrl);
       
-      // Redirect to Cognito (happens immediately, no loading screen needed)
+      // Redirect to Cognito
       window.location.href = authUrl;
     } catch (error) {
       console.error('❌ Login initiation failed:', error);
@@ -197,7 +122,6 @@ export function useCognitoAuth() {
       if (params.error === 'access_denied') {
         userMessage = 'Tilgang nektet. Du avbrøt innloggingen eller har ikke tilgang.';
       } else if (params.error === 'invalid_request') {
-        // Check if it's a scope issue
         if (params.error_description?.includes('scope')) {
           userMessage = 'Konfigurasjonsfeil med tilganger (scopes). Kontakt administrator.';
         } else {
@@ -262,134 +186,246 @@ export function useCognitoAuth() {
       return;
     }
     
-    // Exchange code for tokens
+    // Exchange code for tokens (backend sets httpOnly cookies)
     try {
-      console.log('🔄 Exchanging authorization code for tokens');
-      const tokens = await exchangeCodeForTokens(params.code, pkceData.verifier);
+      console.log('🔄 Exchanging authorization code for tokens (backend will set cookies)');
       
-      console.log('✅ Tokens received successfully');
+      // Retrieve PKCE code_verifier from sessionStorage
+      const codeVerifier = sessionStorage.getItem('cognito_code_verifier');
+      if (!codeVerifier) {
+        console.error('❌ Code verifier not found in session storage');
+        setState(prev => ({
+          ...prev,
+          hasError: true,
+          error: 'PKCE code verifier missing',
+          isLoading: false,
+        }));
+        clearPKCEData();
+        clearOAuthParams();
+        sessionStorage.removeItem('cognito_processing_code');
+        return;
+      }
       
-      // Extract user email from ID token
-      const email = getUserEmail(tokens.id_token);
+      await exchangeCodeForTokens(params.code, codeVerifier);
       
-      // Save tokens to localStorage
-      saveTokens(tokens);
+      console.log('✅ Tokens received and cookies set by backend');
       
-      // Update state
-      setState({
-        isAuthenticated: true,
-        isLoading: false,
-        tokens,
-        userEmail: email,
-        error: null,
-      });
+      // Wait a bit for cookies to be set properly
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Get user information from backend
+      try {
+        const userInfo = await getCurrentUser();
+        console.log('✅ User info received:', userInfo.email);
+        
+        // Update state
+        setState({
+          isAuthenticated: true,
+          isLoading: false,
+          userInfo,
+          error: null,
+        });
+        
+        console.log('✅ Authentication complete for:', userInfo.email);
+      } catch (getUserError: unknown) {
+        console.error('❌ Failed to get user info after token exchange:', getUserError);
+        
+        type ErrorResponse = { response?: { status?: number; data?: unknown; headers?: Record<string, string> } };
+        const err = getUserError as ErrorResponse;
+        
+        // If 401, cookies might not be set correctly by backend
+        if (err.response?.status === 401) {
+          console.error('🚨 CRITICAL: Token exchange succeeded but /Me returned 401!');
+          console.error('🚨 This means backend is NOT reading cookies correctly.');
+          console.error('🚨 Check if CookieToHeaderMiddleware is added BEFORE UseAuthentication()');
+          console.error('Response headers:', err.response?.headers);
+          
+          setState((prev) => ({
+            ...prev,
+            isLoading: false,
+            error: 'Backend configuration error: Cookies not being read. Contact administrator.',
+          }));
+        } else {
+          setState((prev) => ({
+            ...prev,
+            isLoading: false,
+            error: 'Failed to get user information after login',
+          }));
+        }
+        
+        clearPKCEData();
+        clearOAuthParams();
+        sessionStorage.removeItem('cognito_processing_code');
+        return;
+      }
       
       // Clean up
       clearPKCEData();
       clearOAuthParams();
-      sessionStorage.removeItem('cognito_processing_code'); // Clear processing flag
+      sessionStorage.removeItem('cognito_processing_code');
+    } catch (exchangeError: unknown) {
+      console.error('❌ Token exchange failed:', exchangeError);
       
-      console.log('✅ Authentication complete for:', email);
-    } catch (error) {
-      console.error('❌ Token exchange failed:', error);
+      // Enhanced error logging
+      if (exchangeError && typeof exchangeError === 'object' && 'response' in exchangeError) {
+        const axiosError = exchangeError as { response?: { data?: unknown; status?: number; headers?: unknown } };
+        console.error('Response status:', axiosError.response?.status);
+        console.error('Response data:', axiosError.response?.data);
+        console.error('Response headers:', axiosError.response?.headers);
+      }
+      
+      type ErrorResponse = { response?: { data?: { detail?: string; title?: string; error?: string }; status?: number } };
+      const err = exchangeError as ErrorResponse;
+      const errorMessage = err.response?.data?.detail || 
+                          err.response?.data?.title ||
+                          err.response?.data?.error ||
+                          'Failed to exchange authorization code for tokens';
+      
       setState((prev) => ({
         ...prev,
-        error: 'Failed to complete authentication',
+        error: errorMessage,
         isLoading: false,
       }));
       clearPKCEData();
       clearOAuthParams();
-      sessionStorage.removeItem('cognito_processing_code'); // Clear processing flag even on error
+      sessionStorage.removeItem('cognito_processing_code');
     }
   }, []);
 
   /**
-   * Logout - clear all local data and redirect to Cognito logout
+   * Check authentication status by calling backend
    */
-  const logout = useCallback(() => {
-    console.log('🚪 Logging out - clearing all local data and Cognito session');
-    
-    // Save workspace selection before clearing
-    const workspaceSelection = localStorage.getItem('calwin-selected-workspace');
-    
-    // Clear all localStorage first
+  const checkAuthStatus = useCallback(async () => {
     try {
-      const itemCount = localStorage.length;
-      localStorage.clear();
-      console.log(`✅ localStorage cleared (${itemCount} items removed)`);
-    } catch (e) {
-      console.error('❌ Failed to clear localStorage:', e);
+      console.log('🔍 Checking authentication status...');
+      setState(prev => ({ ...prev, isLoading: true })); // Set loading while checking
+      
+      const userInfo = await getCurrentUser();
+      
+      setState({
+        isAuthenticated: true,
+        isLoading: false,
+        userInfo,
+        error: null,
+      });
+      
+      console.log('✅ User is authenticated:', userInfo.email);
+    } catch (error: unknown) {
+      type ErrorResponse = { response?: { status?: number } };
+      const err = error as ErrorResponse;
+      // 401 means not authenticated - this is NORMAL, not an error
+      if (err.response?.status === 401) {
+        console.log('ℹ️ User is not authenticated (expected)');
+        setState({
+          isAuthenticated: false,
+          isLoading: false,
+          userInfo: null,
+          error: null, // NO ERROR - just not authenticated yet
+        });
+      } else {
+        console.error('❌ Failed to check auth status:', error);
+        setState((prev) => ({
+          ...prev,
+          isLoading: false,
+          error: 'Failed to check authentication status',
+        }));
+      }
     }
+  }, []);
+
+  /**
+   * Logout - clear cookies and redirect to Cognito logout
+   */
+  const logout = useCallback(async () => {
+    console.log('🚪 Logging out - clearing cookies and Cognito session');
     
-    // Restore workspace selection after clearing
-    if (workspaceSelection) {
+    try {
+      // Call backend logout endpoint (clears cookies and returns Cognito logout URL)
+      const response = await apiLogout();
+      
+      console.log('✅ Backend cookies cleared');
+      
+      // Preserve workspace selection in localStorage
+      const workspaceSelection = localStorage.getItem('calwin-selected-workspace');
+      
+      // Clear all localStorage except workspace selection
       try {
-        localStorage.setItem('calwin-selected-workspace', workspaceSelection);
-        console.log('✅ Workspace selection preserved after logout');
+        const itemCount = localStorage.length;
+        localStorage.clear();
+        console.log(`✅ localStorage cleared (${itemCount} items removed)`);
       } catch (e) {
-        console.error('❌ Failed to restore workspace selection:', e);
+        console.error('❌ Failed to clear localStorage:', e);
       }
-    }
-    
-    // Clear all sessionStorage
-    try {
-      const itemCount = sessionStorage.length;
-      sessionStorage.clear();
-      console.log(`✅ sessionStorage cleared (${itemCount} items removed)`);
-    } catch (e) {
-      console.error('❌ Failed to clear sessionStorage:', e);
-    }
-    
-    // Clear all cookies
-    try {
-      const cookies = document.cookie.split(';');
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i];
-        const eqPos = cookie.indexOf('=');
-        const name = eqPos > -1 ? cookie.substring(0, eqPos).trim() : cookie.trim();
-        // Delete cookie for current domain and all parent domains
-        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+      
+      // Restore workspace selection
+      if (workspaceSelection) {
+        try {
+          localStorage.setItem('calwin-selected-workspace', workspaceSelection);
+          console.log('✅ Workspace selection preserved after logout');
+        } catch (e) {
+          console.error('❌ Failed to restore workspace selection:', e);
+        }
       }
-      console.log('✅ Cookies cleared');
-    } catch (e) {
-      console.warn('⚠️ Failed to clear cookies:', e);
+      
+      // Clear sessionStorage
+      try {
+        sessionStorage.clear();
+        console.log('✅ sessionStorage cleared');
+      } catch (e) {
+        console.error('❌ Failed to clear sessionStorage:', e);
+      }
+      
+      console.log('🔄 Redirecting to Cognito logout:', response.logoutUrl);
+      
+      // Redirect to Cognito logout - this will:
+      // 1. Clear Cognito session
+      // 2. Redirect back to our app
+      window.location.href = response.logoutUrl;
+    } catch (error) {
+      console.error('❌ Logout failed:', error);
+      // Even if logout fails, redirect to login page
+      window.location.href = '/';
     }
-    
-    // Build Cognito logout URL - this will clear Cognito session and redirect back to login
-    const logoutUrl = buildCognitoLogoutUrl();
-    console.log('🔄 Redirecting to Cognito logout:', logoutUrl);
-    
-    // Redirect to Cognito logout - this will:
-    // 1. Clear Cognito session
-    // 2. Redirect back to our app (login page)
-    window.location.href = logoutUrl;
   }, []);
 
   /**
-   * Check if access token is expired
+   * Refresh access token (calls backend which uses refresh_token cookie)
    */
-  const isAccessTokenExpired = useCallback((): boolean => {
-    if (!state.tokens?.access_token) return true;
-    return isTokenExpired(state.tokens.access_token);
-  }, [state.tokens]);
-
-  /**
-   * Get raw access token for API calls
-   */
-  const getAccessToken = useCallback((): string | null => {
-    return state.tokens?.access_token || null;
-  }, [state.tokens]);
+  const handleRefreshToken = useCallback(async (): Promise<boolean> => {
+    try {
+      console.log('🔄 Refreshing access token...');
+      await refreshToken();
+      console.log('✅ Token refreshed successfully');
+      return true;
+    } catch (error: unknown) {
+      type ErrorResponse = { response?: { status?: number } };
+      const err = error as ErrorResponse;
+      console.error('❌ Token refresh failed:', error);
+      
+      // If refresh fails with 401, user needs to re-authenticate
+      if (err.response?.status === 401) {
+        console.log('� Refresh token invalid, logging out');
+        setState({
+          isAuthenticated: false,
+          isLoading: false,
+          userInfo: null,
+          error: 'Session expired - please login again',
+        });
+      }
+      
+      return false;
+    }
+  }, []);
 
   // ============================================================================
   // Effects
   // ============================================================================
 
   /**
-   * On mount: Check if we're handling an OAuth callback or have stored tokens
+   * On mount: Check if we're handling an OAuth callback or check auth status
    */
   useEffect(() => {
-    const checkAuth = async () => {
+    const initAuth = async () => {
       // Parse OAuth callback parameters
       const params = parseCallbackParams();
       
@@ -405,103 +441,33 @@ export function useCognitoAuth() {
         // Code without state - likely stale/invalid, clear it
         console.log('⚠️ Found code without state - clearing stale OAuth params');
         clearOAuthParams();
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-        }));
+        await checkAuthStatus();
       } else {
-        // No callback - check if we have existing tokens in localStorage
-        console.log('🔍 No OAuth callback, checking for stored tokens...');
-        const storedTokens = loadTokens();
-        
-        if (storedTokens) {
-          // Check if access token is expired
-          if (isTokenExpired(storedTokens.access_token)) {
-            console.log('🔄 Access token expired, attempting refresh...');
-            // Try to refresh
-            const refreshedTokens = await refreshAccessToken(storedTokens.refresh_token);
-            
-            if (refreshedTokens) {
-              console.log('✅ Token refreshed successfully');
-              saveTokens(refreshedTokens);
-              const email = getUserEmail(refreshedTokens.id_token);
-              
-              setState({
-                isAuthenticated: true,
-                isLoading: false,
-                tokens: refreshedTokens,
-                userEmail: email,
-                error: null,
-              });
-            } else {
-              console.log('❌ Token refresh failed, clearing session');
-              clearStoredTokens();
-              setState((prev) => ({
-                ...prev,
-                isLoading: false,
-              }));
-            }
-          } else {
-            // Tokens are still valid
-            console.log('✅ Found valid stored tokens');
-            const email = getUserEmail(storedTokens.id_token);
-            
-            setState({
-              isAuthenticated: true,
-              isLoading: false,
-              tokens: storedTokens,
-              userEmail: email,
-              error: null,
-            });
-          }
-        } else {
-          console.log('ℹ️ No stored tokens found');
-          setState((prev) => ({
-            ...prev,
-            isLoading: false,
-          }));
-        }
+        // No callback - check authentication status via backend
+        await checkAuthStatus();
       }
     };
     
-    checkAuth();
-  }, [handleCallback]);
+    initAuth();
+  }, [handleCallback, checkAuthStatus]);
 
   /**
-   * Set up automatic token refresh before expiration
+   * Set up automatic token refresh
+   * Check every 5 minutes and refresh if needed
    */
   useEffect(() => {
-    if (!state.isAuthenticated || !state.tokens) {
+    if (!state.isAuthenticated) {
       return;
     }
 
-    // Check token expiration every minute
-    const checkInterval = setInterval(async () => {
-      if (state.tokens && isTokenExpired(state.tokens.access_token)) {
-        console.log('🔄 Access token expired, refreshing...');
-        const refreshedTokens = await refreshAccessToken(state.tokens.refresh_token);
-        
-        if (refreshedTokens) {
-          console.log('✅ Token auto-refreshed');
-          saveTokens(refreshedTokens);
-          const email = getUserEmail(refreshedTokens.id_token);
-          
-          setState({
-            isAuthenticated: true,
-            isLoading: false,
-            tokens: refreshedTokens,
-            userEmail: email,
-            error: null,
-          });
-        } else {
-          console.log('❌ Auto-refresh failed, logging out');
-          logout();
-        }
-      }
-    }, 60000); // Check every minute
+    // Check and refresh token periodically
+    const refreshInterval = setInterval(async () => {
+      console.log('⏰ Periodic token refresh check');
+      await handleRefreshToken();
+    }, 5 * 60 * 1000); // Every 5 minutes
 
-    return () => clearInterval(checkInterval);
-  }, [state.isAuthenticated, state.tokens, logout]);
+    return () => clearInterval(refreshInterval);
+  }, [state.isAuthenticated, handleRefreshToken]);
 
   // ============================================================================
   // Return
@@ -511,16 +477,14 @@ export function useCognitoAuth() {
     // State
     isAuthenticated: state.isAuthenticated,
     isLoading: state.isLoading,
-    userEmail: state.userEmail,
+    userEmail: state.userInfo?.email || null,
+    userInfo: state.userInfo,
     error: state.error,
     
     // Actions
     login,
     logout,
-    
-    // Token management
-    getAccessToken,
-    isAccessTokenExpired,
-    tokens: state.tokens,
+    checkAuthStatus,
+    refreshToken: handleRefreshToken,
   };
 }

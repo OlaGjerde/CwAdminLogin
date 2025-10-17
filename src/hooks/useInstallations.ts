@@ -8,10 +8,10 @@ export interface UseInstallationsResult {
   installations: NormalizedInstallation[];
   loading: boolean;
   error: string | null;
-  refresh: (rawAccessToken: string) => Promise<void>;
+  refresh: () => Promise<void>;
   /** Refresh only if cached value is stale (older than maxAgeMs). Returns boolean indicating whether a refresh was triggered */
-  refreshIfStale: (rawAccessToken: string, maxAgeMs?: number) => Promise<boolean>;
-  generateLaunchToken: (rawAccessToken: string, installationId: string) => Promise<string | null>;
+  refreshIfStale: (maxAgeMs?: number) => Promise<boolean>;
+  generateLaunchToken: (installationId: string) => Promise<string | null>;
 }
 
 export function useInstallations(): UseInstallationsResult {
@@ -44,9 +44,9 @@ export function useInstallations(): UseInstallationsResult {
   }, []);
 
   // We keep a stable ref to the refresh function to avoid circular hook dependencies between scheduleRetry and refresh.
-  const refreshFnRef = useRef<(token: string) => void>(() => {});
+  const refreshFnRef = useRef<() => void>(() => {});
 
-  const scheduleRetry = useCallback((rawAccessToken: string) => {
+  const scheduleRetry = useCallback(() => {
     if (failureCountRef.current >= INSTALLATIONS_RETRY_MAX_ATTEMPTS) return; // give up quietly
     const attempt = failureCountRef.current; // after increment
     const base = INSTALLATIONS_RETRY_BASE_MS * Math.pow(2, Math.max(0, attempt - 1));
@@ -56,12 +56,12 @@ export function useInstallations(): UseInstallationsResult {
     clearRetry();
     retryTimerRef.current = setTimeout(() => {
       if (failureCountRef.current > 0 && failureCountRef.current <= INSTALLATIONS_RETRY_MAX_ATTEMPTS) {
-        refreshFnRef.current(rawAccessToken);
+        refreshFnRef.current();
       }
     }, delay);
   }, [clearRetry]);
 
-  const refresh = useCallback(async (rawAccessToken: string) => {
+  const refresh = useCallback(async () => {
   const debug = import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1';
     if (inFlightRef.current) {
   if (debug) logDebug('[installations] skip (in-flight)');
@@ -72,9 +72,9 @@ export function useInstallations(): UseInstallationsResult {
     setLoading(true);
     setError(null);
     const started = Date.now();
-  if (debug) logDebug('[installations] request start', { tokenFrag: rawAccessToken.slice(0,8), failureCount: failureCountRef.current });
+  if (debug) logDebug('[installations] request start', { failureCount: failureCountRef.current });
     try {
-      const resp = await fetchInstallations(rawAccessToken);
+      const resp = await fetchInstallations();
       if (resp.status === 401) {
         setError('Ikke autorisert.');
         failureCountRef.current = 0;
@@ -84,7 +84,7 @@ export function useInstallations(): UseInstallationsResult {
       if (!Array.isArray(resp.data)) {
         setError('Uventet format på installasjoner.');
         failureCountRef.current++;
-        scheduleRetry(rawAccessToken);
+        scheduleRetry();
   if (debug) logWarn('[installations] invalid format');
         return;
       }
@@ -103,7 +103,7 @@ export function useInstallations(): UseInstallationsResult {
       const isResourceErr = /INSUFFICIENT_RESOURCES/i.test(msg);
       setError(isResourceErr ? 'Nettleseren avviste forespørselen (ressurser). Prøver igjen...' : 'Feil ved henting av installasjoner.');
       failureCountRef.current++;
-      scheduleRetry(rawAccessToken);
+      scheduleRetry();
   if (debug) logWarn('[installations] error', { msg, failureCount: failureCountRef.current });
     } finally {
       setLoading(false);
@@ -116,12 +116,12 @@ export function useInstallations(): UseInstallationsResult {
   useEffect(() => { refreshFnRef.current = refresh; }, [refresh]);
 
   // Consider data stale after 20 seconds unless caller overrides
-  const refreshIfStale = useCallback(async (rawAccessToken: string, maxAgeMs: number = INSTALLATIONS_STALE_MS) => {
+  const refreshIfStale = useCallback(async (maxAgeMs: number = INSTALLATIONS_STALE_MS) => {
   const debug = import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1';
     const age = Date.now() - lastFetchedRef.current;
     if (!lastFetchedRef.current || age > maxAgeMs) {
   if (debug) logDebug('[installations] stale -> refresh', { age, threshold: maxAgeMs });
-      await refresh(rawAccessToken);
+      await refresh();
       return true;
     }
   if (debug) logDebug('[installations] fresh, skip', { age, threshold: maxAgeMs });
@@ -144,9 +144,9 @@ export function useInstallations(): UseInstallationsResult {
     } catch { /* ignore */ }
   }, []);
 
-  const generateLaunchToken = useCallback(async (rawAccessToken: string, installationId: string) => {
+  const generateLaunchToken = useCallback(async (installationId: string) => {
     try {
-      const resp = await createOneTimeToken(rawAccessToken, installationId);
+      const resp = await createOneTimeToken(installationId);
       if (resp.status !== 200) return null;
       const data = resp.data;
       if (typeof data === 'string') return data;

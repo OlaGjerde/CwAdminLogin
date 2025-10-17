@@ -1,7 +1,16 @@
 // Centralized configuration for URLs and endpoints
-export const API_BASE = 'https://adminapi-dev.calwincloud.com';
-//export const API_BASE = 'https://localhost:7059';
+//export const API_BASE = 'https://adminapi-dev.calwincloud.com';
+ export const API_BASE = 'https://localhost:7059'; // LOCAL BACKEND FOR TESTING
 export const CW_AUTH_ENDPOINT = `${API_BASE}/api`;
+
+// Auth API endpoints (cookie-based authentication)
+export const AUTH_API_BASE = `${API_BASE}/api/auth`;
+export const AUTH_ENDPOINTS = {
+  EXCHANGE_CODE: `${AUTH_API_BASE}/ExchangeCodeForTokens`,
+  REFRESH_TOKEN: `${AUTH_API_BASE}/RefreshToken`,
+  LOGOUT: `${AUTH_API_BASE}/Logout`,
+  ME: `${AUTH_API_BASE}/Me`,
+} as const;
 // Per-type installer URLs. Keys correspond to app type numbers (0,1,2).
 // Update these URLs to the correct installer files for each environment as needed.
 // DISABLED: AppInstaller functionality temporarily disabled

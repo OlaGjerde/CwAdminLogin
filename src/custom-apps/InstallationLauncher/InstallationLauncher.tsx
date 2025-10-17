@@ -2,15 +2,14 @@ import React, { useState, useCallback } from 'react';
 import type { CustomAppProps } from '../../types/custom-app';
 import type { NormalizedInstallation } from '../../types/installations';
 import { Button } from 'devextreme-react/button';
-import { TextBox } from 'devextreme-react/text-box';
 import { ScrollView } from 'devextreme-react/scroll-view';
 import './InstallationLauncher.css';
 
 export const InstallationLauncherComponent: React.FC<CustomAppProps> = ({
   installations,
-  authTokens,
 }) => {
-  const [searchText, setSearchText] = useState('');
+  // searchText state kept for future search functionality
+  const [searchText] = useState('');
   const [launching, setLaunching] = useState<string | null>(null);
 
   // Filter installations based on search
@@ -72,21 +71,13 @@ export const InstallationLauncherComponent: React.FC<CustomAppProps> = ({
     try {
       console.log('🚀 Launching installation:', installation.name);
       
-      // Get access token
-      if (!authTokens?.accessToken) {
-        console.error('No access token available');
-        alert('Ikke tilgjengelig tilgangstoken. Vennligst logg inn på nytt.');
-        setLaunching(null);
-        return;
-      }
-
-      // Import required modules
+      // Import required modules (cookies sent automatically for auth)
       const { createOneTimeToken } = await import('../../api/auth');
       const { PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } = await import('../../config');
 
-      // Generate launch token using the same API as the main app
+      // Generate launch token using cookie-based auth
       console.log('Generating launch token...');
-      const resp = await createOneTimeToken(authTokens.accessToken, installation.id);
+      const resp = await createOneTimeToken(installation.id);
       
       if (resp.status !== 200) {
         throw new Error(`Failed to generate launch token: ${resp.status}`);
@@ -137,7 +128,7 @@ export const InstallationLauncherComponent: React.FC<CustomAppProps> = ({
       alert(`Kunne ikke starte installasjonen: ${error}`);
       setLaunching(null);
     }
-  }, [authTokens, launching]);
+  }, [launching]); // authTokens no longer needed - cookies handle auth
 
   return (
     <div className="installation-launcher">

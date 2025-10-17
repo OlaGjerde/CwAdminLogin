@@ -60,9 +60,9 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
       // Import required modules
       const { createOneTimeToken } = await import('../api/auth');
 
-      // Generate launch token using the same API as the InstallationLauncher app
+      // Generate launch token using cookie-based auth (cookies sent automatically)
       console.log('Generating launch token...');
-      const resp = await createOneTimeToken(authTokens.accessToken, state.currentWorkspace.id);
+      const resp = await createOneTimeToken(state.currentWorkspace.id);
       
       if (resp.status !== 200) {
         throw new Error(`Failed to generate launch token: ${resp.status}`);
