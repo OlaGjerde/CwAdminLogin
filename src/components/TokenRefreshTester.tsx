@@ -12,7 +12,6 @@ import notify from 'devextreme/ui/notify';
 
 export const TokenRefreshTester: React.FC = () => {
   const [testing, setTesting] = React.useState(false);
-  const [isVisible, setIsVisible] = React.useState(true);
 
   const testManualRefresh = async () => {
     setTesting(true);
@@ -34,7 +33,7 @@ export const TokenRefreshTester: React.FC = () => {
     try {
       logWarn('🧪 TEST: Calling /Me endpoint');
       const user = await getCurrentUser();
-      notify(`✅ User: ${user.email}`, 'success', 3000);
+      notify(`✅ User: ${user.Email}`, 'success', 3000);
       logDebug('✅ /Me response:', user);
     } catch (error) {
       logError('❌ /Me failed:', error);

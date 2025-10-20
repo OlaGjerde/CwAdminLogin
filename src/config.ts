@@ -1,54 +1,60 @@
-// Centralized configuration for URLs and endpoints
-//export const API_BASE = 'https://adminapi-dev.calwincloud.com';
- export const API_BASE = 'https://localhost:7059'; // LOCAL BACKEND FOR TESTING
+/**
+ * Centralized configuration for URLs and endpoints
+ * 
+ * Build-time configuration based on Vite mode:
+ * - Development (yarn dev): Uses localhost
+ * - Production (yarn build): Uses AWS deployment
+ */
+
+// Detect if running in production build
+const IS_PRODUCTION = import.meta.env.PROD;
+
+// Base API URLs - different for dev vs production
+export const API_BASE = IS_PRODUCTION
+  ? 'https://adminapi-dev.calwincloud.com'  // Production AWS ECS Fargate
+  : 'https://localhost:7059';                // Local development
+
 export const CW_AUTH_ENDPOINT = `${API_BASE}/api`;
 
 // Auth API endpoints (cookie-based authentication)
 export const AUTH_API_BASE = `${API_BASE}/api/auth`;
 export const AUTH_ENDPOINTS = {
   EXCHANGE_CODE: `${AUTH_API_BASE}/ExchangeCodeForTokens`,
-  REFRESH_TOKEN: `${AUTH_API_BASE}/RefreshToken`,
+  REFRESH_TOKEN: `${AUTH_API_BASE}/GetNewToken`,
   LOGOUT: `${AUTH_API_BASE}/Logout`,
   ME: `${AUTH_API_BASE}/Me`,
 } as const;
-// Per-type installer URLs. Keys correspond to app type numbers (0,1,2).
-// Update these URLs to the correct installer files for each environment as needed.
-// DISABLED: AppInstaller functionality temporarily disabled
-/* export const APPINSTALLER_URLS: Record<number, string> = {
-  0: 'https://calwinmedia.calwincloud.com/CalWin8.appinstaller',
-  1: 'https://calwinmedia-test.calwincloud.com/CalWin8.appinstaller',
-  2: 'https://calwinmedia-dev.calwincloud.com/CalWin8.appinstaller'
-}; */
+
 // AWS Cognito Hosted UI configuration
-// You can override COGNITO_DOMAIN via Vite env: VITE_COGNITO_DOMAIN
 export const COGNITO_AWS_REGION_DOMAIN = 'https://calwincloud.auth.eu-north-1.amazoncognito.com';
-// Move env declaration above for usage
-type ViteEnv = { [k: string]: string | undefined };
-const env = (import.meta as unknown as { env?: ViteEnv }).env || {};
-export const COGNITO_DOMAIN = (env.VITE_COGNITO_DOMAIN && env.VITE_COGNITO_DOMAIN.trim()) || 'https://auth.calwincloud.com'; // Custom domain by default
-export const COGNITO_CLIENT_ID = '656e5ues1tvo5tk9e00u5f0ft3'; // Your Cognito App Client ID
-export const COGNITO_REDIRECT_URI = window.location.origin; // Current app URL for callback
+export const COGNITO_DOMAIN = 'https://auth.calwincloud.com'; // Custom domain
+export const COGNITO_CLIENT_ID = '656e5ues1tvo5tk9e00u5f0ft3';
+
+// Redirect URI - different for dev vs production
+export const COGNITO_REDIRECT_URI = IS_PRODUCTION
+  ? 'https://dev.calwincloud.com'  // Production AWS S3
+  : window.location.origin;        // Local development (dynamic)
+
 // Supported app protocols
 export const PROTOCOL_CALWIN = 'calwin://';
 export const PROTOCOL_CALWIN_TEST = 'calwintest://';
 export const PROTOCOL_CALWIN_DEV = 'calwindev://';
+
 export const INSTALLATIONS_ENDPOINT = `${CW_AUTH_ENDPOINT}/installation/GetAuthorizedInstallations`;
+
 // Installer download URL for when protocol handler is not registered
 export const INSTALLER_DOWNLOAD_URL = 'https://calwinmedia-dev.calwincloud.com/CalWin8.appinstaller';
+
 // Refresh scheduling margin (seconds before access token exp when we attempt refresh)
 export const REFRESH_MARGIN_SECONDS = 120;
-// Installations caching & retry configuration (override via Vite env vars if needed)
-// env already declared above; helper num remains
-const num = (v: string | undefined) => (v != null && v !== '' && !Number.isNaN(Number(v))) ? Number(v) : undefined;
-export const INSTALLATIONS_STALE_MS = num(env.VITE_INSTALLATIONS_STALE_MS) || 40_000; // 40s default
-export const INSTALLATIONS_RETRY_BASE_MS = num(env.VITE_INSTALLATIONS_RETRY_BASE_MS) || 2_000; // initial backoff
-export const INSTALLATIONS_RETRY_MAX_MS = num(env.VITE_INSTALLATIONS_RETRY_MAX_MS) || 30_000; // cap
-export const INSTALLATIONS_RETRY_MAX_ATTEMPTS = num(env.VITE_INSTALLATIONS_RETRY_MAX_ATTEMPTS) || 6; // ~ up to ~2min worst case
 
-/**
- * Build Cognito Hosted UI URL for signup
- * Redirects directly to the signup page
- */
+// Installations caching & retry configuration
+export const INSTALLATIONS_STALE_MS = 40_000; // 40s default
+export const INSTALLATIONS_RETRY_BASE_MS = 2_000; // initial backoff
+export const INSTALLATIONS_RETRY_MAX_MS = 30_000; // cap
+export const INSTALLATIONS_RETRY_MAX_ATTEMPTS = 6; // ~ up to ~2min worst case
+
+
 export function getCognitoSignupUrl(email?: string): string {
   const params = new URLSearchParams({
     client_id: COGNITO_CLIENT_ID,

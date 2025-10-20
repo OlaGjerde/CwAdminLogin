@@ -214,7 +214,7 @@ export function useCognitoAuth() {
       // Get user information from backend (wait for it before setting authenticated)
       try {
         const userInfo = await getCurrentUser();
-        logDebug('✅ User info received:', userInfo.email);
+        logDebug('✅ User info received:', userInfo.Email);
         
         // Update state with authentication and user info together
         setState({
@@ -224,7 +224,7 @@ export function useCognitoAuth() {
           error: null,
         });
         
-        logDebug('✅ Authentication complete for:', userInfo.email);
+        logDebug('✅ Authentication complete for:', userInfo.Email);
       } catch (getUserError: unknown) {
         logError('❌ Failed to get user info after token exchange:', getUserError);
         
@@ -307,7 +307,7 @@ export function useCognitoAuth() {
         error: null,
       });
       
-      logDebug('✅ User is authenticated:', userInfo.email);
+      logDebug('✅ User is authenticated:', userInfo.Email);
     } catch (error: unknown) {
       type ErrorResponse = { response?: { status?: number } };
       const err = error as ErrorResponse;
@@ -373,14 +373,14 @@ export function useCognitoAuth() {
         logError('❌ Failed to clear sessionStorage:', e);
       }
       
-      logDebug('🔄 Redirecting to Cognito logout:', response.logoutUrl);
+      logDebug('🔄 Redirecting to Cognito logout:', response.LogoutUrl);
       
       // Redirect to Cognito logout - this will:
       // 1. Clear Cognito session
       // 2. Redirect back to our app
-      window.location.href = response.logoutUrl;
+      window.location.href = response.LogoutUrl;
     } catch (error) {
-      logError('❌ Logout failed:', error);
+      logError('Logout failed:', error);
       // Even if logout fails, redirect to login page
       window.location.href = '/';
     }
@@ -398,7 +398,7 @@ export function useCognitoAuth() {
     } catch (error: unknown) {
       type ErrorResponse = { response?: { status?: number } };
       const err = error as ErrorResponse;
-      logError('❌ Token refresh failed:', error);
+      logError('Token refresh failed:', error);
       
       // If refresh fails with 401, user needs to re-authenticate
       if (err.response?.status === 401) {
@@ -424,9 +424,11 @@ export function useCognitoAuth() {
    */
   useEffect(() => {
     const initAuth = async () => {
-      // ⭐ Check if returning from logout
+      // ⭐ Check if returning from logout (check both query param and hash)
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('logout') === 'true') {
+      const hashParams = new URLSearchParams(window.location.hash.slice(1));
+      
+      if (urlParams.get('logout') === 'true' || hashParams.get('logout') === 'true') {
         logDebug('🚪 Returned from Cognito logout - staying logged out');
         // Clear the logout flag from URL
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -491,7 +493,7 @@ export function useCognitoAuth() {
     // State
     isAuthenticated: state.isAuthenticated,
     isLoading: state.isLoading,
-    userEmail: state.userInfo?.email || null,
+    userEmail: state.userInfo?.Email || null,
     userInfo: state.userInfo,
     error: state.error,
     

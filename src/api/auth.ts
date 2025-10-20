@@ -24,36 +24,60 @@ export interface CodeExchangeRequest {
   codeVerifier: string;  // PKCE code verifier
 }
 
-export interface CodeExchangeResponse {
+/**
+ * Unified response DTO for authentication token operations
+ * Used by both ExchangeCodeForTokens and GetNewToken endpoints
+ */
+export interface AuthTokenResponseDTO {
   success: boolean;
   expiresIn: number;
+  message?: string;
 }
 
-export interface LogoutResponse {
-  success: boolean;
-  logoutUrl: string;
+// Type aliases for backward compatibility and clarity
+export type CodeExchangeResponse = AuthTokenResponseDTO;
+export type TokenRefreshResponseDTO = AuthTokenResponseDTO;
+
+/**
+ * Response DTO for logout endpoint
+ * Contains Cognito logout URL for completing the logout flow
+ */
+export interface LogoutResponseDTO {
+  LogoutUrl: string;  // PascalCase to match .NET backend
 }
 
-export interface UserInfo {
-  username: string;
-  email: string;
-  groups: string[];
-  userId: string;
-  isAuthenticated: boolean;
+// Type alias for backward compatibility
+export type LogoutResponse = LogoutResponseDTO;
+
+/**
+ * Response DTO for /api/auth/Me endpoint
+ * Contains authenticated user information from JWT claims
+ * Note: Backend returns PascalCase property names
+ */
+export interface CurrentUserResponseDTO {
+  Username: string;
+  Email: string | null;
+  Groups: string[];
+  UserId: string;
+  IsAuthenticated: boolean;
 }
+
+// Type alias for backward compatibility
+export type UserInfo = CurrentUserResponseDTO;
 
 /**
  * Exchange OAuth authorization code for tokens (sets httpOnly cookies)
+ * Returns token expiry information. Actual tokens are set as httpOnly cookies.
  */
-export async function exchangeCodeForTokens(code: string, codeVerifier: string): Promise<CodeExchangeResponse> {
-  logDebug('🔄 Sending token exchange request:', {
+export async function exchangeCodeForTokens(code: string, codeVerifier: string): Promise<AuthTokenResponseDTO> {
+  logDebug('Sending token exchange request:', {
     url: AUTH_ENDPOINTS.EXCHANGE_CODE,
     code: code.substring(0, 20) + '...',
     redirectUri: COGNITO_REDIRECT_URI,
     codeVerifier: codeVerifier.substring(0, 20) + '...',
   });
   
-  const response = await axios.post<CodeExchangeResponse>(
+  const response = await axios.post<AuthTokenResponseDTO>(
     AUTH_ENDPOINTS.EXCHANGE_CODE,
     {
       code,
@@ -62,45 +86,48 @@ export async function exchangeCodeForTokens(code: string, codeVerifier: string):
     } as CodeExchangeRequest
   );
   
-  logDebug('✅ Token exchange response:', response.data);
-  logDebug('🍪 Cookies after exchange:', document.cookie);
+  logDebug('Token exchange response:', response.data);
+  logDebug('Cookies after exchange:', document.cookie);
   
   // ⭐ Log ALL response headers to see if Set-Cookie is there
-  logDebug('📋 ALL Response Headers:');
+  logDebug('ALL Response Headers:');
   Object.entries(response.headers).forEach(([key, value]) => {
     logDebug(`  ${key}: ${value}`);
   });
   
   // ⭐ Specifically check for Set-Cookie (won't be visible in JS, but good to try)
-  logDebug('🍪 Set-Cookie header (if accessible):', response.headers['set-cookie']);
+  logDebug('Set-Cookie header (if accessible):', response.headers['set-cookie']);
   
   return response.data;
 }
 
 /**
- * Refresh access token using refresh_token cookie
+ * Refresh access and ID tokens using refresh token cookie
+ * Returns token expiry information. New tokens are set as httpOnly cookies.
  */
-export async function refreshToken(): Promise<CodeExchangeResponse> {
-  const response = await axios.post<CodeExchangeResponse>(AUTH_ENDPOINTS.REFRESH_TOKEN);
+export async function refreshToken(): Promise<AuthTokenResponseDTO> {
+  const response = await axios.post<AuthTokenResponseDTO>(AUTH_ENDPOINTS.REFRESH_TOKEN);
   return response.data;
 }
 
 /**
  * Logout - clears auth cookies and returns Cognito logout URL
+ * Frontend should redirect to the returned URL to complete logout
  */
-export async function logout(): Promise<LogoutResponse> {
-  const response = await axios.post<LogoutResponse>(AUTH_ENDPOINTS.LOGOUT);
+export async function logout(): Promise<LogoutResponseDTO> {
+  const response = await axios.post<LogoutResponseDTO>(AUTH_ENDPOINTS.LOGOUT);
   return response.data;
 }
 
 /**
- * Get current user info (checks authentication status)
+ * Get current authenticated user information from JWT claims
+ * Returns user details including username, email, groups, and authentication status
  */
-export async function getCurrentUser(): Promise<UserInfo> {
-  logDebug('🔍 Calling /Me endpoint...');
-  logDebug('🍪 All cookies:', document.cookie);
-  const response = await axios.get<UserInfo>(AUTH_ENDPOINTS.ME);
-  logDebug('✅ /Me response:', response.data);
+export async function getCurrentUser(): Promise<CurrentUserResponseDTO> {
+  logDebug('Calling /Me endpoint...');
+  logDebug('All cookies:', document.cookie);
+  const response = await axios.get<CurrentUserResponseDTO>(AUTH_ENDPOINTS.ME);
+  logDebug('/Me response:', response.data);
   return response.data;
 }
 

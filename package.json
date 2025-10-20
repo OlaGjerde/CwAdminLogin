@@ -1,7 +1,7 @@
 {
   "name": "awslogin",
   "private": true,
-  "version": "0.10.24",
+  "version": "0.10.30",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,7 @@
     "bump:patch": "node scripts/version-bump.cjs patch",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy": "aws s3 rm s3://calwin-login/login-dev --recursive & aws s3 sync dist/ s3://calwin-login/login-dev & aws cloudfront create-invalidation --distribution-id=E2OK4SXLF70R7G --paths /"
+    "deploy": "aws s3 rm s3://calwin-login/dev --recursive & aws s3 sync dist/ s3://calwin-login/dev & aws cloudfront create-invalidation --distribution-id=E2NUBJ1FIGIIPV --paths /"
   },
   "dependencies": {
     "axios": "^1.11.0",

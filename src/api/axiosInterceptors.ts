@@ -39,7 +39,7 @@ const processQueue = (error: Error | null = null) => {
  * 
  * How it works:
  * 1. API call fails with 401 and "token-expired: true" header
- * 2. Interceptor calls /api/auth/RefreshToken
+ * 2. Interceptor calls /api/auth/GetNewToken
  * 3. Backend uses refresh_token cookie to get new access_token
  * 4. Backend sets new cookies
  * 5. Interceptor retries original request
@@ -74,7 +74,7 @@ export function setupAxiosInterceptors() {
       }
 
       // Avoid refreshing on the refresh endpoint itself
-      if (originalRequest.url?.includes('/api/auth/RefreshToken')) {
+      if (originalRequest.url?.includes('/api/auth/GetNewToken')) {
         logWarn('⚠️ Refresh endpoint returned 401, redirecting to login');
         window.location.href = '/';
         return Promise.reject(error);

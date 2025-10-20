@@ -1,8 +1,8 @@
 {
-  "version": "0.10.24",
-  "commit": "662d095",
-  "branch": "auth-improvements",
-  "timestamp": "2025-10-17T12:02:32.082Z",
+  "version": "0.10.30",
+  "commit": "6d91b1c",
+  "branch": "cognito-hosted-ui",
+  "timestamp": "2025-10-20T11:34:30.239Z",
   "buildNumber": "",
   "node": "v22.20.0"
 }

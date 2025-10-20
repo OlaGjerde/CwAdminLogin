@@ -198,7 +198,9 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
               />
             </div>
             <div className="app-top-bar-right">
-              <span className="app-user-info">{userEmail || 'Bruker'}</span>
+              <span className="app-user-info" title={userEmail || undefined}>
+                {userEmail || 'Bruker'}
+              </span>
               <Button
                 icon="runner"
                 text="Logg ut"
