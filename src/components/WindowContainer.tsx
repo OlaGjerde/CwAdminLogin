@@ -7,6 +7,8 @@ import { logDebug } from '../utils/logger';
 interface WindowContainerProps {
   /** Window title */
   title: string;
+  /** Window icon (optional) */
+  icon?: string;
   /** Window state */
   windowState: WindowState;
   /** Children to render in window body */
@@ -19,6 +21,8 @@ interface WindowContainerProps {
   resizable?: boolean;
   /** Can maximize */
   maximizable?: boolean;
+  /** Enable overflow scrolling (default: true) */
+  enableOverflow?: boolean;
   /** Callbacks */
   onClose: () => void;
   onMinimize: () => void;
@@ -30,12 +34,14 @@ interface WindowContainerProps {
 
 export const WindowContainer: React.FC<WindowContainerProps> = ({
   title,
+  icon,
   windowState,
   children,
   minWidth = 300,
   minHeight = 200,
   resizable = true,
   maximizable = true,
+  enableOverflow = true,
   onClose,
   onMinimize,
   onToggleMaximize,
@@ -197,7 +203,18 @@ export const WindowContainer: React.FC<WindowContainerProps> = ({
         onMouseDown={handleMouseDown}
         onDoubleClick={handleDoubleClick}
       >
-        <div className="window-title">{title}</div>
+        <div className="window-title">
+          {icon && (
+            <div className="window-icon">
+              {icon.length <= 3 && icon === icon.toUpperCase() ? (
+                <span className="window-icon-initials">{icon}</span>
+              ) : (
+                <i className={`dx-icon dx-icon-${icon}`} />
+              )}
+            </div>
+          )}
+          <span>{title}</span>
+        </div>
         <div className="window-controls">
           <Button
             icon="minus"
@@ -222,7 +239,7 @@ export const WindowContainer: React.FC<WindowContainerProps> = ({
         </div>
       </div>
       
-      <div className="window-body">
+      <div className="window-body" style={{ overflow: enableOverflow ? 'auto' : 'hidden' }}>
         {children}
       </div>
 

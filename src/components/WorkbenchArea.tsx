@@ -1,13 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { AppIcon } from './AppIcon';
 import { WindowContainer } from './WindowContainer';
 import type { AppDefinition, CustomAppProps } from '../types/custom-app';
 import { customAppRegistry } from '../registry/custom-apps';
-import { PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } from '../config';
-import notify from 'devextreme/ui/notify';
 import './WorkbenchArea.css';
-import { logDebug, logError } from '../utils/logger';
+import { logDebug } from '../utils/logger';
 
 interface WorkbenchAreaProps {
   /** Available apps (system + custom) */
@@ -19,94 +17,17 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
 }) => {
   const workspace = useWorkspace();
   const { state, openApp, closeApp, getWindowControl } = workspace;
-  const [isLaunching, setIsLaunching] = useState(false);
 
   // Combine custom apps with any provided system apps
-  // Filter out StartInstallation app (we'll handle it separately as a button)
   const allApps = React.useMemo(() => {
     const apps = [...customAppRegistry, ...availableApps];
-    return apps.filter(app => app.id !== 'start-installation');
+    // Sort apps: selected-installation-launcher first, then others
+    return apps.sort((a, b) => {
+      if (a.id === 'selected-installation-launcher') return -1;
+      if (b.id === 'selected-installation-launcher') return 1;
+      return 0;
+    });
   }, [availableApps]);
-
-  // Handle direct launch of selected installation
-  const handleLaunchInstallation = async () => {
-    if (!state.currentWorkspace) {
-      notify({
-        message: 'No installation selected',
-        type: 'warning',
-        displayTime: 3000,
-        position: { at: 'bottom center', my: 'bottom center', offset: '0 -120' }
-      });
-      return;
-    }
-
-    // ⭐ Cookie-based auth - no need to check authTokens
-    // Backend will validate authentication via httpOnly cookies
-
-    setIsLaunching(true);
-
-    try {
-      logDebug('🚀 Launching installation:', state.currentWorkspace.name);
-      
-      // Import required modules
-      const { createOneTimeToken } = await import('../api/auth');
-
-      // Generate launch token using cookie-based auth (cookies sent automatically)
-      logDebug('Generating launch token...');
-      const resp = await createOneTimeToken(state.currentWorkspace.id);
-      
-      if (resp.status !== 200) {
-        throw new Error(`Failed to generate launch token: ${resp.status}`);
-      }
-
-      const data = resp.data;
-      let token: string | null = null;
-      
-      // Handle various response formats
-      if (typeof data === 'string') {
-        token = data;
-      } else {
-        token = data.oneTimeToken || data.OneTimeToken || data.token || data.Token || data.linkToken || data.LinkToken || null;
-      }
-      
-      if (!token) {
-        throw new Error('No launch token received from server');
-      }
-
-      logDebug('✅ Launch token received');
-
-      // Determine protocol based on app type
-      const protocol = state.currentWorkspace.appType === 0 
-        ? PROTOCOL_CALWIN 
-        : state.currentWorkspace.appType === 1 
-        ? PROTOCOL_CALWIN_TEST 
-        : PROTOCOL_CALWIN_DEV;
-      
-      const uri = `${protocol}${encodeURIComponent(token)}`;
-      logDebug('🔗 Launching with URI:', uri);
-      
-      // Try to launch via protocol handler
-      const anchor = document.createElement('a');
-      anchor.href = uri;
-      anchor.style.display = 'none';
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-
-      logDebug('✅ Launch initiated successfully');
-
-    } catch (error) {
-      logError('❌ Launch failed:', error);
-      notify({
-        message: `Failed to launch: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        type: 'error',
-        displayTime: 4000,
-        position: { at: 'bottom center', my: 'bottom center', offset: '0 -120' }
-      });
-    } finally {
-      setIsLaunching(false);
-    }
-  };
 
   // Handle app icon click - restore if minimized, bring to front if open, or open new
   const handleAppClick = (appId: string) => {
@@ -145,6 +66,33 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
     }
   };
 
+  // Get installation initials for dynamic icon
+  const getInstallationInitials = (name: string): string => {
+    const cleanName = name.replace(/[^\w\s]/g, '').trim();
+    const words = cleanName.split(/\s+/);
+    
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    } else if (words.length === 1 && words[0].length >= 2) {
+      return words[0].substring(0, 2).toUpperCase();
+    } else if (words.length === 1 && words[0].length === 1) {
+      return words[0][0].toUpperCase();
+    }
+    
+    return 'CW';
+  };
+
+  // Get dynamic app definition with workspace-based icon
+  const getAppWithDynamicIcon = (app: AppDefinition): AppDefinition => {
+    if (app.id === 'selected-installation-launcher' && state.currentWorkspace) {
+      return {
+        ...app,
+        icon: getInstallationInitials(state.currentWorkspace.name)
+      };
+    }
+    return app;
+  };
+
   return (
     <div className="workbench-area">
       {/* Open App Windows - Full Screen */}
@@ -155,6 +103,9 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
 
           const AppComponent = appDef.component;
           const windowControl = getWindowControl(openApp.instanceId);
+
+          // Get dynamic icon for the window
+          const appWithIcon = getAppWithDynamicIcon(appDef);
 
           const appProps: CustomAppProps = {
             workspace: state.currentWorkspace,
@@ -168,11 +119,13 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
             <WindowContainer
               key={openApp.instanceId}
               title={appDef.name}
+              icon={typeof appWithIcon.icon === 'string' ? appWithIcon.icon : undefined}
               windowState={openApp.windowState}
               minWidth={appDef.windowOptions?.minWidth}
               minHeight={appDef.windowOptions?.minHeight}
               resizable={appDef.windowOptions?.resizable ?? true}
               maximizable={appDef.windowOptions?.maximizable ?? true}
+              enableOverflow={appDef.windowOptions?.enableOverflow ?? true}
               onClose={() => closeApp(openApp.instanceId)}
               onMinimize={windowControl.minimize}
               onToggleMaximize={windowControl.toggleMaximize}
@@ -188,56 +141,25 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
 
       {/* App Icons Taskbar at Bottom */}
       <div className="workbench-apps-grid">
-        {/* Start CalWin Button - Only show when workspace is selected */}
-        {state.currentWorkspace && (() => {
-          // Get initials from installation name (first 2 letters)
-          const getInstallationInitials = (name: string): string => {
-            const cleanName = name.replace(/[^\w\s]/g, '').trim();
-            const words = cleanName.split(/\s+/);
-            
-            if (words.length >= 2) {
-              return (words[0][0] + words[1][0]).toUpperCase();
-            } else if (words.length === 1 && words[0].length >= 2) {
-              return words[0].substring(0, 2).toUpperCase();
-            } else if (words.length === 1 && words[0].length === 1) {
-              return words[0][0].toUpperCase();
-            }
-            
-            return 'CW';
-          };
-
-          return (
-            <AppIcon
-              key="start-installation-button"
-              app={{
-                id: 'start-installation',
-                name: 'Start CalWin',
-                icon: getInstallationInitials(state.currentWorkspace.name),
-                component: () => null
-              }}
-              onClick={handleLaunchInstallation}
-              disabled={isLaunching}
-              isLoading={isLaunching}
-              className="start-installation"
-            />
-          );
-        })()}
-        
         {/* Regular Apps */}
-        {allApps.length === 0 && !state.currentWorkspace ? (
+        {allApps.length === 0 ? (
           <div className="workbench-empty-state">
             <i className="dx-icon dx-icon-box" style={{ fontSize: 32, color: '#ccc' }} />
             <p>No apps available</p>
           </div>
         ) : (
-          allApps.map(app => (
-            <AppIcon
-              key={app.id}
-              app={app}
-              onClick={() => handleAppClick(app.id)}
-              disabled={false}
-            />
-          ))
+          allApps.map(app => {
+            const appWithIcon = getAppWithDynamicIcon(app);
+            return (
+              <AppIcon
+                key={app.id}
+                app={appWithIcon}
+                onClick={() => handleAppClick(app.id)}
+                disabled={false}
+                className={app.id === 'selected-installation-launcher' ? 'launch-installation' : ''}
+              />
+            );
+          })
         )}
       </div>
     </div>

@@ -171,7 +171,7 @@ interface AppContentProps {
 }
 
 const AppContent = React.memo(function AppContent(props: AppContentProps) {
-  const { state, switchWorkspace } = useWorkspace();
+  const { state, switchWorkspace, openApp } = useWorkspace();
   
   const { userEmail } = props;
   // ⭐ authTokens no longer needed - using cookie-based auth
@@ -181,6 +181,21 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
     logDebug('Installation:', installation);
     switchWorkspace(installation);
   }, [switchWorkspace]);
+
+  // Auto-open the selected installation launcher when installation is selected
+  const handleAutoOpenLauncher = useCallback(() => {
+    logDebug('=== Auto-opening launcher ===');
+    openApp('selected-installation-launcher');
+  }, [openApp]);
+
+  // Auto-open launcher if installation is already pre-selected (e.g., from previous session)
+  useEffect(() => {
+    if (state.currentWorkspace) {
+      logDebug('=== Installation pre-selected on load, auto-opening launcher ===');
+      handleAutoOpenLauncher();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
   return (
     <div className="app-root">
@@ -194,6 +209,7 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
                 currentWorkspace={state.currentWorkspace}
                 workspaces={state.availableWorkspaces}
                 onWorkspaceChange={handleInstallationChange}
+                onAutoOpenLauncher={handleAutoOpenLauncher}
                 isLoading={state.isLoading}
               />
             </div>

@@ -43,6 +43,8 @@ export interface WindowOptions {
   resizable?: boolean;
   /** Can the window be maximized */
   maximizable?: boolean;
+  /** Enable overflow scrolling in window body (default: true) */
+  enableOverflow?: boolean;
   /** Initial position (undefined = centered) */
   initialPosition?: {
     x: number;

@@ -162,3 +162,26 @@
   }
 }
 
+/* Launch Installation Button - Special Highlight (Blue Theme) */
+.app-icon.launch-installation {
+  position: relative;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.05) 100%);
+  border: 2px solid #667eea;
+}
+
+.app-icon.launch-installation:hover:not(.disabled):not(.loading) {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.1) 100%);
+  transform: translateY(-4px);
+  border-color: #764ba2;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.app-icon.launch-installation .app-icon-image {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.app-icon.launch-installation .app-icon-label {
+  color: #667eea;
+  font-weight: 600;
+}

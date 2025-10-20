@@ -1,6 +1,5 @@
 import React from 'react';
 import { SelectBox } from 'devextreme-react/select-box';
-import notify from 'devextreme/ui/notify';
 import type { NormalizedInstallation } from '../types/installations';
 import './WorkspaceSelector.css';
 import { logDebug } from '../utils/logger';
@@ -14,13 +13,16 @@ interface WorkspaceSelectorProps {
   onWorkspaceChange: (workspace: NormalizedInstallation) => void;
   /** Loading state */
   isLoading?: boolean;
+  /** Callback to auto-open launcher window */
+  onAutoOpenLauncher?: () => void;
 }
 
 export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
   currentWorkspace,
   workspaces,
   onWorkspaceChange,
-  isLoading = false
+  isLoading = false,
+  onAutoOpenLauncher
 }) => {
   // Debug logging
   React.useEffect(() => {
@@ -41,12 +43,15 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
     if (selected) {
       logDebug('Calling onWorkspaceChange with:', selected.name);
       onWorkspaceChange(selected);
-      notify({
-        message: `${selected.name} selected`,
-        type: 'info',
-        displayTime: 3000,
-        position: { at: 'bottom center', my: 'bottom center', offset: '0 -120' }
-      });
+      
+      // Auto-open the launcher window when installation is selected
+      if (onAutoOpenLauncher) {
+        logDebug('Auto-opening launcher window');
+        // Small delay to ensure workspace is set first
+        setTimeout(() => {
+          onAutoOpenLauncher();
+        }, 100);
+      }
     } else {
       logDebug('ERROR: Selected workspace not found in workspaces array!');
     }
@@ -54,7 +59,7 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
 
   return (
     <div className="workspace-selector">
-      <label className="workspace-selector-label">CalWin Desktop:</label>
+      <label className="workspace-selector-label">Select Installation:</label>
       <SelectBox
         dataSource={workspaces}
         value={currentWorkspace?.id}

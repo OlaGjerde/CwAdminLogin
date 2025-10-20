@@ -27,6 +27,9 @@ import { ExampleTodoApp } from '../custom-apps/ExampleTodoApp';
 // CalWin Installation Launcher:
 import { InstallationLauncherApp } from '../custom-apps/InstallationLauncher';
 
+// Selected Installation Launcher (auto-opens when installation selected):
+import { SelectedInstallationLauncherApp } from '../custom-apps/SelectedInstallationLauncher';
+
 // Your custom apps:
 // import { YourApp } from '../custom-apps/YourApp';
 
@@ -37,6 +40,9 @@ import { InstallationLauncherApp } from '../custom-apps/InstallationLauncher';
 export const customAppRegistry: CustomAppDefinition[] = [
   // CalWin Installation Launcher (main app):
   InstallationLauncherApp,
+  
+  // Selected Installation Launcher (auto-opens when installation selected):
+  SelectedInstallationLauncherApp,
   
   // Example todo app:
   ExampleTodoApp,
