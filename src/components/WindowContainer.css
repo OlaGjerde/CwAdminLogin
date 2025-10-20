@@ -17,20 +17,21 @@
 }
 
 .window-header {
-  background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
-  border-bottom: 1px solid #dee2e6;
-  padding: 8px 12px;
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: move;
   user-select: none;
-  min-height: 40px;
+  height: 32px;
+  min-height: 32px;
 }
 
 .window-title {
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 400;
+  font-size: 12px;
   color: #333;
   flex: 1;
   overflow: hidden;
@@ -38,25 +39,26 @@
   white-space: nowrap;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  padding-left: 8px;
 }
 
 .window-icon {
-  width: 24px;
-  height: 24px;
+  width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 6px;
+  border-radius: 3px;
   color: white;
-  font-size: 16px;
+  font-size: 11px;
   flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .window-icon-initials {
-  font-size: 12px;
+  font-size: 9px;
   font-weight: 700;
   color: white;
   letter-spacing: 0px;
@@ -64,23 +66,83 @@
 
 .window-controls {
   display: flex;
-  gap: 4px;
+  gap: 0;
   flex-shrink: 0;
+  height: 32px;
 }
 
 .window-controls .dx-button {
-  width: 28px;
-  height: 28px;
-  min-width: 28px;
+  width: 34px;
+  height: 32px;
+  min-width: 34px;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.window-controls .dx-button .dx-icon {
+  font-size: 10px;
+  color: #333;
 }
 
 .window-controls .dx-button:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba(0, 0, 0, 0.06);
 }
 
+.window-controls .dx-button:hover .dx-icon {
+  color: #000;
+}
+
+.window-controls .dx-button:active {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Close button - always last child */
 .window-controls .dx-button:last-child:hover {
-  background-color: #dc3545;
+  background-color: #c42b1c;
+}
+
+.window-controls .dx-button:last-child:hover .dx-icon {
   color: white;
+}
+
+.window-controls .dx-button:last-child:active {
+  background-color: #a52313;
+}
+
+/* Windows 11 style maximize/restore icons - only for maximize button (when present, it's the 2nd button and NOT last) */
+.window-controls .dx-button:nth-child(2):not(:last-child) .dx-icon {
+  position: relative;
+}
+
+.window-controls .dx-button:nth-child(2):not(:last-child) .dx-icon::before {
+  content: '';
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border: 1px solid currentColor;
+  border-radius: 1px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.window-controls .dx-button:nth-child(2):not(:last-child) .dx-icon-restore::before {
+  width: 8px;
+  height: 8px;
+}
+
+.window-controls .dx-button:nth-child(2):not(:last-child) .dx-icon-restore::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1px solid currentColor;
+  border-radius: 1px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-40%, -60%);
+  background: white;
 }
 
 .window-body {
@@ -96,12 +158,27 @@
   width: 16px;
   height: 16px;
   cursor: nwse-resize;
-  background: linear-gradient(135deg, transparent 50%, #ccc 50%);
-  border-bottom-right-radius: 8px;
+  background: transparent;
 }
 
-.window-resize-handle:hover {
-  background: linear-gradient(135deg, transparent 50%, #999 50%);
+.window-resize-handle::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background: 
+    linear-gradient(135deg, transparent 0%, transparent 45%, #aaa 45%, #aaa 50%, transparent 50%),
+    linear-gradient(135deg, transparent 0%, transparent 55%, #aaa 55%, #aaa 60%, transparent 60%),
+    linear-gradient(135deg, transparent 0%, transparent 65%, #aaa 65%, #aaa 70%, transparent 70%);
+}
+
+.window-resize-handle:hover::after {
+  background: 
+    linear-gradient(135deg, transparent 0%, transparent 45%, #666 45%, #666 50%, transparent 50%),
+    linear-gradient(135deg, transparent 0%, transparent 55%, #666 55%, #666 60%, transparent 60%),
+    linear-gradient(135deg, transparent 0%, transparent 65%, #666 65%, #666 70%, transparent 70%);
 }
 
 /* Dragging state */

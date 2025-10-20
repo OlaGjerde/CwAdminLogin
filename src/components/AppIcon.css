@@ -3,11 +3,12 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 16px;
-  min-width: 100px;
+  gap: 4px;
+  padding: 8px 12px;
+  min-width: auto;
+  max-width: 120px;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 6px;
   transition: all 0.2s;
   user-select: none;
 }
@@ -32,20 +33,20 @@
 }
 
 .app-icon-image {
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
+  border-radius: 8px;
   color: white;
-  font-size: 32px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 24px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .app-icon-image .dx-icon {
-  font-size: 32px;
+  font-size: 24px;
 }
 
 .app-icon-custom {
@@ -55,10 +56,10 @@
 }
 
 .app-icon-initials {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 700;
   color: white;
-  letter-spacing: -1px;
+  letter-spacing: -0.5px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
@@ -76,14 +77,13 @@
 }
 
 .app-icon-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: #333;
   text-align: center;
-  max-width: 100px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  word-wrap: break-word;
+  line-height: 1.2;
 }
 
 .app-icon.disabled .app-icon-label {

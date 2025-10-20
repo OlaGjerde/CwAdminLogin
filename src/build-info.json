@@ -1,8 +1,8 @@
 {
-  "version": "0.10.35",
-  "commit": "52a3048",
+  "version": "0.10.39",
+  "commit": "49ce283",
   "branch": "updatesfromsindre",
-  "timestamp": "2025-10-20T12:08:29.478Z",
+  "timestamp": "2025-10-20T12:35:14.531Z",
   "buildNumber": "",
   "node": "v22.20.0"
 }
