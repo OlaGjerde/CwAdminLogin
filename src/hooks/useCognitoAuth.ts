@@ -45,7 +45,7 @@ export interface CognitoAuthState {
 export function useCognitoAuth() {
   const [state, setState] = useState<CognitoAuthState>({
     isAuthenticated: false,
-    isLoading: true, // ⭐ Start with loading to prevent auto-redirect before auth check
+    isLoading: true, // Start with loading to prevent auto-redirect before auth check
     userInfo: null,
     error: null,
   });
@@ -55,7 +55,7 @@ export function useCognitoAuth() {
    */
   const login = useCallback(async () => {
     try {
-      logDebug('🔐 Initiating Cognito login flow');
+      logDebug('Initiating Cognito login flow');
       
       // Clear any previous errors
       setState((prev) => ({
@@ -77,12 +77,12 @@ export function useCognitoAuth() {
         state: state,
       });
       
-      logDebug('🌐 Redirecting to Cognito:', authUrl);
+      logDebug('Redirecting to Cognito:', authUrl);
       
       // Redirect to Cognito
       window.location.href = authUrl;
     } catch (error) {
-      logError('❌ Login initiation failed:', error);
+      logError('Login initiation failed:', error);
       setState((prev) => ({
         ...prev,
         error: 'Failed to initiate login',
@@ -95,14 +95,14 @@ export function useCognitoAuth() {
    * Handle OAuth callback - exchange code for tokens
    */
   const handleCallback = useCallback(async () => {
-    logDebug('🔄 Processing OAuth callback');
+    logDebug('Processing OAuth callback');
     
     const params = parseCallbackParams();
     
     // Check if we're already processing this code (prevent double execution in StrictMode)
     const processingCode = sessionStorage.getItem('cognito_processing_code');
     if (processingCode === params.code) {
-      logDebug('⏭️ Already processing this code, skipping duplicate execution');
+      logDebug('Already processing this code, skipping duplicate execution');
       return;
     }
     
@@ -113,8 +113,8 @@ export function useCognitoAuth() {
     
     // Check for errors from Cognito
     if (params.error) {
-      logError('❌ Cognito returned error:', params.error);
-      logError('❌ Error description:', params.error_description);
+      logError('Cognito returned error:', params.error);
+      logError('Error description:', params.error_description);
       
       // Format a user-friendly error message
       let userMessage = params.error_description || params.error || 'Authentication failed';
@@ -148,7 +148,7 @@ export function useCognitoAuth() {
     
     // Validate we have a code
     if (!params.code) {
-      logError('❌ No authorization code in callback');
+      logError('No authorization code in callback');
       setState((prev) => ({
         ...prev,
         error: 'Invalid callback - no authorization code',
@@ -162,7 +162,7 @@ export function useCognitoAuth() {
     // Retrieve stored PKCE data
     const pkceData = retrievePKCEData();
     if (!pkceData) {
-      logError('❌ No PKCE data found - possible CSRF attack or session expired');
+      logError('No PKCE data found - possible CSRF attack or session expired');
       setState((prev) => ({
         ...prev,
         error: 'Session expired - please try again',
@@ -175,7 +175,7 @@ export function useCognitoAuth() {
     
     // Validate state parameter (CSRF protection)
     if (params.state !== pkceData.state) {
-      logError('❌ State mismatch - possible CSRF attack');
+      logError('State mismatch - possible CSRF attack');
       setState((prev) => ({
         ...prev,
         error: 'Invalid state - security check failed',
@@ -189,12 +189,12 @@ export function useCognitoAuth() {
     
     // Exchange code for tokens (backend sets httpOnly cookies)
     try {
-      logDebug('🔄 Exchanging authorization code for tokens (backend will set cookies)');
+      logDebug('Exchanging authorization code for tokens (backend will set cookies)');
       
       // Retrieve PKCE code_verifier from sessionStorage
       const codeVerifier = sessionStorage.getItem('cognito_code_verifier');
       if (!codeVerifier) {
-        logError('❌ Code verifier not found in session storage');
+        logError('Code verifier not found in session storage');
         setState(prev => ({
           ...prev,
           hasError: true,
@@ -209,12 +209,12 @@ export function useCognitoAuth() {
       
       await exchangeCodeForTokens(params.code, codeVerifier);
       
-      logDebug('✅ Tokens received and cookies set by backend');
+      logDebug('Tokens received and cookies set by backend');
       
       // Get user information from backend (wait for it before setting authenticated)
       try {
         const userInfo = await getCurrentUser();
-        logDebug('✅ User info received:', userInfo.Email);
+        logDebug('User info received:', userInfo.Email);
         
         // Update state with authentication and user info together
         setState({
@@ -224,18 +224,18 @@ export function useCognitoAuth() {
           error: null,
         });
         
-        logDebug('✅ Authentication complete for:', userInfo.Email);
+        logDebug('Authentication complete for:', userInfo.Email);
       } catch (getUserError: unknown) {
-        logError('❌ Failed to get user info after token exchange:', getUserError);
+        logError('Failed to get user info after token exchange:', getUserError);
         
         type ErrorResponse = { response?: { status?: number; data?: unknown; headers?: Record<string, string> } };
         const err = getUserError as ErrorResponse;
         
         // If 401, cookies might not be set correctly by backend
         if (err.response?.status === 401) {
-          logError('🚨 CRITICAL: Token exchange succeeded but /Me returned 401!');
-          logError('🚨 This means backend is NOT reading cookies correctly.');
-          logError('🚨 Check if CookieToHeaderMiddleware is added BEFORE UseAuthentication()');
+          logError('CRITICAL: Token exchange succeeded but /Me returned 401!');
+          logError('This means backend is NOT reading cookies correctly.');
+          logError('Check if CookieToHeaderMiddleware is added BEFORE UseAuthentication()');
           logError('Response headers:', err.response?.headers);
           
           setState((prev) => ({
@@ -262,7 +262,7 @@ export function useCognitoAuth() {
       clearOAuthParams();
       sessionStorage.removeItem('cognito_processing_code');
     } catch (exchangeError: unknown) {
-      logError('❌ Token exchange failed:', exchangeError);
+      logError('Token exchange failed:', exchangeError);
       
       // Enhanced error logging
       if (exchangeError && typeof exchangeError === 'object' && 'response' in exchangeError) {
@@ -295,7 +295,7 @@ export function useCognitoAuth() {
    */
   const checkAuthStatus = useCallback(async () => {
     try {
-      logDebug('🔍 Checking authentication status...');
+      logDebug('Checking authentication status...');
       // Don't set loading here - use initial state
       
       const userInfo = await getCurrentUser();
@@ -307,13 +307,13 @@ export function useCognitoAuth() {
         error: null,
       });
       
-      logDebug('✅ User is authenticated:', userInfo.Email);
+      logDebug('User is authenticated:', userInfo.Email);
     } catch (error: unknown) {
       type ErrorResponse = { response?: { status?: number } };
       const err = error as ErrorResponse;
       // 401 means not authenticated - this is NORMAL, not an error
       if (err.response?.status === 401) {
-        logDebug('ℹ️ User is not authenticated (expected)');
+        logDebug('User is not authenticated (expected)');
         setState({
           isAuthenticated: false,
           isLoading: false,
@@ -321,7 +321,7 @@ export function useCognitoAuth() {
           error: null, // NO ERROR - just not authenticated yet
         });
       } else {
-        logError('❌ Failed to check auth status:', error);
+        logError('Failed to check auth status:', error);
         setState((prev) => ({
           ...prev,
           isLoading: false,
@@ -335,13 +335,13 @@ export function useCognitoAuth() {
    * Logout - clear cookies and redirect to Cognito logout
    */
   const logout = useCallback(async () => {
-    logDebug('🚪 Logging out - clearing cookies and Cognito session');
+    logDebug('Logging out - clearing cookies and Cognito session');
     
     try {
       // Call backend logout endpoint (clears cookies and returns Cognito logout URL)
       const response = await apiLogout();
       
-      logDebug('✅ Backend cookies cleared');
+      logDebug('Backend cookies cleared');
       
       // Preserve workspace selection in localStorage
       const workspaceSelection = localStorage.getItem('calwin-selected-workspace');
@@ -350,30 +350,30 @@ export function useCognitoAuth() {
       try {
         const itemCount = localStorage.length;
         localStorage.clear();
-        logDebug(`✅ localStorage cleared (${itemCount} items removed)`);
+        logDebug(`localStorage cleared (${itemCount} items removed)`);
       } catch (e) {
-        logError('❌ Failed to clear localStorage:', e);
+        logError('Failed to clear localStorage:', e);
       }
       
       // Restore workspace selection
       if (workspaceSelection) {
         try {
           localStorage.setItem('calwin-selected-workspace', workspaceSelection);
-          logDebug('✅ Workspace selection preserved after logout');
+          logDebug('Workspace selection preserved after logout');
         } catch (e) {
-          logError('❌ Failed to restore workspace selection:', e);
+          logError('Failed to restore workspace selection:', e);
         }
       }
       
       // Clear sessionStorage
       try {
         sessionStorage.clear();
-        logDebug('✅ sessionStorage cleared');
+        logDebug('sessionStorage cleared');
       } catch (e) {
-        logError('❌ Failed to clear sessionStorage:', e);
+        logError('Failed to clear sessionStorage:', e);
       }
       
-      logDebug('🔄 Redirecting to Cognito logout:', response.LogoutUrl);
+      logDebug('Redirecting to Cognito logout:', response.LogoutUrl);
       
       // Redirect to Cognito logout - this will:
       // 1. Clear Cognito session
@@ -391,9 +391,9 @@ export function useCognitoAuth() {
    */
   const handleRefreshToken = useCallback(async (): Promise<boolean> => {
     try {
-      logDebug('🔄 Refreshing access token...');
+      logDebug('Refreshing access token...');
       await refreshToken();
-      logDebug('✅ Token refreshed successfully');
+      logDebug('Token refreshed successfully');
       return true;
     } catch (error: unknown) {
       type ErrorResponse = { response?: { status?: number } };
@@ -402,7 +402,7 @@ export function useCognitoAuth() {
       
       // If refresh fails with 401, user needs to re-authenticate
       if (err.response?.status === 401) {
-        logDebug('� Refresh token invalid, logging out');
+        logDebug('Refresh token invalid, logging out');
         setState({
           isAuthenticated: false,
           isLoading: false,
@@ -424,12 +424,12 @@ export function useCognitoAuth() {
    */
   useEffect(() => {
     const initAuth = async () => {
-      // ⭐ Check if returning from logout (check both query param and hash)
+      // Check if returning from logout (check both query param and hash)
       const urlParams = new URLSearchParams(window.location.search);
       const hashParams = new URLSearchParams(window.location.hash.slice(1));
       
       if (urlParams.get('logout') === 'true' || hashParams.get('logout') === 'true') {
-        logDebug('🚪 Returned from Cognito logout - staying logged out');
+        logDebug('Returned from Cognito logout - staying logged out');
         // Clear the logout flag from URL
         window.history.replaceState({}, document.title, window.location.pathname);
         // Set state to logged out
@@ -439,7 +439,7 @@ export function useCognitoAuth() {
           userInfo: null,
           error: null,
         });
-        return; // ⭐ Don't check auth status!
+        return; //Don't check auth status!
       }
       
       // Parse OAuth callback parameters
@@ -447,15 +447,15 @@ export function useCognitoAuth() {
       
       // Only process callback if we have BOTH code AND state (valid OAuth callback)
       if (params.code && params.state) {
-        logDebug('🔍 Detected valid OAuth callback');
+        logDebug('Detected valid OAuth callback');
         await handleCallback();
       } else if (params.error) {
         // Handle OAuth error callback
-        logDebug('🔍 Detected OAuth error callback');
+        logDebug('Detected OAuth error callback');
         await handleCallback();
       } else if (params.code) {
         // Code without state - likely stale/invalid, clear it
-        logDebug('⚠️ Found code without state - clearing stale OAuth params');
+        logDebug('Found code without state - clearing stale OAuth params');
         clearOAuthParams();
         await checkAuthStatus();
       } else {
@@ -478,7 +478,7 @@ export function useCognitoAuth() {
 
     // Check and refresh token periodically
     const refreshInterval = setInterval(async () => {
-      logDebug('⏰ Periodic token refresh check');
+      logDebug('Periodic token refresh check');
       await handleRefreshToken();
     }, 5 * 60 * 1000); // Every 5 minutes
 
