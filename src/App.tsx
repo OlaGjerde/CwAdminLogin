@@ -221,7 +221,7 @@ const AppContent = React.memo(function AppContent() {
       <>
         <div className="app-top-bar">
           <div className="app-top-bar-left">
-            <img src="/image.png" alt="CalWin Logo" className="app-logo" />
+            <img src="/Calwin_circle_color_RGB_300ppi.png" alt="CalWin Logo" className="app-logo" />
             <h1 className="app-title">CalWin Solutions</h1>
           </div>
           <div className="app-top-bar-center">
