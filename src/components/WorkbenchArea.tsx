@@ -4,6 +4,7 @@ import { useAppSettings } from '../contexts/AppSettingsContext';
 import { AppIcon } from './AppIcon';
 import { WindowContainer } from './WindowContainer';
 import type { AppDefinition, CustomAppProps } from '../types/custom-app';
+import type { WindowState } from '../types/workspace';
 import { customAppRegistry } from '../registry/custom-apps';
 import { AppSettingsApp } from '../custom-apps/AppSettingsApp';
 import './WorkbenchArea.css';
@@ -125,6 +126,17 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
           // Get app settings for overflow and other options
           const appSettings = getAppSettings(openApp.appId);
           
+          // Apply user settings to window state
+          const windowStateWithSettings: WindowState = {
+            ...openApp.windowState,
+            // Override size if user has saved preferences
+            width: appSettings?.defaultSize?.width ?? openApp.windowState.width,
+            height: appSettings?.defaultSize?.height ?? openApp.windowState.height,
+            // Override position if user has saved preferences
+            x: appSettings?.defaultPosition?.x ?? openApp.windowState.x,
+            y: appSettings?.defaultPosition?.y ?? openApp.windowState.y,
+          };
+          
           // Determine enableOverflow: settings > app definition > default (true)
           const enableOverflow = appSettings?.enableOverflow 
             ?? appDef.windowOptions?.enableOverflow 
@@ -143,7 +155,7 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
               key={openApp.instanceId}
               title={appDef.name}
               icon={typeof appWithIcon.icon === 'string' ? appWithIcon.icon : undefined}
-              windowState={openApp.windowState}
+              windowState={windowStateWithSettings}
               minWidth={appDef.windowOptions?.minWidth}
               minHeight={appDef.windowOptions?.minHeight}
               resizable={appDef.windowOptions?.resizable ?? true}
