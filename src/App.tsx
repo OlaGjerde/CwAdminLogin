@@ -2,6 +2,7 @@ import React, { useEffect, useCallback } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import { useInstallations } from './hooks/useInstallations';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
+import { AppSettingsProvider } from './contexts/AppSettingsContext';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
 import { WorkbenchArea } from './components/WorkbenchArea';
 // import { TokenRefreshTester } from './components/TokenRefreshTester';
@@ -149,12 +150,14 @@ function App() {
   }
 
   return (
-    <WorkspaceProvider 
-      availableWorkspaces={installations}
-      initialWorkspace={null}
-    >
-      <AppContent />
-    </WorkspaceProvider>
+    <AppSettingsProvider workspaceId={null}>
+      <WorkspaceProvider 
+        availableWorkspaces={installations}
+        initialWorkspace={null}
+      >
+        <AppContent />
+      </WorkspaceProvider>
+    </AppSettingsProvider>
   );
 }
 

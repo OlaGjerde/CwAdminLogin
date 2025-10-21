@@ -48,6 +48,26 @@ export const INSTALLER_DOWNLOAD_URL = 'https://calwinmedia-dev.calwincloud.com/C
 // Refresh scheduling margin (seconds before access token exp when we attempt refresh)
 export const REFRESH_MARGIN_SECONDS = 120;
 
+/**
+ * App Settings Configuration
+ * Controls how user app settings are stored and applied
+ */
+export const APP_SETTINGS_CONFIG = {
+  /**
+   * If true, settings are per-workspace/installation
+   * If false, settings are global across all workspaces
+   * 
+   * Per-workspace: Each installation can have different app configurations
+   * Global: Same app configuration applies to all installations
+   */
+  perWorkspaceSettings: false,
+  
+  /**
+   * localStorage key for storing app settings
+   */
+  storageKey: 'calwin-app-settings',
+} as const;
+
 // Installations caching & retry configuration
 export const INSTALLATIONS_STALE_MS = 40_000; // 40s default
 export const INSTALLATIONS_RETRY_BASE_MS = 2_000; // initial backoff

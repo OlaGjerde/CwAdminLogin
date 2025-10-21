@@ -11,10 +11,10 @@ export const SelectedInstallationLauncherApp: CustomAppDefinition = {
   category: 'System',
   author: 'CalWin Solutions',
   windowOptions: {
-    minWidth: 450,
-    minHeight: 450,
-    defaultWidth: 450,
-    defaultHeight: 450,
+    minWidth: 530,
+    minHeight: 530,
+    defaultWidth: 530,
+    defaultHeight: 530,
     resizable: true,
     maximizable: false,
     enableOverflow: false, // No scrolling needed for this simple window

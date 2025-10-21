@@ -4,6 +4,7 @@ import { AppIcon } from './AppIcon';
 import { WindowContainer } from './WindowContainer';
 import type { AppDefinition, CustomAppProps } from '../types/custom-app';
 import { customAppRegistry } from '../registry/custom-apps';
+import { Button } from 'devextreme-react/button';
 import './WorkbenchArea.css';
 import { logDebug } from '../utils/logger';
 
@@ -95,6 +96,17 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
 
   return (
     <div className="workbench-area">
+      {/* Settings Button - Top Left */}
+      <div className="workbench-settings-button">
+        <Button
+          icon="preferences"
+          hint="App Settings"
+          onClick={() => handleAppClick('app-settings')}
+          stylingMode="text"
+          type="default"
+        />
+      </div>
+
       {/* Open App Windows - Full Screen */}
       <div className="workbench-windows-container">
         {state.openApps.map(openApp => {

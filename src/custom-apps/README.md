@@ -58,13 +58,21 @@ export const YourApp: CustomAppDefinition = {
   component: YourAppComponent,
   description: 'Description of your app',
   version: '1.0.0',
+  category: 'Utilities', // Optional: System, Productivity, Utilities, etc.
+  author: 'Your Name', // Optional: Developer or company name
   windowOptions: {
     minWidth: 300,
     minHeight: 400,
     defaultWidth: 600,
     defaultHeight: 500,
     resizable: true,
-    maximizable: true
+    maximizable: true,
+    enableOverflow: true, // Enable scrolling (default: true)
+  },
+  permissions: {
+    canReadWorkspace: true,
+    canAccessAPI: true,
+    canAccessAllInstallations: false,
   }
 };
 ```
@@ -85,7 +93,7 @@ export const customAppRegistry: CustomAppDefinition[] = [
 ## Available Props in CustomAppProps
 
 - **workspace**: Current selected workspace/installation (NormalizedInstallation | null)
-- **authTokens**: Authentication tokens for API calls ({ accessToken, refreshToken, idToken })
+- **authTokens**: ⚠️ DEPRECATED - Authentication tokens (now using httpOnly cookies instead)
 - **installations**: All available installations (NormalizedInstallation[])
 - **windowControl**: API to control your app window
   - `close()`: Close the window
@@ -95,6 +103,32 @@ export const customAppRegistry: CustomAppDefinition[] = [
   - `move(x, y)`: Move the window
 - **instanceId**: Unique ID for this app instance
 
+## Using the useAuth() Hook
+
+Instead of relying on `authTokens` prop, you can use the `useAuth()` hook to access authentication state:
+
+```typescript
+import { useAuth } from '../../contexts/AuthContext';
+
+export const YourAppComponent: React.FC<CustomAppProps> = ({ workspace }) => {
+  // Access auth state directly - no props needed!
+  const { userInfo, userEmail, logout, isAuthenticated } = useAuth();
+
+  return (
+    <div>
+      <p>Logged in as: {userEmail}</p>
+      <button onClick={logout}>Logout</button>
+    </div>
+  );
+};
+```
+
+Available from `useAuth()`:
+- `isAuthenticated`: boolean - Whether user is logged in
+- `userInfo`: object | null - User information from Cognito
+- `userEmail`: string | null - User's email address
+- `logout()`: function - Logout the user
+
 ## Window Options
 
 Configure how your app window behaves:
@@ -103,7 +137,25 @@ Configure how your app window behaves:
 - `defaultWidth`, `defaultHeight`: Initial window size
 - `resizable`: Can users resize the window (default: true)
 - `maximizable`: Can users maximize the window (default: true)
+- `enableOverflow`: Enable scrolling in window body (default: true)
 - `initialPosition`: Starting position { x, y } (default: centered)
+
+## App Permissions
+
+Configure what your app can access (for future security features):
+
+- `canReadWorkspace`: Can read workspace/installation data
+- `canAccessAPI`: Can make API calls to the backend
+- `canAccessAllInstallations`: Can access all installations or just the current one
+
+## Additional Metadata
+
+You can add additional metadata to your app definition:
+
+- `category`: Organize apps by category (e.g., "System", "Productivity", "Utilities")
+- `author`: Developer or company name
+- `version`: Semantic version string (e.g., "1.0.0")
+- `description`: Brief description of what the app does
 
 ## Icons
 
@@ -123,8 +175,50 @@ You can use:
 ## Example Apps
 
 Check out these example apps for reference:
-- `ExampleTodoApp/` - Simple todo list
-- `ExampleNotesApp/` - Note-taking app
+
+- **ExampleTodoApp/** - Simple todo list demonstrating basic app structure
+- **InstallationLauncher/** - CalWin launcher with icon-based interface (System app)
+- **SelectedInstallationLauncher/** - Quick launch window for selected installation
+- **UserProfileApp/** - User profile viewer demonstrating `useAuth()` hook usage
+
+## Real-World Examples
+
+### InstallationLauncher (CalWin Launcher)
+A full-featured system app that displays all CalWin installations with icons and launch functionality.
+
+```typescript
+export const InstallationLauncherApp: CustomAppDefinition = {
+  id: 'installation-launcher',
+  name: 'CalWin Launcher',
+  icon: 'box',
+  component: InstallationLauncherComponent,
+  description: 'Launch CalWin installations with an icon-based interface',
+  version: '1.0.0',
+  category: 'System',
+  author: 'CalWin Solutions',
+  windowOptions: {
+    minWidth: 500,
+    minHeight: 400,
+    defaultWidth: 950,
+    defaultHeight: 540,
+    resizable: true,
+    maximizable: true,
+  },
+  permissions: {
+    canReadWorkspace: true,
+    canAccessAPI: true,
+    canAccessAllInstallations: true,
+  },
+};
+```
+
+### UserProfileApp
+Demonstrates how to use the `useAuth()` hook to access authentication state:
+
+```typescript
+// Inside the component
+const { userInfo, userEmail, logout, isAuthenticated } = useAuth();
+```
 
 ## Need Help?
 
