@@ -22,7 +22,7 @@ import { List } from 'devextreme-react/list';
 import { CheckBox } from 'devextreme-react/check-box';
 import { NumberBox } from 'devextreme-react/number-box';
 // import { Sortable } from 'devextreme-react/sortable'; // TODO: Add drag-and-drop reordering
-import { logDebug, logInfo } from '../../utils/logger';
+import { logInfo } from '../../utils/logger';
 import './AppSettingsApp.css';
 
 interface AppSettingsItemProps {
@@ -30,8 +30,6 @@ interface AppSettingsItemProps {
   appName: string;
   appIcon: string | React.ComponentType;
   isFirst: boolean;
-  isAdmin: boolean;
-  isEnabled: boolean;
   order: number;
   defaultWidth?: number;
   defaultHeight?: number;
@@ -39,7 +37,6 @@ interface AppSettingsItemProps {
   defaultY?: number;
   autoSavePosition: boolean;
   enableOverflow: boolean;
-  onToggleEnabled: (appId: string, enabled: boolean) => void;
   onUpdateSettings: (appId: string, updates: AppSettingsUpdate) => void;
   onExpand: (appId: string) => void;
   isExpanded: boolean;
@@ -50,21 +47,18 @@ const AppSettingsItem: React.FC<AppSettingsItemProps> = ({
   appName,
   appIcon,
   isFirst,
-  isAdmin,
-  isEnabled,
   defaultWidth,
   defaultHeight,
   defaultX,
   defaultY,
   autoSavePosition,
   enableOverflow,
-  onToggleEnabled,
   onUpdateSettings,
   onExpand,
   isExpanded,
 }) => {
   return (
-    <div className={`app-settings-item ${isFirst ? 'locked' : ''} ${!isEnabled ? 'disabled' : ''}`}>
+    <div className={`app-settings-item ${isFirst ? 'locked' : ''}`}>
       <div className="app-settings-item-header">
         <div className="app-settings-item-left">
           {!isFirst && <span className="app-settings-drag-handle">☰</span>}
@@ -81,13 +75,6 @@ const AppSettingsItem: React.FC<AppSettingsItemProps> = ({
         </div>
         
         <div className="app-settings-item-right">
-          {isAdmin && !isFirst && (
-            <CheckBox
-              value={isEnabled}
-              text="Enabled"
-              onValueChanged={(e) => onToggleEnabled(appId, e.value)}
-            />
-          )}
           <Button
             icon={isExpanded ? 'chevronup' : 'chevrondown'}
             onClick={() => onExpand(appId)}
@@ -253,11 +240,6 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
   const firstApp = appsWithSettings.find(item => item.app.id === 'selected-installation-launcher');
   const otherApps = appsWithSettings.filter(item => item.app.id !== 'selected-installation-launcher');
 
-  const handleToggleEnabled = useCallback((appId: string, enabled: boolean) => {
-    logDebug('Toggle app enabled:', { appId, enabled });
-    updateAppSettings(appId, { enabled });
-  }, [updateAppSettings]);
-
   const handleExpand = useCallback((appId: string) => {
     setExpandedAppId(prev => prev === appId ? null : appId);
   }, []);
@@ -341,8 +323,6 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
                 appName={firstApp.app.name}
                 appIcon={firstApp.app.icon}
                 isFirst={true}
-                isAdmin={isAdmin}
-                isEnabled={true}
                 order={0}
                 defaultWidth={firstApp.settings.defaultSize?.width}
                 defaultHeight={firstApp.settings.defaultSize?.height}
@@ -350,7 +330,6 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
                 defaultY={firstApp.settings.defaultPosition?.y}
                 autoSavePosition={firstApp.settings.autoSavePosition}
                 enableOverflow={firstApp.settings.enableOverflow}
-                onToggleEnabled={handleToggleEnabled}
                 onUpdateSettings={updateAppSettings}
                 onExpand={handleExpand}
                 isExpanded={expandedAppId === firstApp.app.id}
@@ -370,8 +349,6 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
                     appName={app.name}
                     appIcon={app.icon}
                     isFirst={false}
-                    isAdmin={isAdmin}
-                    isEnabled={settings.enabled}
                     order={settings.order}
                     defaultWidth={settings.defaultSize?.width}
                     defaultHeight={settings.defaultSize?.height}
@@ -379,7 +356,6 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
                     defaultY={settings.defaultPosition?.y}
                     autoSavePosition={settings.autoSavePosition}
                     enableOverflow={settings.enableOverflow}
-                    onToggleEnabled={handleToggleEnabled}
                     onUpdateSettings={updateAppSettings}
                     onExpand={handleExpand}
                     isExpanded={expandedAppId === app.id}
