@@ -6,6 +6,8 @@
  * - Production (yarn build): Uses AWS deployment
  */
 
+import type { UserInfo } from './api/auth';
+
 // Detect if running in production build
 const IS_PRODUCTION = import.meta.env.PROD;
 
@@ -103,6 +105,19 @@ export function getCognitoForgotPasswordUrl(email?: string): string {
   const url = `${COGNITO_DOMAIN}/forgotPassword?${params.toString()}`;
   return url;
 }
+
+/**
+ * Check if user is an administrator
+ * Admins belong to the "Administrator" Cognito group
+ */
+export function isUserAdmin(userInfo: UserInfo | null): boolean {
+  return userInfo?.Groups?.includes('Administrator') ?? false;
+}
+
+/**
+ * Cognito group name for administrators
+ */
+export const ADMIN_GROUP_NAME = 'Administrator';
 
 export default {
   API_BASE,
