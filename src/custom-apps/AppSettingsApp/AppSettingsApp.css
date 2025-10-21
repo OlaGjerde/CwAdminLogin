@@ -151,6 +151,37 @@
   background: #fafafa;
 }
 
+.app-settings-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.app-settings-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.app-settings-detail-section.full-width {
+  grid-column: 1 / -1;
+}
+
+.app-settings-detail-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.app-settings-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .app-settings-detail-placeholder {
   margin: 0;
   color: #666;
@@ -220,5 +251,9 @@
   .app-settings-item-right {
     width: 100%;
     justify-content: space-between;
+  }
+  
+  .app-settings-detail-grid {
+    grid-template-columns: 1fr;
   }
 }

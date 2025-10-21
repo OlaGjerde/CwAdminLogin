@@ -10,6 +10,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import type { CustomAppProps } from '../../types/custom-app';
+import type { AppSettingsUpdate } from '../../types/app-settings';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { customAppRegistry } from '../../registry/custom-apps';
@@ -19,6 +20,8 @@ import { ScrollView } from 'devextreme-react/scroll-view';
 import { Popup } from 'devextreme-react/popup';
 import { List } from 'devextreme-react/list';
 import { CheckBox } from 'devextreme-react/check-box';
+import { NumberBox } from 'devextreme-react/number-box';
+// import { Sortable } from 'devextreme-react/sortable'; // TODO: Add drag-and-drop reordering
 import { logDebug, logInfo } from '../../utils/logger';
 import './AppSettingsApp.css';
 
@@ -30,7 +33,14 @@ interface AppSettingsItemProps {
   isAdmin: boolean;
   isEnabled: boolean;
   order: number;
+  defaultWidth?: number;
+  defaultHeight?: number;
+  defaultX?: number;
+  defaultY?: number;
+  autoSavePosition: boolean;
+  enableOverflow: boolean;
   onToggleEnabled: (appId: string, enabled: boolean) => void;
+  onUpdateSettings: (appId: string, updates: AppSettingsUpdate) => void;
   onExpand: (appId: string) => void;
   isExpanded: boolean;
 }
@@ -42,7 +52,14 @@ const AppSettingsItem: React.FC<AppSettingsItemProps> = ({
   isFirst,
   isAdmin,
   isEnabled,
+  defaultWidth,
+  defaultHeight,
+  defaultX,
+  defaultY,
+  autoSavePosition,
+  enableOverflow,
   onToggleEnabled,
+  onUpdateSettings,
   onExpand,
   isExpanded,
 }) => {
@@ -82,10 +99,104 @@ const AppSettingsItem: React.FC<AppSettingsItemProps> = ({
       
       {isExpanded && (
         <div className="app-settings-item-details">
-          <p className="app-settings-detail-placeholder">
-            Per-app settings configuration will be added here
-            (size, position, auto-save, overflow)
-          </p>
+          <div className="app-settings-detail-grid">
+            {/* Window Size */}
+            <div className="app-settings-detail-section">
+              <h4>Default Window Size</h4>
+              <div className="app-settings-input-group">
+                <NumberBox
+                  label="Width (px)"
+                  value={defaultWidth || 600}
+                  min={300}
+                  max={2000}
+                  showSpinButtons={true}
+                  onValueChanged={(e) => {
+                    if (e.value) {
+                      onUpdateSettings(appId, {
+                        defaultSize: {
+                          width: e.value,
+                          height: defaultHeight || 500
+                        }
+                      });
+                    }
+                  }}
+                />
+                <NumberBox
+                  label="Height (px)"
+                  value={defaultHeight || 500}
+                  min={200}
+                  max={2000}
+                  showSpinButtons={true}
+                  onValueChanged={(e) => {
+                    if (e.value) {
+                      onUpdateSettings(appId, {
+                        defaultSize: {
+                          width: defaultWidth || 600,
+                          height: e.value
+                        }
+                      });
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Window Position */}
+            <div className="app-settings-detail-section">
+              <h4>Default Window Position</h4>
+              <div className="app-settings-input-group">
+                <NumberBox
+                  label="X Position (px)"
+                  value={defaultX || 100}
+                  min={0}
+                  max={2000}
+                  showSpinButtons={true}
+                  onValueChanged={(e) => {
+                    if (e.value !== null && e.value !== undefined) {
+                      onUpdateSettings(appId, {
+                        defaultPosition: {
+                          x: e.value,
+                          y: defaultY || 100
+                        }
+                      });
+                    }
+                  }}
+                />
+                <NumberBox
+                  label="Y Position (px)"
+                  value={defaultY || 100}
+                  min={0}
+                  max={2000}
+                  showSpinButtons={true}
+                  onValueChanged={(e) => {
+                    if (e.value !== null && e.value !== undefined) {
+                      onUpdateSettings(appId, {
+                        defaultPosition: {
+                          x: defaultX || 100,
+                          y: e.value
+                        }
+                      });
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Behavior Options */}
+            <div className="app-settings-detail-section full-width">
+              <h4>Behavior</h4>
+              <CheckBox
+                value={autoSavePosition}
+                text="Auto-save window position and size when dragging/resizing"
+                onValueChanged={(e) => onUpdateSettings(appId, { autoSavePosition: e.value })}
+              />
+              <CheckBox
+                value={enableOverflow}
+                text="Enable content scrolling (overflow)"
+                onValueChanged={(e) => onUpdateSettings(appId, { enableOverflow: e.value })}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -223,7 +334,14 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
                 isAdmin={isAdmin}
                 isEnabled={true}
                 order={0}
+                defaultWidth={firstApp.settings.defaultSize?.width}
+                defaultHeight={firstApp.settings.defaultSize?.height}
+                defaultX={firstApp.settings.defaultPosition?.x}
+                defaultY={firstApp.settings.defaultPosition?.y}
+                autoSavePosition={firstApp.settings.autoSavePosition}
+                enableOverflow={firstApp.settings.enableOverflow}
                 onToggleEnabled={handleToggleEnabled}
+                onUpdateSettings={updateAppSettings}
                 onExpand={handleExpand}
                 isExpanded={expandedAppId === firstApp.app.id}
               />
@@ -245,7 +363,14 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
                     isAdmin={isAdmin}
                     isEnabled={settings.enabled}
                     order={settings.order}
+                    defaultWidth={settings.defaultSize?.width}
+                    defaultHeight={settings.defaultSize?.height}
+                    defaultX={settings.defaultPosition?.x}
+                    defaultY={settings.defaultPosition?.y}
+                    autoSavePosition={settings.autoSavePosition}
+                    enableOverflow={settings.enableOverflow}
                     onToggleEnabled={handleToggleEnabled}
+                    onUpdateSettings={updateAppSettings}
                     onExpand={handleExpand}
                     isExpanded={expandedAppId === app.id}
                   />
