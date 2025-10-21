@@ -1,8 +1,8 @@
 {
-  "version": "0.10.48",
-  "commit": "ff37803",
+  "version": "0.10.49",
+  "commit": "d801896",
   "branch": "feature/app-settings",
-  "timestamp": "2025-10-21T12:01:50.931Z",
+  "timestamp": "2025-10-21T12:44:27.271Z",
   "buildNumber": "",
   "node": "v22.20.0"
 }
