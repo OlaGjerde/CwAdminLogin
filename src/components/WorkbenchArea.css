@@ -55,11 +55,14 @@
 
 /* Settings Icon in Taskbar */
 .app-settings-icon {
-  border-left: 2px solid #dee2e6;
   padding-left: 8px;
   margin-left: 8px;
 }
 
 .app-settings-icon:hover {
   background: rgba(108, 117, 125, 0.1);
+}
+
+.app-settings-icon .app-icon-image {
+  box-shadow: none;
 }
