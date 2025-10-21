@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { useCognitoAuth } from './hooks/useCognitoAuth';
+import { useAuth } from './contexts/AuthContext';
 import { useInstallations } from './hooks/useInstallations';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
@@ -14,7 +14,7 @@ import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { logDebug, logError } from './utils/logger';
 
 function App() {
-  // Cookie-based Cognito auth hook
+  // Auth context - now available throughout the app!
   const {
     isAuthenticated,
     isLoading,
@@ -22,7 +22,7 @@ function App() {
     error: authError,
     login,
     logout,
-  } = useCognitoAuth();
+  } = useAuth();
 
   const { installations, refreshIfStale } = useInstallations();
 

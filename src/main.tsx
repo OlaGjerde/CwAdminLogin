@@ -14,12 +14,15 @@ config({ licenseKey });
 import './index.css'
 import App from './App.tsx'
 import { setupAxiosInterceptors } from './api/axiosInterceptors'
+import { AuthProvider } from './contexts/AuthContext'
 
 // Setup automatic token refresh on 401 errors
 setupAxiosInterceptors();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </StrictMode>,
 )
