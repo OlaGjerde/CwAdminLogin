@@ -35,7 +35,6 @@ interface AppSettingsItemProps {
   defaultHeight?: number;
   defaultX?: number;
   defaultY?: number;
-  autoSavePosition: boolean;
   enableOverflow: boolean;
   onUpdateSettings: (appId: string, updates: AppSettingsUpdate) => void;
   onExpand: (appId: string) => void;
@@ -51,7 +50,6 @@ const AppSettingsItem: React.FC<AppSettingsItemProps> = ({
   defaultHeight,
   defaultX,
   defaultY,
-  autoSavePosition,
   enableOverflow,
   onUpdateSettings,
   onExpand,
@@ -172,11 +170,6 @@ const AppSettingsItem: React.FC<AppSettingsItemProps> = ({
             {/* Behavior Options */}
             <div className="app-settings-detail-section full-width">
               <h4>Behavior</h4>
-              <CheckBox
-                value={autoSavePosition}
-                text="Auto-save window position and size when dragging/resizing"
-                onValueChanged={(e) => onUpdateSettings(appId, { autoSavePosition: e.value })}
-              />
               <CheckBox
                 value={enableOverflow}
                 text="Enable content scrolling (overflow)"
@@ -328,7 +321,6 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
                 defaultHeight={firstApp.settings.defaultSize?.height}
                 defaultX={firstApp.settings.defaultPosition?.x}
                 defaultY={firstApp.settings.defaultPosition?.y}
-                autoSavePosition={firstApp.settings.autoSavePosition}
                 enableOverflow={firstApp.settings.enableOverflow}
                 onUpdateSettings={updateAppSettings}
                 onExpand={handleExpand}
@@ -354,7 +346,6 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
                     defaultHeight={settings.defaultSize?.height}
                     defaultX={settings.defaultPosition?.x}
                     defaultY={settings.defaultPosition?.y}
-                    autoSavePosition={settings.autoSavePosition}
                     enableOverflow={settings.enableOverflow}
                     onUpdateSettings={updateAppSettings}
                     onExpand={handleExpand}

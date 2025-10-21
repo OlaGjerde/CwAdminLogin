@@ -20,7 +20,7 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
 }) => {
   const workspace = useWorkspace();
   const { state, openApp, closeApp, getWindowControl } = workspace;
-  const { getAppSettings, getAllSettings, updateAppSettings } = useAppSettings();
+  const { getAppSettings, getAllSettings } = useAppSettings();
 
   // Combine custom apps with any provided system apps
   const allApps = React.useMemo(() => {
@@ -168,25 +168,7 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
               onMinimize={windowControl.minimize}
               onToggleMaximize={windowControl.toggleMaximize}
               onResize={windowControl.resize}
-              onResizeEnd={(width, height) => {
-                // Auto-save size if enabled in settings
-                if (appSettings?.autoSavePosition) {
-                  logDebug('Auto-saving window size for', openApp.appId, { width, height });
-                  updateAppSettings(openApp.appId, {
-                    defaultSize: { width, height }
-                  });
-                }
-              }}
               onMove={windowControl.move}
-              onMoveEnd={(x, y) => {
-                // Auto-save position if enabled in settings
-                if (appSettings?.autoSavePosition) {
-                  logDebug('Auto-saving window position for', openApp.appId, { x, y });
-                  updateAppSettings(openApp.appId, {
-                    defaultPosition: { x, y }
-                  });
-                }
-              }}
               onFocus={() => handleWindowFocus(openApp.instanceId)}
             >
               <AppComponent {...appProps} />
