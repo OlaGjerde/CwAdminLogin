@@ -126,7 +126,10 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
               resizable={appDef.windowOptions?.resizable ?? true}
               maximizable={appDef.windowOptions?.maximizable ?? true}
               enableOverflow={appDef.windowOptions?.enableOverflow ?? true}
-              onClose={() => closeApp(openApp.instanceId)}
+              onClose={() => {
+                logDebug('🔘 Close button clicked for:', openApp.instanceId);
+                closeApp(openApp.instanceId);
+              }}
               onMinimize={windowControl.minimize}
               onToggleMaximize={windowControl.toggleMaximize}
               onResize={windowControl.resize}

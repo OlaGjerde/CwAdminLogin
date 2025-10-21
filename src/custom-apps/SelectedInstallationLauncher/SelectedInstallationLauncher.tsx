@@ -1,13 +1,19 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import type { CustomAppProps } from '../../types/custom-app';
 import { Button } from 'devextreme-react/button';
 import './SelectedInstallationLauncher.css';
 import { logDebug, logError } from '../../utils/logger';
+import { useLauncher } from '../../hooks/useLauncher';
+import { INSTALLER_DOWNLOAD_URL } from '../../config';
 
 export const SelectedInstallationLauncherComponent: React.FC<CustomAppProps> = ({
   workspace,
 }) => {
-  const [launching, setLaunching] = useState(false);
+  // Use the launcher hook for protocol handler detection
+  const { launching, launchMessage, launchWithFallback } = useLauncher();
+  
+  // Track if download button was clicked
+  const [downloadClicked, setDownloadClicked] = React.useState(false);
 
   // Get initials from installation name (first 2 letters)
   const getInstallationInitials = (name: string): string => {
@@ -46,8 +52,6 @@ export const SelectedInstallationLauncherComponent: React.FC<CustomAppProps> = (
       logDebug('Already launching');
       return;
     }
-
-    setLaunching(true);
 
     try {
       logDebug('🚀 Launching installation:', workspace.name);
@@ -89,27 +93,14 @@ export const SelectedInstallationLauncherComponent: React.FC<CustomAppProps> = (
       const uri = `${protocol}${encodeURIComponent(token)}`;
       logDebug('🔗 Launching with URI:', uri);
       
-      // Try to launch via protocol handler
-      const anchor = document.createElement('a');
-      anchor.href = uri;
-      anchor.style.display = 'none';
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-
-      logDebug('✅ Launch initiated successfully');
-      
-      // Show success feedback
-      setTimeout(() => {
-        setLaunching(false);
-      }, 2000);
+      // Use launcher hook to launch with fallback detection
+      await launchWithFallback(uri);
       
     } catch (error) {
       logError('❌ Launch failed:', error);
       alert(`Failed to launch installation: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setLaunching(false);
     }
-  }, [workspace, launching]);
+  }, [workspace, launching, launchWithFallback]);
 
   // Show message if no workspace is selected
   if (!workspace) {
@@ -124,11 +115,14 @@ export const SelectedInstallationLauncherComponent: React.FC<CustomAppProps> = (
     );
   }
 
+  // Check if protocol handler is not installed (defined here after early return)
+  const showInstallerLink = launchMessage && launchMessage.includes('Ikke installert');
+
   return (
     <div className="selected-launcher">
       <div className="selected-launcher-content">
         <div
-          className={`selected-launcher-card ${launching ? 'launching' : ''}`}
+          className={`selected-launcher-card ${launching ? 'launching' : ''} ${showInstallerLink ? 'shake' : ''}`}
           onClick={handleLaunchInstallation}
           role="button"
           tabIndex={0}
@@ -169,6 +163,28 @@ export const SelectedInstallationLauncherComponent: React.FC<CustomAppProps> = (
             />
           </div>
         </div>
+
+        {/* Download installer button when protocol handler is not installed */}
+        {showInstallerLink && !downloadClicked && (
+          <div style={{ marginTop: '16px', width: '100%', maxWidth: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <p className="installer-info-text">
+              CalWin er ikke installert. Last ned og installer, sjekk deretter nedlastingsmappen.
+            </p>
+            <Button
+              text="Last ned CalWin"
+              icon="download"
+              onClick={() => {
+                logDebug('Opening installer download:', INSTALLER_DOWNLOAD_URL);
+                window.open(INSTALLER_DOWNLOAD_URL, '_blank');
+                setDownloadClicked(true); // Hide button after clicking
+              }}
+              type="default"
+              stylingMode="contained"
+              width="100%"
+              height={48}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

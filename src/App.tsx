@@ -48,7 +48,7 @@ function App() {
   // ⭐ Auto-redirect to Cognito login if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated && !authError) {
-      logDebug('🔐 Not authenticated - redirecting to Cognito login...');
+      logDebug('Not authenticated - redirecting to Cognito login...');
       login();
     }
   }, [isLoading, isAuthenticated, authError, login]);
@@ -130,7 +130,7 @@ function App() {
               onClick={() => {
                 localStorage.clear();
                 sessionStorage.clear();
-                logDebug('✅ Cleared all storage - reloading...');
+                logDebug('Cleared all storage - reloading...');
                 window.location.href = '/';
               }}
               type="danger"
@@ -176,14 +176,33 @@ const AppContent = React.memo(function AppContent() {
     openApp('selected-installation-launcher');
   }, [openApp]);
 
-  // Auto-open launcher if installation is already pre-selected (e.g., from previous session)
+  // Auto-open launcher when workspace becomes available (from localStorage or selection)
+  // Use a ref to track if we've already auto-opened to prevent re-opening on close
+  const hasAutoOpenedRef = React.useRef(false);
+  
   useEffect(() => {
-    if (state.currentWorkspace) {
-      logDebug('=== Installation pre-selected on load, auto-opening launcher ===');
-      handleAutoOpenLauncher();
+    if (state.currentWorkspace && !hasAutoOpenedRef.current) {
+      logDebug('=== Workspace available, checking if launcher should open ===');
+      
+      // Check if the launcher is already open
+      const launcherAlreadyOpen = state.openApps.some(
+        app => app.appId === 'selected-installation-launcher'
+      );
+      
+      if (!launcherAlreadyOpen) {
+        logDebug('=== Auto-opening launcher for workspace:', state.currentWorkspace.name);
+        handleAutoOpenLauncher();
+        hasAutoOpenedRef.current = true; // Mark that we've auto-opened
+      } else {
+        logDebug('=== Launcher already open, skipping auto-open ===');
+        hasAutoOpenedRef.current = true; // Also mark if it was already open
+      }
     }
+    
+    // Reset the flag when workspace changes (but not when apps change)
+    // This allows auto-open when switching to a different workspace
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount
+  }, [state.currentWorkspace, handleAutoOpenLauncher]); // Intentionally not including state.openApps to prevent re-opening on close
 
   return (
     <div className="app-root">
@@ -209,7 +228,7 @@ const AppContent = React.memo(function AppContent() {
                 icon="runner"
                 text="Logg ut"
                 onClick={() => {
-                  logDebug('🔘 Logout button clicked');
+                  logDebug('Logout button clicked');
                   logout();
                 }}
                 stylingMode="outlined"

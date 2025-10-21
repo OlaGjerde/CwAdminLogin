@@ -40,6 +40,7 @@
 /* Content Area */
 .selected-launcher-content {
   display: flex;
+  flex-direction: column; /* Stack children vertically */
   align-items: center;
   justify-content: center;
   width: 100%;
@@ -161,6 +162,23 @@
   }
 }
 
+/* Shake animation for protocol not detected */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-4px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(4px);
+  }
+}
+
+.selected-launcher-card.shake {
+  animation: shake 0.5s ease-in-out;
+}
+
 .selected-launcher-card.launching .selected-launcher-card-icon {
   animation: pulse 1.5s ease-in-out infinite;
 }
@@ -209,5 +227,105 @@
   
   .selected-launcher-card-title {
     font-size: 20px;
+  }
+}
+
+/* Status Message */
+.selected-launcher-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+  width: 100%;
+  max-width: 300px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.selected-launcher-message.info {
+  background-color: #e7f3ff;
+  border: 1px solid #b3d9ff;
+  color: #0066cc;
+}
+
+.selected-launcher-message.error {
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  color: #856404;
+}
+
+.selected-launcher-message i {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* Installer Download Section */
+.selected-launcher-installer {
+  background: white;
+  border-radius: 12px;
+  border: 2px solid #1976d2;
+  padding: 24px;
+  margin-top: 24px;
+  width: 100%;
+  max-width: 300px;
+  box-shadow: 0 4px 16px rgba(25, 118, 210, 0.1);
+}
+
+.selected-launcher-installer-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.selected-launcher-installer-text h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #212529;
+}
+
+.selected-launcher-installer-text p {
+  margin: 0;
+  font-size: 14px;
+  color: #6c757d;
+  line-height: 1.5;
+}
+
+.selected-launcher-installer-note {
+  margin: 12px 0 0 0;
+  font-size: 12px;
+  color: #6c757d;
+  text-align: center;
+  font-style: italic;
+}
+
+/* Info text above download button */
+.installer-info-text {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #6c757d;
+  text-align: center;
+  line-height: 1.4;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  width: 100%;
+}
+
+/* Responsive adjustments for installer section */
+@media (max-width: 576px) {
+  .selected-launcher-message,
+  .selected-launcher-installer {
+    max-width: 100%;
+  }
+  
+  .selected-launcher-installer-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
   }
 }
