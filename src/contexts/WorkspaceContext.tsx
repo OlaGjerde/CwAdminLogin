@@ -63,6 +63,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
   }, [availableWorkspaces]);
 
   // Restore workspace from localStorage when installations become available
+  // OR auto-select if only one installation exists
   React.useEffect(() => {
     if (availableWorkspaces.length > 0 && !state.currentWorkspace) {
       try {
@@ -76,7 +77,20 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
               ...prev,
               currentWorkspace: workspace
             }));
+            return;
           }
+        }
+        
+        // Auto-select if only one installation exists
+        if (availableWorkspaces.length === 1) {
+          const singleWorkspace = availableWorkspaces[0];
+          logDebug('Auto-selecting single installation:', singleWorkspace.name);
+          setState(prev => ({
+            ...prev,
+            currentWorkspace: singleWorkspace
+          }));
+          // Also save to localStorage for next time
+          localStorage.setItem(SELECTED_WORKSPACE_KEY, JSON.stringify(singleWorkspace.id));
         }
       } catch (error) {
         logError('Failed to restore workspace:', error);
