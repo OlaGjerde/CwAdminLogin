@@ -154,10 +154,21 @@ function App() {
       availableWorkspaces={installations}
       initialWorkspace={null}
     >
-      <AppContent />
+      <AppSettingsBridge />
     </WorkspaceProvider>
   );
 }
+
+// Bridge component that connects WorkspaceProvider and AppSettingsProvider
+const AppSettingsBridge = React.memo(function AppSettingsBridge() {
+  const { state } = useWorkspace();
+  
+  return (
+    <AppSettingsProvider workspaceId={state.currentWorkspace?.id || null}>
+      <AppContent />
+    </AppSettingsProvider>
+  );
+});
 
 // Separate component that uses workspace context
 const AppContent = React.memo(function AppContent() {
@@ -206,49 +217,47 @@ const AppContent = React.memo(function AppContent() {
   }, [state.currentWorkspace, handleAutoOpenLauncher]); // Intentionally not including state.openApps to prevent re-opening on close
 
   return (
-    <AppSettingsProvider workspaceId={state.currentWorkspace?.id || null}>
-      <div className="app-root">
-        <>
-          <div className="app-top-bar">
-            <div className="app-top-bar-left">
-              <h1 className="app-title">CalWin Solutions</h1>
-            </div>
-            <div className="app-top-bar-center">
-              <WorkspaceSelector
-                currentWorkspace={state.currentWorkspace}
-                workspaces={state.availableWorkspaces}
-                onWorkspaceChange={handleInstallationChange}
-                onAutoOpenLauncher={handleAutoOpenLauncher}
-                isLoading={state.isLoading}
-              />
-            </div>
-            <div className="app-top-bar-right">
-              <span className="app-user-info" title={userEmail || undefined}>
-                {userEmail || 'Bruker'}
-              </span>
-              <Button
-                icon="runner"
-                text="Logg ut"
-                onClick={() => {
-                  logDebug('Logout button clicked');
-                  logout();
-                }}
-                stylingMode="outlined"
-              />
-            </div>
+    <div className="app-root">
+      <>
+        <div className="app-top-bar">
+          <div className="app-top-bar-left">
+            <h1 className="app-title">CalWin Solutions</h1>
           </div>
-
-          <div className="app-content">
-            <div className="app-workbench">
-              <WorkbenchArea />
-            </div>
+          <div className="app-top-bar-center">
+            <WorkspaceSelector
+              currentWorkspace={state.currentWorkspace}
+              workspaces={state.availableWorkspaces}
+              onWorkspaceChange={handleInstallationChange}
+              onAutoOpenLauncher={handleAutoOpenLauncher}
+              isLoading={state.isLoading}
+            />
           </div>
-        </>
+          <div className="app-top-bar-right">
+            <span className="app-user-info" title={userEmail || undefined}>
+              {userEmail || 'Bruker'}
+            </span>
+            <Button
+              icon="runner"
+              text="Logg ut"
+              onClick={() => {
+                logDebug('Logout button clicked');
+                logout();
+              }}
+              stylingMode="outlined"
+            />
+          </div>
+        </div>
 
-      <BuildFooter />
-      {/* <TokenRefreshTester /> */}
-      </div>
-    </AppSettingsProvider>
+        <div className="app-content">
+          <div className="app-workbench">
+            <WorkbenchArea />
+          </div>
+        </div>
+      </>
+
+    <BuildFooter />
+    {/* <TokenRefreshTester /> */}
+    </div>
   );
 });
 

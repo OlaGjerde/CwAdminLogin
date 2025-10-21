@@ -9,7 +9,6 @@ import type {
 import type { NormalizedInstallation } from '../types/installations';
 import { getCustomAppById } from '../registry/custom-apps';
 import { logDebug, logError } from '../utils/logger';
-import { useAppSettings } from './AppSettingsContext';
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
@@ -26,8 +25,6 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
   availableWorkspaces,
   initialWorkspace = null
 }) => {
-  const { getAppSettings } = useAppSettings();
-  
   // Try to restore previously selected workspace from localStorage
   const getInitialWorkspace = (): NormalizedInstallation | null => {
     if (initialWorkspace) return initialWorkspace;
@@ -148,21 +145,12 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
       const appDef = getCustomAppById(appId);
       const windowOptions = appDef?.windowOptions || {};
       
-      // Get app settings (if any)
-      const appSettings = getAppSettings(appId);
-      
-      // Use settings > app definition > fallback defaults
-      // Priority: 1. Settings defaultSize, 2. windowOptions, 3. Fallback
-      const defaultWidth = appSettings?.defaultSize?.width 
-        || windowOptions.defaultWidth 
-        || 600;
-      const defaultHeight = appSettings?.defaultSize?.height 
-        || windowOptions.defaultHeight 
-        || 500;
-      
-      // Position: Settings > fallback (100, 100)
-      const defaultX = appSettings?.defaultPosition?.x ?? 100;
-      const defaultY = appSettings?.defaultPosition?.y ?? 100;
+      // Use window options from app definition with fallbacks
+      // Note: WorkbenchArea will apply settings overrides when rendering
+      const defaultWidth = windowOptions.defaultWidth || 600;
+      const defaultHeight = windowOptions.defaultHeight || 500;
+      const defaultX = 100;
+      const defaultY = 100;
       
       const newApp: OpenAppInstance = {
         instanceId,
@@ -183,7 +171,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
         openApps: [...prev.openApps, newApp]
       };
     });
-  }, [getAppSettings]);
+  }, []);
 
   // Close an app instance
   const closeApp = useCallback((instanceId: string) => {
