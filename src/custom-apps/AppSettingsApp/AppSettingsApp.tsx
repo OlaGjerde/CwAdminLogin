@@ -87,10 +87,10 @@ const AppSettingsItem: React.FC<AppSettingsItemProps> = ({
           <div className="app-settings-detail-grid">
             {/* Window Size */}
             <div className="app-settings-detail-section">
-              <h4>Default Window Size</h4>
+              <h4>Standard vindustørrelse</h4>
               <div className="app-settings-input-group">
                 <NumberBox
-                  label="Width (px)"
+                  label="Bredde (px)"
                   value={defaultWidth || 600}
                   min={300}
                   max={2000}
@@ -107,7 +107,7 @@ const AppSettingsItem: React.FC<AppSettingsItemProps> = ({
                   }}
                 />
                 <NumberBox
-                  label="Height (px)"
+                  label="Høyde (px)"
                   value={defaultHeight || 500}
                   min={200}
                   max={2000}
@@ -128,10 +128,10 @@ const AppSettingsItem: React.FC<AppSettingsItemProps> = ({
 
             {/* Window Position */}
             <div className="app-settings-detail-section">
-              <h4>Default Window Position</h4>
+              <h4>Standard vindusposisjon</h4>
               <div className="app-settings-input-group">
                 <NumberBox
-                  label="X Position (px)"
+                  label="X-posisjon (px)"
                   value={defaultX || 100}
                   min={0}
                   max={2000}
@@ -148,7 +148,7 @@ const AppSettingsItem: React.FC<AppSettingsItemProps> = ({
                   }}
                 />
                 <NumberBox
-                  label="Y Position (px)"
+                  label="Y-posisjon (px)"
                   value={defaultY || 100}
                   min={0}
                   max={2000}
@@ -169,10 +169,10 @@ const AppSettingsItem: React.FC<AppSettingsItemProps> = ({
 
             {/* Behavior Options */}
             <div className="app-settings-detail-section full-width">
-              <h4>Behavior</h4>
+              <h4>Oppførsel</h4>
               <CheckBox
                 value={enableOverflow}
-                text="Enable content scrolling (overflow)"
+                text="Aktiver innholdsskrolling (overflow)"
                 onValueChanged={(e) => onUpdateSettings(appId, { enableOverflow: e.value })}
               />
             </div>
@@ -238,7 +238,7 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
   }, []);
 
   const handleResetAll = useCallback(() => {
-    if (confirm('Are you sure you want to reset all app settings to defaults?')) {
+    if (confirm('Er du sikker på at du vil tilbakestille alle innstillinger til standardverdier?')) {
       logInfo('Resetting all app settings');
       resetAllSettings();
       setExpandedAppId(null);
@@ -247,16 +247,16 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
 
   const handleCopyToInstallations = useCallback(() => {
     if (selectedInstallations.length === 0) {
-      alert('Please select at least one installation');
+      alert('Vennligst velg minst én installasjon');
       return;
     }
 
-    if (confirm(`Copy settings to ${selectedInstallations.length} installation(s)?`)) {
+    if (confirm(`Kopier innstillinger til ${selectedInstallations.length} installasjon(er)?`)) {
       logInfo('Copying settings to installations', { targets: selectedInstallations });
       copySettingsToInstallations(selectedInstallations);
       setShowCopyModal(false);
       setSelectedInstallations([]);
-      alert('Settings copied successfully!');
+      alert('Innstillinger kopiert!');
     }
   }, [selectedInstallations, copySettingsToInstallations]);
 
@@ -278,9 +278,9 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
         <div className="app-settings-content">
           {/* Header */}
           <div className="app-settings-header">
-            <h2>⚙️ App Settings</h2>
+            <h2>⚙️ Innstillinger</h2>
             <p className="app-settings-subtitle">
-              Configure app behavior for {workspace?.name || 'this installation'}
+              Konfigurer applikasjonene for {workspace?.name || 'denne installasjonen'}
             </p>
           </div>
 
@@ -288,7 +288,7 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
           <div className="app-settings-actions">
             {isAdmin && availableInstallations.length > 0 && (
               <Button
-                text="Copy to Other Installations"
+                text="Kopier til andre installasjoner"
                 icon="copy"
                 onClick={() => setShowCopyModal(true)}
                 type="default"
@@ -296,7 +296,7 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
               />
             )}
             <Button
-              text="Reset All Settings"
+              text="Tilbakestill alle innstillinger"
               icon="revert"
               onClick={handleResetAll}
               type="danger"
@@ -307,9 +307,9 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
           {/* First App (Locked) */}
           {firstApp && (
             <div className="app-settings-section">
-              <h3>Primary App (Always First)</h3>
+              <h3>Hovedapplikasjon (Alltid først)</h3>
               <p className="app-settings-section-description">
-                "Start CalWin" always appears first and cannot be disabled or reordered.
+                "Start CalWin" vises alltid først og kan ikke deaktiveres eller flyttes.
               </p>
               <AppSettingsItem
                 appId={firstApp.app.id}
@@ -332,7 +332,7 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
           {/* Other Apps */}
           {otherApps.length > 0 && (
             <div className="app-settings-section">
-              <h3>Other Apps</h3>
+              <h3>Andre applikasjoner</h3>
               <div className="app-settings-list">
                 {otherApps.map(({ app, settings }) => (
                   <AppSettingsItem
@@ -354,7 +354,7 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
                 ))}
               </div>
               <p className="app-settings-hint">
-                💡 Drag-and-drop reordering coming soon
+                💡 Dra-og-slipp rekkefølge kommer snart
               </p>
             </div>
           )}
@@ -369,12 +369,12 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
           dragEnabled={false}
           hideOnOutsideClick={true}
           showTitle={true}
-          title="Copy Settings to Installations"
+          title="Kopier innstillinger til installasjoner"
           width={500}
           height={450}
         >
           <div className="copy-modal-content">
-            <p>Select installations to copy settings to:</p>
+            <p>Velg installasjoner å kopiere innstillinger til:</p>
             
             <List
               dataSource={availableInstallations}
@@ -393,14 +393,14 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
 
             <div className="copy-modal-actions">
               <Button
-                text="Copy"
+                text="Kopier"
                 icon="check"
                 type="success"
                 onClick={handleCopyToInstallations}
                 disabled={selectedInstallations.length === 0}
               />
               <Button
-                text="Cancel"
+                text="Avbryt"
                 onClick={() => setShowCopyModal(false)}
                 stylingMode="outlined"
               />

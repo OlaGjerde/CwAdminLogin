@@ -16,18 +16,18 @@ import { AppSettingsComponent } from './AppSettingsApp';
 
 export const AppSettingsApp: CustomAppDefinition = {
   id: 'app-settings',
-  name: 'App Settings',
+  name: 'Innstillinger',
   icon: 'preferences',
   component: AppSettingsComponent,
-  description: 'Configure app behavior, order, and preferences',
+  description: 'Konfigurer applikasjonsinnstillinger og preferanser',
   version: '1.0.0',
   category: 'System',
   author: 'CalWin Solutions',
   windowOptions: {
     minWidth: 600,
-    minHeight: 500,
+    minHeight: 600,
     defaultWidth: 800,
-    defaultHeight: 650,
+    defaultHeight: 750,
     resizable: true,
     maximizable: true,
     enableOverflow: true,
