@@ -21,7 +21,6 @@ function App() {
     userEmail,
     error: authError,
     login,
-    logout,
   } = useAuth();
 
   const { installations, refreshIfStale } = useInstallations();
@@ -154,27 +153,16 @@ function App() {
       availableWorkspaces={installations}
       initialWorkspace={null}
     >
-      <AppContent
-        userEmail={userEmail}
-        logout={logout}
-        installations={installations}
-      />
+      <AppContent />
     </WorkspaceProvider>
   );
 }
 
 // Separate component that uses workspace context
-interface AppContentProps {
-  userEmail: string | null;
-  logout: () => void;
-  installations: NormalizedInstallation[];
-}
-
-const AppContent = React.memo(function AppContent(props: AppContentProps) {
+const AppContent = React.memo(function AppContent() {
   const { state, switchWorkspace, openApp } = useWorkspace();
-  
-  const { userEmail } = props;
-  // ⭐ authTokens no longer needed - using cookie-based auth
+  // ⭐ Now using AuthContext - no props needed!
+  const { userEmail, logout } = useAuth();
 
   const handleInstallationChange = useCallback((installation: NormalizedInstallation) => {
     logDebug('=== handleInstallationChange called ===');
@@ -222,7 +210,7 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
                 text="Logg ut"
                 onClick={() => {
                   logDebug('🔘 Logout button clicked');
-                  props.logout();
+                  logout();
                 }}
                 stylingMode="outlined"
               />
