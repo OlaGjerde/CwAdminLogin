@@ -30,6 +30,9 @@ import { InstallationLauncherApp } from '../custom-apps/InstallationLauncher';
 // Selected Installation Launcher (auto-opens when installation selected):
 import { SelectedInstallationLauncherApp } from '../custom-apps/SelectedInstallationLauncher';
 
+// User Profile App (demonstrates useAuth() in custom apps):
+import { UserProfileApp } from '../custom-apps/UserProfileApp';
+
 // Your custom apps:
 // import { YourApp } from '../custom-apps/YourApp';
 
@@ -43,6 +46,9 @@ export const customAppRegistry: CustomAppDefinition[] = [
   
   // Selected Installation Launcher (auto-opens when installation selected):
   SelectedInstallationLauncherApp,
+  
+  // User Profile (demonstrates useAuth() hook):
+  UserProfileApp,
   
   // Example todo app:
   ExampleTodoApp,
