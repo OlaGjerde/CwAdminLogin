@@ -223,3 +223,94 @@ const { userInfo, userEmail, logout, isAuthenticated } = useAuth();
 ## Need Help?
 
 Refer to the main documentation or check existing custom apps for examples.
+
+---
+
+## App Settings System
+
+The workbench includes a powerful **App Settings** system that allows users to customize app behavior and appearance.
+
+### What Users Can Configure
+
+1. **Window Size & Position**
+   - Set default width and height for each app
+   - Set default X/Y position on screen
+   - Changes apply when app is opened
+   - Manual drag/resize is auto-saved
+
+2. **Behavior Settings**
+   - Enable/disable overflow scrolling per app
+   - Auto-save window position on drag/resize
+
+3. **App Ordering**
+   - Reorder apps in the taskbar
+   - First app (Start CalWin) is always locked in first position
+
+4. **Admin Features** (for users in "Administrator" Cognito group)
+   - Copy settings to other installations
+   - Reset all settings to defaults
+
+### How Settings Work
+
+Settings are stored in localStorage with per-installation isolation:
+- Key format: `calwin-app-settings-{installationId}`
+- Each installation has independent settings
+- Settings persist through logout/login
+
+### Auto-Save Behavior
+
+When a user manually drags or resizes a window:
+1. The new position/size is applied immediately
+2. Settings are updated in real-time (on every move/resize)
+3. Final save happens on drag/resize end
+4. Next time the app opens, it uses the saved position/size
+
+This means users can:
+- Set defaults in the Settings UI
+- Fine-tune by dragging/resizing windows
+- Everything is saved automatically
+
+### Accessing Settings in Your App
+
+Your app automatically gets its settings applied by the workbench. The `windowOptions` in your app definition serve as **fallback defaults** when no user settings exist.
+
+```typescript
+// Your app definition
+windowOptions: {
+  minWidth: 300,          // Hard minimum (cannot go below this)
+  minHeight: 400,         // Hard minimum
+  defaultWidth: 600,      // Used if no user settings exist
+  defaultHeight: 500,     // Used if no user settings exist
+  resizable: true,
+  maximizable: true,
+  enableOverflow: true,   // User can override this per-app
+}
+```
+
+### Settings UI
+
+Users access settings via the **Innstillinger** (Settings) icon in the taskbar (bottom-right corner). The Settings app provides:
+
+- List of all apps with current settings
+- Expandable panels for detailed configuration
+- "Kopier" (Copy) button to copy settings to other installations (admin only)
+- "Tilbakestill alle" (Reset All) button to restore defaults
+- Visual feedback when settings are saved ("Lagret!" message)
+
+### Developer Considerations
+
+1. **Min/Max Sizes**: Always set reasonable `minWidth` and `minHeight` to prevent tiny windows
+2. **Default Sizes**: Choose defaults that work well on most screens (600x500 is a good starting point)
+3. **Overflow**: Set `enableOverflow: true` if your app content can scroll, `false` for fixed layouts
+4. **Testing**: Test your app at different window sizes to ensure responsive design
+
+### Norwegian UI Text
+
+All UI elements use Norwegian:
+- "Innstillinger" = Settings
+- "Standardvindustørrelse" = Default Window Size
+- "Bredde/Høyde" = Width/Height
+- "Oppførsel" = Behavior
+- "Aktiver scrolling" = Enable scrolling
+- "Lagret!" = Saved!
+
