@@ -28,7 +28,9 @@ interface WindowContainerProps {
   onMinimize: () => void;
   onToggleMaximize: () => void;
   onResize: (width: number, height: number) => void;
+  onResizeEnd?: (width: number, height: number) => void;
   onMove: (x: number, y: number) => void;
+  onMoveEnd?: (x: number, y: number) => void;
   onFocus: () => void;
 }
 
@@ -46,7 +48,9 @@ export const WindowContainer: React.FC<WindowContainerProps> = ({
   onMinimize,
   onToggleMaximize,
   onResize,
+  onResizeEnd,
   onMove,
+  onMoveEnd,
   onFocus
 }) => {
   const windowRef = useRef<HTMLDivElement>(null);
@@ -153,6 +157,16 @@ export const WindowContainer: React.FC<WindowContainerProps> = ({
     };
 
     const handleMouseUp = () => {
+      // Call onMoveEnd when dragging ends (if provided)
+      if (isDragging && onMoveEnd) {
+        onMoveEnd(x, y);
+      }
+      
+      // Call onResizeEnd when resizing ends (if provided)
+      if (isResizing && onResizeEnd) {
+        onResizeEnd(width, height);
+      }
+      
       setIsDragging(false);
       setIsResizing(false);
     };
@@ -165,7 +179,7 @@ export const WindowContainer: React.FC<WindowContainerProps> = ({
         document.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [isDragging, isResizing, dragStart, width, height, minWidth, minHeight, onMove, onResize]);
+  }, [isDragging, isResizing, dragStart, width, height, minWidth, minHeight, x, y, onMove, onResize, onMoveEnd, onResizeEnd]);
 
   if (isMinimized) {
     return null; // Window is hidden when minimized

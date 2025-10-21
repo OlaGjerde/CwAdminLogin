@@ -1,5 +1,6 @@
 import React from 'react';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import { useAppSettings } from '../contexts/AppSettingsContext';
 import { AppIcon } from './AppIcon';
 import { WindowContainer } from './WindowContainer';
 import type { AppDefinition, CustomAppProps } from '../types/custom-app';
@@ -18,18 +19,30 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
 }) => {
   const workspace = useWorkspace();
   const { state, openApp, closeApp, getWindowControl } = workspace;
+  const { getAppSettings, getAllSettings, updateAppSettings } = useAppSettings();
 
   // Combine custom apps with any provided system apps
   const allApps = React.useMemo(() => {
     // Include AppSettingsApp for internal use (not shown in taskbar)
     const apps = [...customAppRegistry, AppSettingsApp, ...availableApps];
-    // Sort apps: selected-installation-launcher first, then others
+    
+    // Get all settings
+    const allSettings = getAllSettings();
+    
+    // Sort apps by order from settings, then by default order
+    // selected-installation-launcher (CalWin Launcher) is always first
     return apps.sort((a, b) => {
+      // Always keep selected-installation-launcher first
       if (a.id === 'selected-installation-launcher') return -1;
       if (b.id === 'selected-installation-launcher') return 1;
-      return 0;
+      
+      // Sort by order from settings
+      const orderA = allSettings[a.id]?.order ?? 999;
+      const orderB = allSettings[b.id]?.order ?? 999;
+      
+      return orderA - orderB;
     });
-  }, [availableApps]);
+  }, [availableApps, getAllSettings]);
 
   // Handle app icon click - restore if minimized, bring to front if open, or open new
   const handleAppClick = (appId: string) => {
@@ -108,6 +121,14 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
 
           // Get dynamic icon for the window
           const appWithIcon = getAppWithDynamicIcon(appDef);
+          
+          // Get app settings for overflow and other options
+          const appSettings = getAppSettings(openApp.appId);
+          
+          // Determine enableOverflow: settings > app definition > default (true)
+          const enableOverflow = appSettings?.enableOverflow 
+            ?? appDef.windowOptions?.enableOverflow 
+            ?? true;
 
           const appProps: CustomAppProps = {
             workspace: state.currentWorkspace,
@@ -127,7 +148,7 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
               minHeight={appDef.windowOptions?.minHeight}
               resizable={appDef.windowOptions?.resizable ?? true}
               maximizable={appDef.windowOptions?.maximizable ?? true}
-              enableOverflow={appDef.windowOptions?.enableOverflow ?? true}
+              enableOverflow={enableOverflow}
               onClose={() => {
                 logDebug('🔘 Close button clicked for:', openApp.instanceId);
                 closeApp(openApp.instanceId);
@@ -135,7 +156,25 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
               onMinimize={windowControl.minimize}
               onToggleMaximize={windowControl.toggleMaximize}
               onResize={windowControl.resize}
+              onResizeEnd={(width, height) => {
+                // Auto-save size if enabled in settings
+                if (appSettings?.autoSavePosition) {
+                  logDebug('Auto-saving window size for', openApp.appId, { width, height });
+                  updateAppSettings(openApp.appId, {
+                    defaultSize: { width, height }
+                  });
+                }
+              }}
               onMove={windowControl.move}
+              onMoveEnd={(x, y) => {
+                // Auto-save position if enabled in settings
+                if (appSettings?.autoSavePosition) {
+                  logDebug('Auto-saving window position for', openApp.appId, { x, y });
+                  updateAppSettings(openApp.appId, {
+                    defaultPosition: { x, y }
+                  });
+                }
+              }}
               onFocus={() => handleWindowFocus(openApp.instanceId)}
             >
               <AppComponent {...appProps} />
@@ -154,7 +193,22 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
           </div>
         ) : (
           allApps
-            .filter(app => app.id !== 'app-settings')
+            .filter(app => {
+              // Exclude app-settings (opened via Settings button)
+              if (app.id === 'app-settings') return false;
+              
+              // Check if app is enabled in settings
+              const settings = getAppSettings(app.id);
+              
+              // CalWin Launcher (selected-installation-launcher) is always enabled
+              if (app.id === 'selected-installation-launcher') return true;
+              
+              // If no settings yet, app is enabled by default
+              if (!settings) return true;
+              
+              // Apply enabled/disabled setting
+              return settings.enabled;
+            })
             .map(app => {
               const appWithIcon = getAppWithDynamicIcon(app);
               return (

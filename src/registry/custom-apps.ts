@@ -33,8 +33,7 @@ import { SelectedInstallationLauncherApp } from '../custom-apps/SelectedInstalla
 // User Profile App (demonstrates useAuth() in custom apps):
 import { UserProfileApp } from '../custom-apps/UserProfileApp';
 
-// App Settings App (system settings):
-import { AppSettingsApp } from '../custom-apps/AppSettingsApp';
+// Note: AppSettingsApp is imported directly in WorkbenchArea, not in registry
 
 // Your custom apps:
 // import { YourApp } from '../custom-apps/YourApp';
