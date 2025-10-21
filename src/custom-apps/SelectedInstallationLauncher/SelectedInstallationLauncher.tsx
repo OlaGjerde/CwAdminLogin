@@ -129,6 +129,15 @@ export const SelectedInstallationLauncherComponent: React.FC<CustomAppProps> = (
       <div className="selected-launcher-content">
         <div
           className={`selected-launcher-card ${launching ? 'launching' : ''}`}
+          onClick={handleLaunchInstallation}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleLaunchInstallation();
+            }
+          }}
         >
           <div
             className="selected-launcher-card-icon"
@@ -148,7 +157,10 @@ export const SelectedInstallationLauncherComponent: React.FC<CustomAppProps> = (
             <Button
               icon="runner"
               text={launching ? 'Starting...' : 'Start CalWin'}
-              onClick={handleLaunchInstallation}
+              onClick={(e) => {
+                e.event?.stopPropagation(); // Prevent double-firing
+                handleLaunchInstallation();
+              }}
               disabled={launching}
               type="default"
               stylingMode="contained"

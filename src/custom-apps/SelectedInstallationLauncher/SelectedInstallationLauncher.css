@@ -59,12 +59,19 @@
   width: 100%;
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  user-select: none;
 }
 
 .selected-launcher-card:hover {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   border-color: #dee2e6;
   transform: translateY(-4px);
+}
+
+.selected-launcher-card:active {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .selected-launcher-card.launching {
