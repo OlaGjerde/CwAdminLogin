@@ -239,12 +239,19 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
           settings,
         };
       })
-      .sort((a, b) => a.settings.order - b.settings.order);
+      .sort((a, b) => {
+        // Always keep selected-installation-launcher (Start CalWin) first
+        if (a.app.id === 'selected-installation-launcher') return -1;
+        if (b.app.id === 'selected-installation-launcher') return 1;
+        
+        // Sort others by order
+        return a.settings.order - b.settings.order;
+      });
   }, [allSettings]);
 
-  // Separate first app from others
-  const firstApp = appsWithSettings[0];
-  const otherApps = appsWithSettings.slice(1);
+  // Separate first app (Start CalWin) from others
+  const firstApp = appsWithSettings.find(item => item.app.id === 'selected-installation-launcher');
+  const otherApps = appsWithSettings.filter(item => item.app.id !== 'selected-installation-launcher');
 
   const handleToggleEnabled = useCallback((appId: string, enabled: boolean) => {
     logDebug('Toggle app enabled:', { appId, enabled });
