@@ -20,7 +20,7 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
 }) => {
   const workspace = useWorkspace();
   const { state, openApp, closeApp, getWindowControl } = workspace;
-  const { getAppSettings, getAllSettings } = useAppSettings();
+  const { getAppSettings, getAllSettings, updateAppSettings } = useAppSettings();
 
   // Combine custom apps with any provided system apps
   const allApps = React.useMemo(() => {
@@ -167,8 +167,34 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
               }}
               onMinimize={windowControl.minimize}
               onToggleMaximize={windowControl.toggleMaximize}
-              onResize={windowControl.resize}
-              onMove={windowControl.move}
+              onResize={(width, height) => {
+                // Update window state immediately
+                windowControl.resize(width, height);
+                // Also update settings so they don't override on next render
+                updateAppSettings(openApp.appId, {
+                  defaultSize: { width, height }
+                });
+              }}
+              onResizeEnd={(width, height) => {
+                // Final save when resize ends (already saved during resize)
+                updateAppSettings(openApp.appId, {
+                  defaultSize: { width, height }
+                });
+              }}
+              onMove={(x, y) => {
+                // Update window state immediately
+                windowControl.move(x, y);
+                // Also update settings so they don't override on next render
+                updateAppSettings(openApp.appId, {
+                  defaultPosition: { x, y }
+                });
+              }}
+              onMoveEnd={(x, y) => {
+                // Final save when move ends (already saved during move)
+                updateAppSettings(openApp.appId, {
+                  defaultPosition: { x, y }
+                });
+              }}
               onFocus={() => handleWindowFocus(openApp.instanceId)}
             >
               <AppComponent {...appProps} />

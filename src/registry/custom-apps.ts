@@ -22,7 +22,7 @@ import type { CustomAppDefinition } from '../types/custom-app';
 
 // Import your custom apps here
 // Example app (enabled by default):
-import { ExampleTodoApp } from '../custom-apps/ExampleTodoApp';
+//import { ExampleTodoApp } from '../custom-apps/ExampleTodoApp';
 
 // CalWin Installation Launcher:
 import { InstallationLauncherApp } from '../custom-apps/InstallationLauncher';
@@ -31,7 +31,7 @@ import { InstallationLauncherApp } from '../custom-apps/InstallationLauncher';
 import { SelectedInstallationLauncherApp } from '../custom-apps/SelectedInstallationLauncher';
 
 // User Profile App (demonstrates useAuth() in custom apps):
-import { UserProfileApp } from '../custom-apps/UserProfileApp';
+//import { UserProfileApp } from '../custom-apps/UserProfileApp';
 
 // Note: AppSettingsApp is imported directly in WorkbenchArea, not in registry
 
@@ -50,10 +50,10 @@ export const customAppRegistry: CustomAppDefinition[] = [
   SelectedInstallationLauncherApp,
   
   // User Profile (demonstrates useAuth() hook):
-  UserProfileApp,
+  //UserProfileApp,
   
   // Example todo app:
-  ExampleTodoApp,
+  //ExampleTodoApp,
   
   // App Settings (Note: registered but opened via Settings button, not shown in taskbar):
   // AppSettingsApp,

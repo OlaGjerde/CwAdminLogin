@@ -8,6 +8,7 @@ import type {
 } from '../types/workspace';
 import type { NormalizedInstallation } from '../types/installations';
 import { getCustomAppById } from '../registry/custom-apps';
+import { getAppSettingsFromStorage } from '../config';
 import { logDebug, logError } from '../utils/logger';
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -159,12 +160,20 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({
       const appDef = getCustomAppById(appId);
       const windowOptions = appDef?.windowOptions || {};
       
-      // Use window options from app definition with fallbacks
-      // Note: WorkbenchArea will apply settings overrides when rendering
-      const defaultWidth = windowOptions.defaultWidth || 600;
-      const defaultHeight = windowOptions.defaultHeight || 500;
-      const defaultX = 100;
-      const defaultY = 100;
+      // Read saved app settings from localStorage
+      const savedSettings = prev.currentWorkspace 
+        ? getAppSettingsFromStorage(prev.currentWorkspace.id, appId)
+        : null;
+      
+      // Use saved settings if available, otherwise use window options from app definition
+      const defaultWidth = savedSettings?.defaultSize?.width 
+        ?? windowOptions.defaultWidth 
+        ?? 600;
+      const defaultHeight = savedSettings?.defaultSize?.height 
+        ?? windowOptions.defaultHeight 
+        ?? 500;
+      const defaultX = savedSettings?.defaultPosition?.x ?? 100;
+      const defaultY = savedSettings?.defaultPosition?.y ?? 100;
       
       const newApp: OpenAppInstance = {
         instanceId,

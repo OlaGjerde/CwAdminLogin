@@ -119,6 +119,27 @@ export function isUserAdmin(userInfo: UserInfo | null): boolean {
  */
 export const ADMIN_GROUP_NAME = 'Administrator';
 
+/**
+ * Helper function to read app settings from localStorage
+ * Used by WorkspaceContext to apply settings when opening apps
+ */
+export function getAppSettingsFromStorage(workspaceId: string | number, appId: string) {
+  try {
+    const key = APP_SETTINGS_CONFIG.perWorkspaceSettings 
+      ? `${APP_SETTINGS_CONFIG.storageKey}-${workspaceId}`
+      : APP_SETTINGS_CONFIG.storageKey;
+    
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      const allSettings = JSON.parse(stored);
+      return allSettings[appId] || null;
+    }
+  } catch (error) {
+    console.error('Failed to read app settings from localStorage:', error);
+  }
+  return null;
+}
+
 export default {
   API_BASE,
   CW_AUTH_ENDPOINT,
