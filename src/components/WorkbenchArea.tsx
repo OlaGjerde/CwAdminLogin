@@ -30,7 +30,7 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
     const allSettings = getAllSettings();
     
     // Sort apps by order from settings, then by default order
-    // selected-installation-launcher (CalWin Launcher) is always first
+    // selected-installation-launcher (Start CalWin) is always first
     return apps.sort((a, b) => {
       // Always keep selected-installation-launcher first
       if (a.id === 'selected-installation-launcher') return -1;
@@ -200,7 +200,7 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
               // Check if app is enabled in settings
               const settings = getAppSettings(app.id);
               
-              // CalWin Launcher (selected-installation-launcher) is always enabled
+              // Start CalWin (selected-installation-launcher) is always enabled
               if (app.id === 'selected-installation-launcher') return true;
               
               // If no settings yet, app is enabled by default

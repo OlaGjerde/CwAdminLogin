@@ -326,6 +326,9 @@ export const AppSettingsComponent: React.FC<CustomAppProps> = ({
           {firstApp && (
             <div className="app-settings-section">
               <h3>Primary App (Always First)</h3>
+              <p className="app-settings-section-description">
+                "Start CalWin" always appears first and cannot be disabled or reordered.
+              </p>
               <AppSettingsItem
                 appId={firstApp.app.id}
                 appName={firstApp.app.name}
