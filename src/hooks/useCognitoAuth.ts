@@ -343,10 +343,25 @@ export function useCognitoAuth() {
       
       logDebug('Backend cookies cleared');
       
-      // Preserve workspace selection in localStorage
-      const workspaceSelection = localStorage.getItem('calwin-selected-workspace');
+      // Preserve important user data in localStorage
+      const preserveKeys = [
+        'calwin-selected-workspace',
+        // Preserve all app settings keys (they have the pattern 'calwin-app-settings' or 'calwin-app-settings-{id}')
+      ];
       
-      // Clear all localStorage except workspace selection
+      // Collect all keys to preserve (including app settings for all installations)
+      const keysToPreserve: Record<string, string> = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (preserveKeys.includes(key) || key.startsWith('calwin-app-settings'))) {
+          const value = localStorage.getItem(key);
+          if (value !== null) {
+            keysToPreserve[key] = value;
+          }
+        }
+      }
+      
+      // Clear all localStorage
       try {
         const itemCount = localStorage.length;
         localStorage.clear();
@@ -355,14 +370,14 @@ export function useCognitoAuth() {
         logError('Failed to clear localStorage:', e);
       }
       
-      // Restore workspace selection
-      if (workspaceSelection) {
-        try {
-          localStorage.setItem('calwin-selected-workspace', workspaceSelection);
-          logDebug('Workspace selection preserved after logout');
-        } catch (e) {
-          logError('Failed to restore workspace selection:', e);
-        }
+      // Restore preserved keys
+      try {
+        Object.entries(keysToPreserve).forEach(([key, value]) => {
+          localStorage.setItem(key, value);
+        });
+        logDebug(`Preserved ${Object.keys(keysToPreserve).length} localStorage items after logout`, Object.keys(keysToPreserve));
+      } catch (e) {
+        logError('Failed to restore preserved localStorage items:', e);
       }
       
       // Clear sessionStorage
