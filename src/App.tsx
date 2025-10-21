@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { useCognitoAuth } from './hooks/useCognitoAuth';
+import { useAuth } from './contexts/AuthContext';
 import { useInstallations } from './hooks/useInstallations';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
@@ -14,15 +14,14 @@ import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { logDebug, logError } from './utils/logger';
 
 function App() {
-  // Cookie-based Cognito auth hook
+  // Auth context - now available throughout the app!
   const {
     isAuthenticated,
     isLoading,
     userEmail,
     error: authError,
     login,
-    logout,
-  } = useCognitoAuth();
+  } = useAuth();
 
   const { installations, refreshIfStale } = useInstallations();
 
@@ -154,27 +153,16 @@ function App() {
       availableWorkspaces={installations}
       initialWorkspace={null}
     >
-      <AppContent
-        userEmail={userEmail}
-        logout={logout}
-        installations={installations}
-      />
+      <AppContent />
     </WorkspaceProvider>
   );
 }
 
 // Separate component that uses workspace context
-interface AppContentProps {
-  userEmail: string | null;
-  logout: () => void;
-  installations: NormalizedInstallation[];
-}
-
-const AppContent = React.memo(function AppContent(props: AppContentProps) {
+const AppContent = React.memo(function AppContent() {
   const { state, switchWorkspace, openApp } = useWorkspace();
-  
-  const { userEmail } = props;
-  // ⭐ authTokens no longer needed - using cookie-based auth
+  // ⭐ Now using AuthContext - no props needed!
+  const { userEmail, logout } = useAuth();
 
   const handleInstallationChange = useCallback((installation: NormalizedInstallation) => {
     logDebug('=== handleInstallationChange called ===');
@@ -222,7 +210,7 @@ const AppContent = React.memo(function AppContent(props: AppContentProps) {
                 text="Logg ut"
                 onClick={() => {
                   logDebug('🔘 Logout button clicked');
-                  props.logout();
+                  logout();
                 }}
                 stylingMode="outlined"
               />
