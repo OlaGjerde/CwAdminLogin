@@ -224,7 +224,7 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
         <AppIcon
           app={{
             id: 'app-settings',
-            name: 'Settings',
+            name: 'Innstillinger',
             icon: 'preferences',
             component: () => null,
           }}

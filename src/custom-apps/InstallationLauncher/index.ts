@@ -3,10 +3,10 @@ import { InstallationLauncherComponent } from './InstallationLauncher';
 
 export const InstallationLauncherApp: CustomAppDefinition = {
   id: 'installation-launcher',
-  name: 'CalWin Launcher',
+  name: 'CalWin Oppstarter',
   icon: 'box',
   component: InstallationLauncherComponent,
-  description: 'Launch CalWin installations with an icon-based interface',
+  description: 'Start CalWin installasjoner med ikonbasert grensesnitt',
   version: '1.0.0',
   category: 'System',
   author: 'CalWin Solutions',
