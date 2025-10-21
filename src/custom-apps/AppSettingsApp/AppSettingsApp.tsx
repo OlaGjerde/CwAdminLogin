@@ -1,0 +1,311 @@
+/**
+ * App Settings Component
+ * 
+ * Main UI for configuring app settings:
+ * - Reorder apps via drag-and-drop
+ * - Configure per-app settings (size, position, etc.)
+ * - Admin: Enable/disable apps
+ * - Admin: Copy settings to other installations
+ */
+
+import React, { useState, useMemo, useCallback } from 'react';
+import type { CustomAppProps } from '../../types/custom-app';
+import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { customAppRegistry } from '../../registry/custom-apps';
+import { isUserAdmin } from '../../config';
+import { Button } from 'devextreme-react/button';
+import { ScrollView } from 'devextreme-react/scroll-view';
+import { Popup } from 'devextreme-react/popup';
+import { List } from 'devextreme-react/list';
+import { CheckBox } from 'devextreme-react/check-box';
+import { logDebug, logInfo } from '../../utils/logger';
+import './AppSettingsApp.css';
+
+interface AppSettingsItemProps {
+  appId: string;
+  appName: string;
+  appIcon: string | React.ComponentType;
+  isFirst: boolean;
+  isAdmin: boolean;
+  isEnabled: boolean;
+  order: number;
+  onToggleEnabled: (appId: string, enabled: boolean) => void;
+  onExpand: (appId: string) => void;
+  isExpanded: boolean;
+}
+
+const AppSettingsItem: React.FC<AppSettingsItemProps> = ({
+  appId,
+  appName,
+  appIcon,
+  isFirst,
+  isAdmin,
+  isEnabled,
+  onToggleEnabled,
+  onExpand,
+  isExpanded,
+}) => {
+  return (
+    <div className={`app-settings-item ${isFirst ? 'locked' : ''} ${!isEnabled ? 'disabled' : ''}`}>
+      <div className="app-settings-item-header">
+        <div className="app-settings-item-left">
+          {!isFirst && <span className="app-settings-drag-handle">☰</span>}
+          {isFirst && <span className="app-settings-lock-icon">🔒</span>}
+          <span className="app-settings-item-icon">
+            {typeof appIcon === 'string' ? (
+              <i className={`dx-icon dx-icon-${appIcon}`} />
+            ) : (
+              React.createElement(appIcon as React.ComponentType)
+            )}
+          </span>
+          <span className="app-settings-item-name">{appName}</span>
+          {isFirst && <span className="app-settings-locked-badge">Locked</span>}
+        </div>
+        
+        <div className="app-settings-item-right">
+          {isAdmin && !isFirst && (
+            <CheckBox
+              value={isEnabled}
+              text="Enabled"
+              onValueChanged={(e) => onToggleEnabled(appId, e.value)}
+            />
+          )}
+          <Button
+            icon={isExpanded ? 'chevronup' : 'chevrondown'}
+            onClick={() => onExpand(appId)}
+            stylingMode="text"
+            hint="Configure settings"
+          />
+        </div>
+      </div>
+      
+      {isExpanded && (
+        <div className="app-settings-item-details">
+          <p className="app-settings-detail-placeholder">
+            Per-app settings configuration will be added here
+            (size, position, auto-save, overflow)
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const AppSettingsComponent: React.FC<CustomAppProps> = ({
+  workspace,
+  installations,
+}) => {
+  const { userInfo } = useAuth();
+  const isAdmin = isUserAdmin(userInfo);
+  const {
+    getAllSettings,
+    updateAppSettings,
+    resetAllSettings,
+    copySettingsToInstallations,
+    currentInstallationId,
+  } = useAppSettings();
+
+  const [expandedAppId, setExpandedAppId] = useState<string | null>(null);
+  const [showCopyModal, setShowCopyModal] = useState(false);
+  const [selectedInstallations, setSelectedInstallations] = useState<string[]>([]);
+
+  const allSettings = getAllSettings();
+
+  // Get all apps with their settings
+  const appsWithSettings = useMemo(() => {
+    return customAppRegistry
+      .map((app) => {
+        const settings = allSettings[app.id] || {
+          appId: app.id,
+          order: 999,
+          enabled: true,
+          autoSavePosition: true,
+          enableOverflow: true,
+        };
+        return {
+          app,
+          settings,
+        };
+      })
+      .sort((a, b) => a.settings.order - b.settings.order);
+  }, [allSettings]);
+
+  // Separate first app from others
+  const firstApp = appsWithSettings[0];
+  const otherApps = appsWithSettings.slice(1);
+
+  const handleToggleEnabled = useCallback((appId: string, enabled: boolean) => {
+    logDebug('Toggle app enabled:', { appId, enabled });
+    updateAppSettings(appId, { enabled });
+  }, [updateAppSettings]);
+
+  const handleExpand = useCallback((appId: string) => {
+    setExpandedAppId(prev => prev === appId ? null : appId);
+  }, []);
+
+  const handleResetAll = useCallback(() => {
+    if (confirm('Are you sure you want to reset all app settings to defaults?')) {
+      logInfo('Resetting all app settings');
+      resetAllSettings();
+      setExpandedAppId(null);
+    }
+  }, [resetAllSettings]);
+
+  const handleCopyToInstallations = useCallback(() => {
+    if (selectedInstallations.length === 0) {
+      alert('Please select at least one installation');
+      return;
+    }
+
+    if (confirm(`Copy settings to ${selectedInstallations.length} installation(s)?`)) {
+      logInfo('Copying settings to installations', { targets: selectedInstallations });
+      copySettingsToInstallations(selectedInstallations);
+      setShowCopyModal(false);
+      setSelectedInstallations([]);
+      alert('Settings copied successfully!');
+    }
+  }, [selectedInstallations, copySettingsToInstallations]);
+
+  const availableInstallations = useMemo(() => {
+    return installations.filter(inst => inst.id !== currentInstallationId);
+  }, [installations, currentInstallationId]);
+
+  const handleInstallationToggle = useCallback((installationId: string) => {
+    setSelectedInstallations(prev => 
+      prev.includes(installationId)
+        ? prev.filter(id => id !== installationId)
+        : [...prev, installationId]
+    );
+  }, []);
+
+  return (
+    <div className="app-settings-container">
+      <ScrollView height="100%" width="100%">
+        <div className="app-settings-content">
+          {/* Header */}
+          <div className="app-settings-header">
+            <h2>⚙️ App Settings</h2>
+            <p className="app-settings-subtitle">
+              Configure app behavior for {workspace?.name || 'this installation'}
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="app-settings-actions">
+            {isAdmin && availableInstallations.length > 0 && (
+              <Button
+                text="Copy to Other Installations"
+                icon="copy"
+                onClick={() => setShowCopyModal(true)}
+                type="default"
+                stylingMode="outlined"
+              />
+            )}
+            <Button
+              text="Reset All Settings"
+              icon="revert"
+              onClick={handleResetAll}
+              type="danger"
+              stylingMode="outlined"
+            />
+          </div>
+
+          {/* First App (Locked) */}
+          {firstApp && (
+            <div className="app-settings-section">
+              <h3>Primary App (Always First)</h3>
+              <AppSettingsItem
+                appId={firstApp.app.id}
+                appName={firstApp.app.name}
+                appIcon={firstApp.app.icon}
+                isFirst={true}
+                isAdmin={isAdmin}
+                isEnabled={true}
+                order={0}
+                onToggleEnabled={handleToggleEnabled}
+                onExpand={handleExpand}
+                isExpanded={expandedAppId === firstApp.app.id}
+              />
+            </div>
+          )}
+
+          {/* Other Apps */}
+          {otherApps.length > 0 && (
+            <div className="app-settings-section">
+              <h3>Other Apps</h3>
+              <div className="app-settings-list">
+                {otherApps.map(({ app, settings }) => (
+                  <AppSettingsItem
+                    key={app.id}
+                    appId={app.id}
+                    appName={app.name}
+                    appIcon={app.icon}
+                    isFirst={false}
+                    isAdmin={isAdmin}
+                    isEnabled={settings.enabled}
+                    order={settings.order}
+                    onToggleEnabled={handleToggleEnabled}
+                    onExpand={handleExpand}
+                    isExpanded={expandedAppId === app.id}
+                  />
+                ))}
+              </div>
+              <p className="app-settings-hint">
+                💡 Drag-and-drop reordering coming soon
+              </p>
+            </div>
+          )}
+        </div>
+      </ScrollView>
+
+      {/* Copy to Installations Modal */}
+      {isAdmin && (
+        <Popup
+          visible={showCopyModal}
+          onHiding={() => setShowCopyModal(false)}
+          dragEnabled={false}
+          hideOnOutsideClick={true}
+          showTitle={true}
+          title="Copy Settings to Installations"
+          width={500}
+          height={450}
+        >
+          <div className="copy-modal-content">
+            <p>Select installations to copy settings to:</p>
+            
+            <List
+              dataSource={availableInstallations}
+              height={250}
+              selectionMode="none"
+              itemRender={(installation) => (
+                <div className="installation-list-item">
+                  <CheckBox
+                    value={selectedInstallations.includes(installation.id)}
+                    onValueChanged={() => handleInstallationToggle(installation.id)}
+                  />
+                  <span style={{ marginLeft: 8 }}>{installation.name}</span>
+                </div>
+              )}
+            />
+
+            <div className="copy-modal-actions">
+              <Button
+                text="Copy"
+                icon="check"
+                type="success"
+                onClick={handleCopyToInstallations}
+                disabled={selectedInstallations.length === 0}
+              />
+              <Button
+                text="Cancel"
+                onClick={() => setShowCopyModal(false)}
+                stylingMode="outlined"
+              />
+            </div>
+          </div>
+        </Popup>
+      )}
+    </div>
+  );
+};

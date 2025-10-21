@@ -4,6 +4,7 @@ import { AppIcon } from './AppIcon';
 import { WindowContainer } from './WindowContainer';
 import type { AppDefinition, CustomAppProps } from '../types/custom-app';
 import { customAppRegistry } from '../registry/custom-apps';
+import { AppSettingsApp } from '../custom-apps/AppSettingsApp';
 import { Button } from 'devextreme-react/button';
 import './WorkbenchArea.css';
 import { logDebug } from '../utils/logger';
@@ -21,7 +22,8 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
 
   // Combine custom apps with any provided system apps
   const allApps = React.useMemo(() => {
-    const apps = [...customAppRegistry, ...availableApps];
+    // Include AppSettingsApp for internal use (not shown in taskbar)
+    const apps = [...customAppRegistry, AppSettingsApp, ...availableApps];
     // Sort apps: selected-installation-launcher first, then others
     return apps.sort((a, b) => {
       if (a.id === 'selected-installation-launcher') return -1;
@@ -156,25 +158,27 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
 
       {/* App Icons Taskbar at Bottom */}
       <div className="workbench-apps-grid">
-        {/* Regular Apps */}
-        {allApps.length === 0 ? (
+        {/* Regular Apps (exclude app-settings which is opened via Settings button) */}
+        {allApps.filter(app => app.id !== 'app-settings').length === 0 ? (
           <div className="workbench-empty-state">
             <i className="dx-icon dx-icon-box" style={{ fontSize: 32, color: '#ccc' }} />
             <p>No apps available</p>
           </div>
         ) : (
-          allApps.map(app => {
-            const appWithIcon = getAppWithDynamicIcon(app);
-            return (
-              <AppIcon
-                key={app.id}
-                app={appWithIcon}
-                onClick={() => handleAppClick(app.id)}
-                disabled={false}
-                className={app.id === 'selected-installation-launcher' ? 'launch-installation' : ''}
-              />
-            );
-          })
+          allApps
+            .filter(app => app.id !== 'app-settings')
+            .map(app => {
+              const appWithIcon = getAppWithDynamicIcon(app);
+              return (
+                <AppIcon
+                  key={app.id}
+                  app={appWithIcon}
+                  onClick={() => handleAppClick(app.id)}
+                  disabled={false}
+                  className={app.id === 'selected-installation-launcher' ? 'launch-installation' : ''}
+                />
+              );
+            })
         )}
       </div>
     </div>

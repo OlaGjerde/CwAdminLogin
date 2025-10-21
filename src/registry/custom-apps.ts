@@ -33,6 +33,9 @@ import { SelectedInstallationLauncherApp } from '../custom-apps/SelectedInstalla
 // User Profile App (demonstrates useAuth() in custom apps):
 import { UserProfileApp } from '../custom-apps/UserProfileApp';
 
+// App Settings App (system settings):
+import { AppSettingsApp } from '../custom-apps/AppSettingsApp';
+
 // Your custom apps:
 // import { YourApp } from '../custom-apps/YourApp';
 
@@ -52,6 +55,9 @@ export const customAppRegistry: CustomAppDefinition[] = [
   
   // Example todo app:
   ExampleTodoApp,
+  
+  // App Settings (Note: registered but opened via Settings button, not shown in taskbar):
+  // AppSettingsApp,
   
   // Add your custom apps here:
   // YourApp,
