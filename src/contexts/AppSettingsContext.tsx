@@ -40,8 +40,17 @@ interface AppSettingsContextValue {
   /** Get all app settings (for UI display) */
   getAllSettings: () => Record<string, AppSettings>;
   
+  /** Admin: Copy current installation's settings to other installations */
+  copySettingsToInstallations: (targetInstallationIds: string[]) => void;
+  
+  /** Admin: Get list of all installations that have settings */
+  getInstallationsWithSettings: () => string[];
+  
   /** Check if settings are loaded */
   isLoaded: boolean;
+  
+  /** Current installation ID */
+  currentInstallationId: string | null;
 }
 
 const AppSettingsContext = createContext<AppSettingsContextValue | null>(null);
@@ -124,9 +133,10 @@ function saveSettings(state: AppSettingsState, workspaceId?: string | null): voi
 /**
  * Create default empty state
  */
-function createDefaultState(): AppSettingsState {
+function createDefaultState(installationId?: string | null): AppSettingsState {
   return {
     version: APP_SETTINGS_VERSION,
+    installationId: installationId || undefined,
     settings: {},
     lastUpdated: Date.now()
   };
@@ -232,7 +242,7 @@ export const AppSettingsProvider: React.FC<AppSettingsProviderProps> = ({
    */
   const resetAllSettings = useCallback(() => {
     logInfo('Resetting all app settings to defaults');
-    const defaultState = createDefaultState();
+    const defaultState = createDefaultState(workspaceId);
     setState(defaultState);
     saveSettings(defaultState, workspaceId);
   }, [workspaceId]);
@@ -244,14 +254,86 @@ export const AppSettingsProvider: React.FC<AppSettingsProviderProps> = ({
     return state.settings;
   }, [state.settings]);
 
+  /**
+   * Admin: Copy current installation's settings to other installations
+   */
+  const copySettingsToInstallations = useCallback((targetInstallationIds: string[]) => {
+    if (!workspaceId) {
+      logError('Cannot copy settings: No current workspace');
+      return;
+    }
+
+    targetInstallationIds.forEach(targetId => {
+      if (targetId === workspaceId) {
+        logDebug('Skipping copy to self:', targetId);
+        return;
+      }
+
+      const copiedState: AppSettingsState = {
+        ...state,
+        installationId: targetId,
+        lastUpdated: Date.now()
+      };
+
+      try {
+        const storageKey = getStorageKey(targetId);
+        localStorage.setItem(storageKey, JSON.stringify(copiedState));
+        logInfo('Copied settings to installation', { from: workspaceId, to: targetId });
+      } catch (error) {
+        logError('Failed to copy settings to installation', { targetId, error });
+      }
+    });
+  }, [workspaceId, state]);
+
+  /**
+   * Admin: Get list of all installations that have settings
+   */
+  const getInstallationsWithSettings = useCallback((): string[] => {
+    const installations: string[] = [];
+    const baseKey = APP_SETTINGS_CONFIG.storageKey;
+
+    // Scan localStorage for all installation settings
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(baseKey)) {
+        try {
+          const stored = localStorage.getItem(key);
+          if (stored) {
+            const parsed = JSON.parse(stored) as AppSettingsState;
+            if (parsed.installationId) {
+              installations.push(parsed.installationId);
+            }
+          }
+        } catch (error) {
+          logError('Error reading installation settings', { key, error });
+        }
+      }
+    }
+
+    return installations;
+  }, []);
+
   const contextValue: AppSettingsContextValue = useMemo(() => ({
     getAppSettings,
     updateAppSettings,
     reorderApps,
     resetAllSettings,
     getAllSettings,
-    isLoaded
-  }), [getAppSettings, updateAppSettings, reorderApps, resetAllSettings, getAllSettings, isLoaded]);
+    copySettingsToInstallations,
+    getInstallationsWithSettings,
+    isLoaded,
+    currentInstallationId: workspaceId || null
+  }), [
+    getAppSettings, 
+    updateAppSettings, 
+    reorderApps, 
+    resetAllSettings, 
+    getAllSettings, 
+    copySettingsToInstallations,
+    getInstallationsWithSettings,
+    isLoaded,
+    workspaceId
+  ]);
 
   return (
     <AppSettingsContext.Provider value={contextValue}>

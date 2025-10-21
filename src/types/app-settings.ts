@@ -18,6 +18,9 @@ export interface AppSettings {
   /** Order in taskbar (lower = first). First app is always 0 and locked. */
   order: number;
   
+  /** Whether app is enabled (visible in taskbar). First app cannot be disabled. */
+  enabled: boolean;
+  
   /** Default window size (optional - falls back to app definition) */
   defaultSize?: {
     width: number;
@@ -44,6 +47,9 @@ export interface AppSettingsState {
   /** Version for migration support */
   version: string;
   
+  /** Installation ID these settings belong to (for per-installation mode) */
+  installationId?: string;
+  
   /** Map of appId to settings */
   settings: Record<string, AppSettings>;
   
@@ -60,6 +66,7 @@ export type AppSettingsUpdate = Partial<Omit<AppSettings, 'appId'>>;
  * Default settings for new apps
  */
 export const DEFAULT_APP_SETTINGS: Omit<AppSettings, 'appId' | 'order'> = {
+  enabled: true,
   autoSavePosition: true,
   enableOverflow: true,
 };

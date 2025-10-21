@@ -54,13 +54,10 @@ export const REFRESH_MARGIN_SECONDS = 120;
  */
 export const APP_SETTINGS_CONFIG = {
   /**
-   * If true, settings are per-workspace/installation
-   * If false, settings are global across all workspaces
-   * 
-   * Per-workspace: Each installation can have different app configurations
-   * Global: Same app configuration applies to all installations
+   * Settings are PER-INSTALLATION (each installation has own settings)
+   * This allows different configurations for different workspaces
    */
-  perWorkspaceSettings: false,
+  perWorkspaceSettings: true,
   
   /**
    * localStorage key for storing app settings

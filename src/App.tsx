@@ -150,14 +150,12 @@ function App() {
   }
 
   return (
-    <AppSettingsProvider workspaceId={null}>
-      <WorkspaceProvider 
-        availableWorkspaces={installations}
-        initialWorkspace={null}
-      >
-        <AppContent />
-      </WorkspaceProvider>
-    </AppSettingsProvider>
+    <WorkspaceProvider 
+      availableWorkspaces={installations}
+      initialWorkspace={null}
+    >
+      <AppContent />
+    </WorkspaceProvider>
   );
 }
 
@@ -208,9 +206,10 @@ const AppContent = React.memo(function AppContent() {
   }, [state.currentWorkspace, handleAutoOpenLauncher]); // Intentionally not including state.openApps to prevent re-opening on close
 
   return (
-    <div className="app-root">
-      <>
-        <div className="app-top-bar">
+    <AppSettingsProvider workspaceId={state.currentWorkspace?.id || null}>
+      <div className="app-root">
+        <>
+          <div className="app-top-bar">
             <div className="app-top-bar-left">
               <h1 className="app-title">CalWin Solutions</h1>
             </div>
@@ -248,7 +247,8 @@ const AppContent = React.memo(function AppContent() {
 
       <BuildFooter />
       {/* <TokenRefreshTester /> */}
-    </div>
+      </div>
+    </AppSettingsProvider>
   );
 });
 
