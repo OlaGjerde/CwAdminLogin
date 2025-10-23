@@ -20,12 +20,10 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
 }) => {
   const workspace = useWorkspace();
   const { state, openApp, closeApp, getWindowControl } = workspace;
-  // const { getAppSettings, getAllSettings, updateAppSettings } = useAppSettings(); // Commented out for simplification
+  // We're not using AppSettingsContext anymore (simplification) - just using a stub for getAllSettings
   
-  // Stub functions for compatibility
-  const getAppSettings = React.useCallback(() => ({}), []);
-  const getAllSettings = React.useCallback(() => ({}), []);
-  const updateAppSettings = React.useCallback(() => {}, []);
+  // Stub function for compatibility - only getAllSettings is used for app sorting
+  const getAllSettings = React.useCallback(() => ({} as Record<string, { order?: number }>), []);
 
   // Combine custom apps with any provided system apps
   const allApps = React.useMemo(() => {
