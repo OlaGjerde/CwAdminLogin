@@ -1,8 +1,8 @@
 {
-  "version": "0.10.52",
-  "commit": "eaf7f46",
+  "version": "0.10.53",
+  "commit": "c1b20eb",
   "branch": "simplify",
-  "timestamp": "2025-10-23T09:50:52.148Z",
+  "timestamp": "2025-10-23T09:52:23.818Z",
   "buildNumber": "",
   "node": "v22.20.0"
 }
