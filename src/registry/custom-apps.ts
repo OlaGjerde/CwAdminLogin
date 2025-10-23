@@ -25,10 +25,10 @@ import type { CustomAppDefinition } from '../types/custom-app';
 //import { ExampleTodoApp } from '../custom-apps/ExampleTodoApp';
 
 // CalWin Installation Launcher:
-import { InstallationLauncherApp } from '../custom-apps/InstallationLauncher';
+//import { InstallationLauncherApp } from '../custom-apps/InstallationLauncher';
 
 // Selected Installation Launcher (auto-opens when installation selected):
-import { SelectedInstallationLauncherApp } from '../custom-apps/SelectedInstallationLauncher';
+//import { SelectedInstallationLauncherApp } from '../custom-apps/SelectedInstallationLauncher';
 
 // User Profile App (demonstrates useAuth() in custom apps):
 //import { UserProfileApp } from '../custom-apps/UserProfileApp';
@@ -44,10 +44,10 @@ import { SelectedInstallationLauncherApp } from '../custom-apps/SelectedInstalla
  */
 export const customAppRegistry: CustomAppDefinition[] = [
   // CalWin Installation Launcher (main app):
-  InstallationLauncherApp,
+  // InstallationLauncherApp, // Commented out for simplification
   
   // Selected Installation Launcher (auto-opens when installation selected):
-  SelectedInstallationLauncherApp,
+  // SelectedInstallationLauncherApp, // Commented out for simplification
   
   // User Profile (demonstrates useAuth() hook):
   //UserProfileApp,

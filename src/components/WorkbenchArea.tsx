@@ -1,12 +1,12 @@
 import React from 'react';
 import { useWorkspace } from '../contexts/WorkspaceContext';
-import { useAppSettings } from '../contexts/AppSettingsContext';
-import { AppIcon } from './AppIcon';
+// import { useAppSettings } from '../contexts/AppSettingsContext'; // Commented out for simplification
+// import { AppIcon } from './AppIcon'; // Commented out for simplification
 import { WindowContainer } from './WindowContainer';
 import type { AppDefinition, CustomAppProps } from '../types/custom-app';
 import type { WindowState } from '../types/workspace';
 import { customAppRegistry } from '../registry/custom-apps';
-import { AppSettingsApp } from '../custom-apps/AppSettingsApp';
+// import { AppSettingsApp } from '../custom-apps/AppSettingsApp'; // Commented out for simplification
 import './WorkbenchArea.css';
 import { logDebug } from '../utils/logger';
 
@@ -20,12 +20,18 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
 }) => {
   const workspace = useWorkspace();
   const { state, openApp, closeApp, getWindowControl } = workspace;
-  const { getAppSettings, getAllSettings, updateAppSettings } = useAppSettings();
+  // const { getAppSettings, getAllSettings, updateAppSettings } = useAppSettings(); // Commented out for simplification
+  
+  // Stub functions for compatibility
+  const getAppSettings = React.useCallback(() => ({}), []);
+  const getAllSettings = React.useCallback(() => ({}), []);
+  const updateAppSettings = React.useCallback(() => {}, []);
 
   // Combine custom apps with any provided system apps
   const allApps = React.useMemo(() => {
     // Include AppSettingsApp for internal use (not shown in taskbar)
-    const apps = [...customAppRegistry, AppSettingsApp, ...availableApps];
+    // AppSettingsApp removed for simplification
+    const apps = [...customAppRegistry, ...availableApps];
     
     // Get all settings
     const allSettings = getAllSettings();
@@ -45,7 +51,8 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
     });
   }, [availableApps, getAllSettings]);
 
-  // Handle app icon click - restore if minimized, bring to front if open, or open new
+  // Handle app icon click - commented out for simplification
+  /*
   const handleAppClick = (appId: string) => {
     logDebug('App icon clicked:', appId);
     
@@ -71,6 +78,7 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
       openApp(appId);
     }
   };
+  */
 
   // Handle window focus
   const handleWindowFocus = (instanceId: string) => {
@@ -123,24 +131,13 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
           // Get dynamic icon for the window
           const appWithIcon = getAppWithDynamicIcon(appDef);
           
-          // Get app settings for overflow and other options
-          const appSettings = getAppSettings(openApp.appId);
-          
-          // Apply user settings to window state
+          // No app settings - use window state directly
           const windowStateWithSettings: WindowState = {
-            ...openApp.windowState,
-            // Override size if user has saved preferences
-            width: appSettings?.defaultSize?.width ?? openApp.windowState.width,
-            height: appSettings?.defaultSize?.height ?? openApp.windowState.height,
-            // Override position if user has saved preferences
-            x: appSettings?.defaultPosition?.x ?? openApp.windowState.x,
-            y: appSettings?.defaultPosition?.y ?? openApp.windowState.y,
+            ...openApp.windowState
           };
           
-          // Determine enableOverflow: settings > app definition > default (true)
-          const enableOverflow = appSettings?.enableOverflow 
-            ?? appDef.windowOptions?.enableOverflow 
-            ?? true;
+          // Determine enableOverflow from app definition or default (true)
+          const enableOverflow = appDef.windowOptions?.enableOverflow ?? true;
 
           const appProps: CustomAppProps = {
             workspace: state.currentWorkspace,
@@ -170,30 +167,18 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
               onResize={(width, height) => {
                 // Update window state immediately
                 windowControl.resize(width, height);
-                // Also update settings so they don't override on next render
-                updateAppSettings(openApp.appId, {
-                  defaultSize: { width, height }
-                });
+                // Settings management removed
               }}
-              onResizeEnd={(width, height) => {
-                // Final save when resize ends (already saved during resize)
-                updateAppSettings(openApp.appId, {
-                  defaultSize: { width, height }
-                });
+              onResizeEnd={() => {
+                // Settings management removed
               }}
               onMove={(x, y) => {
                 // Update window state immediately
                 windowControl.move(x, y);
-                // Also update settings so they don't override on next render
-                updateAppSettings(openApp.appId, {
-                  defaultPosition: { x, y }
-                });
+                // Settings management removed
               }}
-              onMoveEnd={(x, y) => {
-                // Final save when move ends (already saved during move)
-                updateAppSettings(openApp.appId, {
-                  defaultPosition: { x, y }
-                });
+              onMoveEnd={() => {
+                // Settings management removed
               }}
               onFocus={() => handleWindowFocus(openApp.instanceId)}
             >
@@ -205,59 +190,12 @@ export const WorkbenchArea: React.FC<WorkbenchAreaProps> = ({
 
       {/* App Icons Taskbar at Bottom */}
       <div className="workbench-apps-grid">
-        {/* Regular Apps (exclude app-settings which is opened via Settings button) */}
-        {allApps.filter(app => app.id !== 'app-settings').length === 0 ? (
-          <div className="workbench-empty-state">
-            <i className="dx-icon dx-icon-box" style={{ fontSize: 32, color: '#ccc' }} />
-            <p>No apps available</p>
-          </div>
-        ) : (
-          allApps
-            .filter(app => {
-              // Exclude app-settings (opened via Settings button)
-              if (app.id === 'app-settings') return false;
-              
-              // Check if app is enabled in settings
-              const settings = getAppSettings(app.id);
-              
-              // Start CalWin (selected-installation-launcher) is always enabled
-              if (app.id === 'selected-installation-launcher') return true;
-              
-              // If no settings yet, app is enabled by default
-              if (!settings) return true;
-              
-              // Apply enabled/disabled setting
-              return settings.enabled;
-            })
-            .map(app => {
-              const appWithIcon = getAppWithDynamicIcon(app);
-              return (
-                <AppIcon
-                  key={app.id}
-                  app={appWithIcon}
-                  onClick={() => handleAppClick(app.id)}
-                  disabled={false}
-                  className={app.id === 'selected-installation-launcher' ? 'launch-installation' : ''}
-                />
-              );
-            })
-        )}
+        {/* Empty taskbar in simplified version - just an empty bar with fixed height */}
         
-        {/* Spacer to push Settings button to the right */}
+        {/* Spacer - no buttons in simplified version */}
         <div style={{ flex: 1 }} />
         
-        {/* Settings Button - Bottom Right */}
-        <AppIcon
-          app={{
-            id: 'app-settings',
-            name: 'Innstillinger',
-            icon: 'preferences',
-            component: () => null,
-          }}
-          onClick={() => handleAppClick('app-settings')}
-          disabled={false}
-          className="app-settings-icon"
-        />
+        {/* Settings Button removed for simplification */}
       </div>
     </div>
   );

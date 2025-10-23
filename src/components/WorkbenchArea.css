@@ -13,7 +13,8 @@
   right: 0;
   display: flex;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 0 12px;
+  height: 80px; /* Fixed height of 80px */
   background: rgba(255, 255, 255, 0.95);
   border-top: 1px solid #dee2e6;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);

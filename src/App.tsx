@@ -2,10 +2,8 @@ import React, { useEffect, useCallback } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import { useInstallations } from './hooks/useInstallations';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
-import { AppSettingsProvider } from './contexts/AppSettingsContext';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
 import { WorkbenchArea } from './components/WorkbenchArea';
-// import { TokenRefreshTester } from './components/TokenRefreshTester';
 import type { NormalizedInstallation } from './types/installations';
 import './App.css';
 import BuildFooter from './components/BuildFooter';
@@ -13,9 +11,10 @@ import 'devextreme/dist/css/dx.light.css';
 import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { logDebug, logError } from './utils/logger';
+import { INSTALLER_DOWNLOAD_URL } from './config';
+import notify from 'devextreme/ui/notify';
 
 function App() {
-  // Auth context - now available throughout the app!
   const {
     isAuthenticated,
     isLoading,
@@ -26,9 +25,8 @@ function App() {
 
   const { installations, refreshIfStale } = useInstallations();
 
-  // Debug logging for auth state
   useEffect(() => {
-    logDebug('📊 App Auth State:', {
+    logDebug(" App Auth State:", {
       isAuthenticated,
       isLoading,
       userEmail,
@@ -37,88 +35,84 @@ function App() {
     });
   }, [isAuthenticated, isLoading, userEmail, authError]);
 
-  // Refresh installations when authenticated
   useEffect(() => {
     if (isAuthenticated) {
       refreshIfStale().catch((err) => {
-        logError('Failed to fetch installations:', err);
+        logError("Failed to fetch installations:", err);
       });
     }
   }, [isAuthenticated, refreshIfStale]);
 
-  // ⭐ Auto-redirect to Cognito login if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated && !authError) {
-      logDebug('Not authenticated - redirecting to Cognito login...');
+      logDebug("Not authenticated - redirecting to Cognito login...");
       login();
     }
   }, [isLoading, isAuthenticated, authError, login]);
 
-  // Show loading while checking auth status
   if (isLoading) {
     return (
       <div className="app-root" style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        backgroundColor: '#f5f5f5'
+        display: "flex", 
+        justifyContent: "center", 
+        alignItems: "center", 
+        height: "100vh",
+        backgroundColor: "#f5f5f5"
       }}>
         <div style={{ 
-          textAlign: 'center',
-          padding: '40px',
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          minWidth: '300px'
+          textAlign: "center",
+          padding: "40px",
+          backgroundColor: "white",
+          borderRadius: "8px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          minWidth: "300px"
         }}>
           <LoadIndicator height={60} width={60} />
-          <h2 style={{ marginTop: '20px', marginBottom: '10px', color: '#333' }}>
+          <h2 style={{ marginTop: "20px", marginBottom: "10px", color: "#333" }}>
             Sjekker autentisering
           </h2>
-          <p style={{ color: '#666', margin: 0 }}>Vennligst vent...</p>
+          <p style={{ color: "#666", margin: 0 }}>Vennligst vent...</p>
         </div>
       </div>
     );
   }
 
-  // Show error with retry button if authentication failed
   if (!isAuthenticated && authError) {
     return (
       <div className="app-root" style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        backgroundColor: '#f5f5f5'
+        display: "flex", 
+        justifyContent: "center", 
+        alignItems: "center", 
+        height: "100vh",
+        backgroundColor: "#f5f5f5"
       }}>
         <div style={{ 
-          textAlign: 'center',
-          padding: '40px',
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          minWidth: '400px',
-          maxWidth: '500px'
+          textAlign: "center",
+          padding: "40px",
+          backgroundColor: "white",
+          borderRadius: "8px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          minWidth: "400px",
+          maxWidth: "500px"
         }}>
           <div style={{ 
-            fontSize: '48px', 
-            color: '#d9534f',
-            marginBottom: '20px'
-          }}>⚠️</div>
-          <h2 style={{ marginBottom: '15px', color: '#d9534f' }}>
+            fontSize: "48px", 
+            color: "#d9534f",
+            marginBottom: "20px"
+          }}></div>
+          <h2 style={{ marginBottom: "15px", color: "#d9534f" }}>
             Autentiseringsfeil
           </h2>
           <p style={{ 
-            color: '#666', 
-            marginBottom: '25px',
-            lineHeight: '1.5'
+            color: "#666", 
+            marginBottom: "25px",
+            lineHeight: "1.5"
           }}>
             {authError}
           </p>
-          <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
+          <div style={{ display: "flex", gap: "10px", flexDirection: "column" }}>
             <Button
-              text="Prøv på nytt"
+              text="Pr�v p� nytt"
               icon="refresh"
               onClick={login}
               type="default"
@@ -126,13 +120,13 @@ function App() {
               width="100%"
             />
             <Button
-              text="Slett alt og prøv igjen"
+              text="Slett alt og pr�v igjen"
               icon="trash"
               onClick={() => {
                 localStorage.clear();
                 sessionStorage.clear();
-                logDebug('Cleared all storage - reloading...');
-                window.location.href = '/';
+                logDebug("Cleared all storage - reloading...");
+                window.location.href = "/";
               }}
               type="danger"
               stylingMode="outlined"
@@ -144,7 +138,6 @@ function App() {
     );
   }
 
-  // ⭐ If not authenticated and no error, return null (login redirect is happening)
   if (!isAuthenticated) {
     return null;
   }
@@ -154,112 +147,227 @@ function App() {
       availableWorkspaces={installations}
       initialWorkspace={null}
     >
-      <AppSettingsBridge />
+      <AppContent />
     </WorkspaceProvider>
   );
 }
 
-// Bridge component that connects WorkspaceProvider and AppSettingsProvider
-const AppSettingsBridge = React.memo(function AppSettingsBridge() {
-  const { state } = useWorkspace();
-  
-  return (
-    <AppSettingsProvider workspaceId={state.currentWorkspace?.id || null}>
-      <AppContent />
-    </AppSettingsProvider>
-  );
-});
-
-// Separate component that uses workspace context
 const AppContent = React.memo(function AppContent() {
   const { state, switchWorkspace, openApp } = useWorkspace();
-  // ⭐ Now using AuthContext - no props needed!
   const { userEmail, logout } = useAuth();
+  const [isStartingCalWin, setIsStartingCalWin] = React.useState(false);
 
   const handleInstallationChange = useCallback((installation: NormalizedInstallation) => {
-    logDebug('=== handleInstallationChange called ===');
-    logDebug('Installation:', installation);
+    logDebug("=== handleInstallationChange called ===");
+    logDebug("Installation:", installation);
     switchWorkspace(installation);
   }, [switchWorkspace]);
 
-  // Auto-open the selected installation launcher when installation is selected
   const handleAutoOpenLauncher = useCallback(() => {
-    logDebug('=== Auto-opening launcher ===');
-    openApp('selected-installation-launcher');
+    logDebug("=== Auto-opening launcher ===");
+    openApp("selected-installation-launcher");
   }, [openApp]);
 
-  // Auto-open launcher when workspace becomes available (from localStorage or selection)
-  // Use a ref to track if we've already auto-opened to prevent re-opening on close
   const hasAutoOpenedRef = React.useRef(false);
   
   useEffect(() => {
     if (state.currentWorkspace && !hasAutoOpenedRef.current) {
-      logDebug('=== Workspace available, checking if launcher should open ===');
+      logDebug("=== Workspace available, checking if launcher should open ===");
       
-      // Check if the launcher is already open
       const launcherAlreadyOpen = state.openApps.some(
-        app => app.appId === 'selected-installation-launcher'
+        app => app.appId === "selected-installation-launcher"
       );
       
       if (!launcherAlreadyOpen) {
-        logDebug('=== Auto-opening launcher for workspace:', state.currentWorkspace.name);
+        logDebug("=== Auto-opening launcher for workspace:", state.currentWorkspace.name);
         handleAutoOpenLauncher();
-        hasAutoOpenedRef.current = true; // Mark that we've auto-opened
+        hasAutoOpenedRef.current = true;
       } else {
-        logDebug('=== Launcher already open, skipping auto-open ===');
-        hasAutoOpenedRef.current = true; // Also mark if it was already open
+        logDebug("=== Launcher already open, skipping auto-open ===");
+        hasAutoOpenedRef.current = true;
       }
     }
-    
-    // Reset the flag when workspace changes (but not when apps change)
-    // This allows auto-open when switching to a different workspace
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.currentWorkspace, handleAutoOpenLauncher]); // Intentionally not including state.openApps to prevent re-opening on close
+  }, [state.currentWorkspace, handleAutoOpenLauncher]);
 
   return (
     <div className="app-root">
-      <>
-        <div className="app-top-bar">
-          <div className="app-top-bar-left">
-            <img src="/Calwin_circle_color_RGB_300ppi.png" alt="CalWin Logo" className="app-logo" />
-            <h1 className="app-title">CalWin Solutions</h1>
-          </div>
-          <div className="app-top-bar-center">
-            <WorkspaceSelector
-              currentWorkspace={state.currentWorkspace}
-              workspaces={state.availableWorkspaces}
-              onWorkspaceChange={handleInstallationChange}
-              onAutoOpenLauncher={handleAutoOpenLauncher}
-              isLoading={state.isLoading}
-            />
-          </div>
-          <div className="app-top-bar-right">
-            <span className="app-user-info" title={userEmail || undefined}>
-              {userEmail || 'Bruker'}
-            </span>
-            <Button
-              icon="runner"
-              text="Logg ut"
-              onClick={() => {
-                logDebug('Logout button clicked');
-                logout();
+      <div className="app-top-bar">
+        <div className="app-top-bar-left">
+          <img src="/Calwin_circle_color_RGB_300ppi.png" alt="CalWin Logo" className="app-logo" />
+          <h1 className="app-title">CalWin Solutions</h1>
+        </div>
+        <div className="app-top-bar-center">
+          <WorkspaceSelector
+            currentWorkspace={state.currentWorkspace}
+            workspaces={state.availableWorkspaces}
+            onWorkspaceChange={handleInstallationChange}
+            onAutoOpenLauncher={handleAutoOpenLauncher}
+            isLoading={state.isLoading}
+          />
+        </div>
+        <div className="app-top-bar-right">
+          <div className="app-top-bar-actions">
+            {/* Start CalWin button with loading effect */}
+            <div className="button-with-loading">
+              <Button
+                text={isStartingCalWin ? "Starter CalWin..." : "Start CalWin"}
+                icon={isStartingCalWin ? undefined : "runner"}
+                type={isStartingCalWin ? "success" : "normal"}
+                stylingMode="contained" 
+                disabled={!state.currentWorkspace || isStartingCalWin}
+                onClick={async () => {
+                logDebug("Start CalWin button clicked");
+                if (!state.currentWorkspace) {
+                  logError("No workspace selected");
+                  return;
+                }
+                
+                // Set loading state
+                setIsStartingCalWin(true);
+                
+                try {
+                  const { createOneTimeToken } = await import("./api/auth");
+                  const { PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } = await import("./config");
+                  
+                  logDebug("Generating launch token...");
+                  const resp = await createOneTimeToken(state.currentWorkspace.id);
+                  
+                  if (resp.status !== 200) {
+                    throw new Error(`Failed to generate launch token: ${resp.status}`);
+                  }
+                  
+                  const data = resp.data;
+                  let token: string | null = null;
+                  
+                  if (typeof data === "string") {
+                    token = data;
+                  } else {
+                    token = data.oneTimeToken || data.OneTimeToken || data.token || data.Token || data.linkToken || data.LinkToken || null;
+                  }
+                  
+                  if (!token) {
+                    throw new Error("No launch token received from server");
+                  }
+                  
+                  logDebug(" Launch token received");
+                  
+                  const protocol = state.currentWorkspace.appType === 0 
+                    ? PROTOCOL_CALWIN 
+                    : state.currentWorkspace.appType === 1 
+                      ? PROTOCOL_CALWIN_TEST 
+                      : PROTOCOL_CALWIN_DEV;
+                  
+                  const uri = `${protocol}${encodeURIComponent(token)}`;
+                  logDebug(" Launching with URI:", uri);
+                  
+                  // Launch the protocol directly - we'll use a timeout to detect if it failed
+                  const anchor = document.createElement("a");
+                  anchor.href = uri;
+                  anchor.style.display = "none";
+                  document.body.appendChild(anchor);
+                  
+                  // Set up detection for app launch
+                  let launched = false;
+                  
+                  // Function to handle successful launch
+                  const handleAppLaunch = () => {
+                    launched = true;
+                    document.removeEventListener('visibilitychange', handleAppLaunch);
+                    window.removeEventListener('blur', handleAppLaunch);
+                  };
+                  
+                  // Try to detect if app launches
+                  document.addEventListener('visibilitychange', handleAppLaunch);
+                  window.addEventListener('blur', handleAppLaunch);
+                  
+                  // Click the link to launch
+                  anchor.click();
+                  document.body.removeChild(anchor);
+                  
+                  // Check after a delay if the app was launched
+                  setTimeout(() => {
+                    if (!launched) {
+                      // If we're still here and no launch detected, protocol probably failed
+                      logDebug("Protocol handler may not be installed. Showing download prompt.");
+                      
+                      // Clean up event listeners
+                      document.removeEventListener('visibilitychange', handleAppLaunch);
+                      window.removeEventListener('blur', handleAppLaunch);
+                      
+                      // Use DevExtreme notification
+                      notify({
+                        message: "CalWin er ikke installert på denne enheten. Vennligst klikk på 'Download CalWin' knappen til høyre for å laste ned og installere programmet først.",
+                        type: "warning",
+                        displayTime: 7000,
+                        width: "auto"
+                      });
+                    }
+                    
+                    // Clear loading state
+                    setIsStartingCalWin(false);
+                  }, 500);
+                
+                } catch (error) {
+                  logError(" Launch failed:", error);
+                  
+                  // Show error using DevExtreme notification
+                  notify({
+                    message: "Det oppstod en feil ved forsøk på å starte CalWin. Vennligst prøv igjen, eller klikk på 'Download CalWin' knappen til høyre for å laste ned og installere programmet på nytt.",
+                    type: "error",
+                    displayTime: 7000,
+                    width: "auto"
+                  });
+                  
+                  // Clear loading state
+                  setIsStartingCalWin(false);
+                }
               }}
-              stylingMode="outlined"
+            />
+              {isStartingCalWin && (
+                <LoadIndicator
+                  className="dx-button-spinner"
+                  width={16}
+                  height={16}
+                  visible={true}
+                />
+              )}
+            </div>
+            <Button
+              text="Download CalWin"
+              icon="download"
+              type="normal"
+              stylingMode="contained"
+              disabled={!state.currentWorkspace}
+              onClick={() => {
+                logDebug("Download CalWin button clicked");
+                window.open(INSTALLER_DOWNLOAD_URL, "_blank");
+              }}
             />
           </div>
+          <span className="app-user-info" title={userEmail || undefined}>
+            {userEmail || "Bruker"}
+          </span>
+          <Button
+            icon="runner"
+            text="Logg ut"
+            onClick={() => {
+              logDebug("Logout button clicked");
+              logout();
+            }}
+            stylingMode="outlined"
+          />
         </div>
+      </div>
 
-        <div className="app-content">
-          <div className="app-workbench">
-            <WorkbenchArea />
-          </div>
+      <div className="app-content">
+        <div className="app-workbench">
+          <WorkbenchArea />
         </div>
-      </>
+      </div>
 
-    <BuildFooter />
-    {/* <TokenRefreshTester /> */}
+      <BuildFooter />
     </div>
   );
 });
 
-export default App
+export default App;
