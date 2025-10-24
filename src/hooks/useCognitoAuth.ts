@@ -1,9 +1,17 @@
 /**
- * AWS Cognito Authentication Hook (Cookie-Based)
- * Manages OAuth2 Authorization Code flow with httpOnly cookies
+ * AWS Cognito Authentication Hook (Hybrid Approach)
+ * Manages OAuth2 Authorization Code flow with PKCE
  * 
- * Security: Tokens are stored in httpOnly cookies by the backend,
- * never exposed to JavaScript, protecting against XSS attacks.
+ * Hybrid Security Model:
+ * - Access Token: Stored in localStorage → Sent via Authorization: Bearer header
+ * - ID Token: Stored in localStorage (for user info display)
+ * - Refresh Token: Stored in httpOnly cookie by backend (XSS protection)
+ * 
+ * Security Features:
+ * - Short-lived access tokens (5-15 min) minimize XSS risk
+ * - Refresh token in httpOnly cookie cannot be accessed by JavaScript
+ * - PKCE (Proof Key for Code Exchange) prevents authorization code interception
+ * - State parameter prevents CSRF attacks
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -26,6 +34,7 @@ import {
   getCurrentUser,
   type UserInfo,
 } from '../api/auth';
+import { clearTokens } from '../utils/tokenStorage';
 
 // ============================================================================
 // Types
@@ -41,6 +50,9 @@ export interface CognitoAuthState {
 // ============================================================================
 // Hook
 // ============================================================================
+
+// Track if an auth check is already in progress to prevent duplicate calls
+let isCheckingAuth = false;
 
 export function useCognitoAuth() {
   const [state, setState] = useState<CognitoAuthState>({
@@ -209,7 +221,7 @@ export function useCognitoAuth() {
       
       await exchangeCodeForTokens(params.code, codeVerifier);
       
-      logDebug('Tokens received and cookies set by backend');
+      logDebug('Tokens received and stored (access+ID in localStorage, refresh in cookie)');
       
       // Get user information from backend (wait for it before setting authenticated)
       try {
@@ -231,17 +243,17 @@ export function useCognitoAuth() {
         type ErrorResponse = { response?: { status?: number; data?: unknown; headers?: Record<string, string> } };
         const err = getUserError as ErrorResponse;
         
-        // If 401, cookies might not be set correctly by backend
+        // If 401, tokens might not be set correctly by backend
         if (err.response?.status === 401) {
           logError('CRITICAL: Token exchange succeeded but /Me returned 401!');
-          logError('This means backend is NOT reading cookies correctly.');
-          logError('Check if CookieToHeaderMiddleware is added BEFORE UseAuthentication()');
+          logError('This means backend is NOT reading Authorization header correctly.');
+          logError('Check if JWT Bearer authentication is configured properly.');
           logError('Response headers:', err.response?.headers);
           
           setState((prev) => ({
             ...prev,
             isLoading: false,
-            error: 'Backend configuration error: Cookies not being read. Contact administrator.',
+            error: 'Backend configuration error: JWT authentication not working. Contact administrator.',
           }));
         } else {
           setState((prev) => ({
@@ -294,6 +306,14 @@ export function useCognitoAuth() {
    * Check authentication status by calling backend
    */
   const checkAuthStatus = useCallback(async () => {
+    // Prevent duplicate concurrent calls
+    if (isCheckingAuth) {
+      logDebug('Auth check already in progress, skipping duplicate call');
+      return;
+    }
+    
+    isCheckingAuth = true;
+    
     try {
       logDebug('Checking authentication status...');
       // Don't set loading here - use initial state
@@ -309,16 +329,31 @@ export function useCognitoAuth() {
       
       logDebug('User is authenticated:', userInfo.Email);
     } catch (error: unknown) {
-      type ErrorResponse = { response?: { status?: number } };
+      type ErrorResponse = { 
+        response?: { status?: number };
+        code?: string;
+        message?: string;
+      };
       const err = error as ErrorResponse;
-      // 401 means not authenticated - this is NORMAL, not an error
+      
+      // 401 means not authenticated - clear any stale tokens
       if (err.response?.status === 401) {
-        logDebug('User is not authenticated (expected)');
+        logDebug('User is not authenticated (401) - clearing any stale tokens');
+        clearTokens(); // Clear stale tokens from localStorage
         setState({
           isAuthenticated: false,
           isLoading: false,
           userInfo: null,
           error: null, // NO ERROR - just not authenticated yet
+        });
+      } else if (err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK' || err.message?.includes('aborted')) {
+        // Backend not reachable - treat as not authenticated but don't show error
+        logDebug('Backend not reachable, treating as not authenticated');
+        setState({
+          isAuthenticated: false,
+          isLoading: false,
+          userInfo: null,
+          error: null, // Don't show error when backend is down during initial load
         });
       } else {
         logError('Failed to check auth status:', error);
@@ -328,21 +363,18 @@ export function useCognitoAuth() {
           error: 'Failed to check authentication status',
         }));
       }
+    } finally {
+      isCheckingAuth = false;
     }
   }, []);
 
   /**
-   * Logout - clear cookies and redirect to Cognito logout
+   * Logout - clear localStorage tokens and redirect to Cognito logout
    */
   const logout = useCallback(async () => {
-    logDebug('Logging out - clearing cookies and Cognito session');
+    logDebug('Logging out - clearing tokens and Cognito session');
     
     try {
-      // Call backend logout endpoint (clears cookies and returns Cognito logout URL)
-      const response = await apiLogout();
-      
-      logDebug('Backend cookies cleared');
-      
       // Preserve important user data in localStorage
       const preserveKeys = [
         'calwin-selected-workspace',
@@ -361,11 +393,11 @@ export function useCognitoAuth() {
         }
       }
       
-      // Clear all localStorage
+      // Clear all localStorage (including tokens)
       try {
         const itemCount = localStorage.length;
         localStorage.clear();
-        logDebug(`localStorage cleared (${itemCount} items removed)`);
+        logDebug(`localStorage cleared (${itemCount} items removed, including auth tokens)`);
       } catch (e) {
         logError('Failed to clear localStorage:', e);
       }
@@ -388,6 +420,11 @@ export function useCognitoAuth() {
         logError('Failed to clear sessionStorage:', e);
       }
       
+      // Call backend logout endpoint (clears refresh token cookie and returns Cognito logout URL)
+      // This also calls clearTokens() internally in auth.ts
+      const response = await apiLogout();
+      
+      logDebug('Backend logout complete, refresh token cookie cleared');
       logDebug('Redirecting to Cognito logout:', response.LogoutUrl);
       
       // Redirect to Cognito logout - this will:
@@ -396,7 +433,8 @@ export function useCognitoAuth() {
       window.location.href = response.LogoutUrl;
     } catch (error) {
       logError('Logout failed:', error);
-      // Even if logout fails, redirect to login page
+      // Even if logout fails, clear tokens and redirect to login page
+      clearTokens();
       window.location.href = '/';
     }
   }, []);
@@ -484,6 +522,11 @@ export function useCognitoAuth() {
 
   /**
    * Set up automatic token refresh
+   * 
+   * Note: With the hybrid approach, the axios request interceptor also checks
+   * token expiry before each request and refreshes if needed. This periodic
+   * check is a backup for long-lived sessions without API calls.
+   * 
    * Check every 5 minutes and refresh if needed
    */
   useEffect(() => {

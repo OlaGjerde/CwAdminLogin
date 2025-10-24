@@ -4,8 +4,17 @@
  * Wraps the existing useCognitoAuth hook to provide authentication state
  * and methods throughout the component tree via React Context.
  * 
- * This keeps all the security benefits of the cookie-based auth system
- * while making auth state easily accessible without props drilling.
+ * Hybrid Authentication Security Model:
+ * - Access Token: localStorage → Authorization: Bearer header
+ * - ID Token: localStorage (for user info display)
+ * - Refresh Token: httpOnly cookie (XSS protection)
+ * 
+ * Security Benefits:
+ * - Short-lived access tokens (5-15 min) minimize XSS risk
+ * - Refresh token in httpOnly cookie cannot be stolen via JavaScript
+ * - OAuth2 Authorization Code Flow with PKCE
+ * - Automatic token refresh on expiry
+ * - State parameter for CSRF protection
  * 
  * Usage:
  * ```tsx
@@ -66,12 +75,12 @@ interface AuthProviderProps {
  * Wraps the existing useCognitoAuth hook and provides its state/methods
  * to all child components via context.
  * 
- * Security features (all preserved):
- * - httpOnly cookies for token storage
+ * Hybrid Security Model (all preserved):
+ * - Access tokens in localStorage sent via Bearer header
+ * - Refresh token in httpOnly cookie (XSS protection)
  * - OAuth2 Authorization Code Flow with PKCE
- * - Automatic token refresh
- * - CSRF protection
- * - Backend token management
+ * - Automatic token refresh before expiry
+ * - CSRF protection via state parameter
  */
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Use the existing secure auth hook

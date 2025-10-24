@@ -1,13 +1,18 @@
 /**
- * Axios Response Interceptor for Cookie-Based Authentication
+ * Axios Interceptors for Hybrid Authentication
  * 
- * Handles automatic token refresh when receiving 401 responses.
- * Backend sets httpOnly cookies which are automatically sent with requests.
+ * Request Interceptor: Adds Authorization: Bearer header with access token from localStorage
+ * Response Interceptor: Handles automatic token refresh on 401 responses
+ * 
+ * Hybrid Approach:
+ * - Access token from localStorage → Authorization: Bearer header
+ * - Refresh token in httpOnly cookie → Sent automatically by browser
  */
 
 import axios from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { refreshToken } from './auth';
+import { getAccessToken, isTokenExpired, clearTokens } from '../utils/tokenStorage';
 import { logDebug, logError, logWarn } from '../utils/logger';
 
 // Track if a refresh is in progress to prevent multiple concurrent refresh attempts
@@ -35,18 +40,74 @@ const processQueue = (error: Error | null = null) => {
 };
 
 /**
- * Setup Axios response interceptor for automatic token refresh
+ * Setup Axios interceptors for hybrid authentication
  * 
- * How it works:
- * 1. API call fails with 401 and "token-expired: true" header
- * 2. Interceptor calls /api/auth/GetNewToken
- * 3. Backend uses refresh_token cookie to get new access_token
- * 4. Backend sets new cookies
- * 5. Interceptor retries original request
- * 6. If refresh fails → redirect to login
+ * Request Interceptor:
+ * - Adds Authorization: Bearer header with access token from localStorage
+ * - Automatically checks if token needs refresh before sending request
+ * 
+ * Response Interceptor:
+ * - Handles 401 errors by attempting token refresh
+ * - Retries original request with new token
+ * - Redirects to login if refresh fails
  */
 export function setupAxiosInterceptors() {
-  logDebug('🔧 Setting up Axios interceptors for cookie-based auth');
+  logDebug('Setting up Axios interceptors for hybrid auth');
+
+  // ============================================================================
+  // REQUEST INTERCEPTOR - Add Bearer Token
+  // ============================================================================
+  
+  axios.interceptors.request.use(
+    async (config) => {
+      // Skip auth header for auth endpoints themselves
+      const authEndpoints = ['/api/auth/ExchangeToken', '/api/auth/RefreshToken', '/api/auth/Logout'];
+      const isAuthEndpoint = authEndpoints.some(endpoint => config.url?.includes(endpoint));
+      
+      if (!isAuthEndpoint) {
+        // Get access token from localStorage first
+        const accessToken = getAccessToken();
+        
+        // Only try to refresh if we have a token that's expired
+        // Don't try to refresh if we have no token at all (user not logged in)
+        if (accessToken && isTokenExpired(60)) { // 60 seconds margin (standard)
+          logDebug('Token expired/expiring soon, refreshing before request');
+          try {
+            await refreshToken();
+            logDebug('Token refreshed successfully before request');
+            // Get the new token after refresh
+            const newAccessToken = getAccessToken();
+            if (newAccessToken) {
+              config.headers.Authorization = `Bearer ${newAccessToken}`;
+              logDebug(`Added refreshed Bearer token to request: ${config.method?.toUpperCase()} ${config.url}`);
+            }
+          } catch (error) {
+            logWarn('Token refresh failed before request, proceeding anyway');
+            // Still try with old token
+            if (accessToken) {
+              config.headers.Authorization = `Bearer ${accessToken}`;
+            }
+          }
+        } else if (accessToken) {
+          // Token exists and is valid, use it
+          config.headers.Authorization = `Bearer ${accessToken}`;
+          logDebug(`Added Bearer token to request: ${config.method?.toUpperCase()} ${config.url}`);
+        } else {
+          // No token at all - user not logged in (this is normal for initial auth check)
+          logDebug(`No token for request (user not logged in): ${config.method?.toUpperCase()} ${config.url}`);
+        }
+      }
+      
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
+    }
+  );
+
+  // ============================================================================
+  // RESPONSE INTERCEPTOR - Handle 401 and Token Refresh
+  // ============================================================================
 
   axios.interceptors.response.use(
     // Success handler - pass through
@@ -56,26 +117,21 @@ export function setupAxiosInterceptors() {
     async (error: AxiosError) => {
       const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-      // Check if this is a token expiration error
-      const isTokenExpired = 
-        error.response?.status === 401 && 
-        error.response?.headers['token-expired'] === 'true';
-
-      if (!isTokenExpired) {
-        // Not a token expiration error - pass through
+      // Check if this is a 401 error
+      if (error.response?.status !== 401) {
         return Promise.reject(error);
       }
 
       // Prevent infinite retry loop
       if (originalRequest._retry) {
-        logWarn('⚠️ Token refresh already attempted, redirecting to login');
+        logWarn('Token refresh already attempted, redirecting to login');
         window.location.href = '/';
         return Promise.reject(error);
       }
 
       // Avoid refreshing on the refresh endpoint itself
-      if (originalRequest.url?.includes('/api/auth/GetNewToken')) {
-        logWarn('⚠️ Refresh endpoint returned 401, redirecting to login');
+      if (originalRequest.url?.includes('/api/auth/RefreshToken')) {
+        logWarn('Refresh endpoint returned 401, redirecting to login');
         window.location.href = '/';
         return Promise.reject(error);
       }
@@ -84,12 +140,17 @@ export function setupAxiosInterceptors() {
 
       // If already refreshing, queue this request
       if (isRefreshing) {
-        logDebug('🔄 Token refresh in progress, queueing request');
+        logDebug('Token refresh in progress, queueing request');
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
           .then(() => {
-            logDebug('✅ Retrying queued request after refresh');
+            logDebug('Retrying queued request after refresh');
+            // Add new Bearer token to retried request
+            const accessToken = getAccessToken();
+            if (accessToken && originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+            }
             return axios(originalRequest);
           })
           .catch(err => {
@@ -99,27 +160,37 @@ export function setupAxiosInterceptors() {
 
       // Start refresh process
       isRefreshing = true;
-      logDebug('🔄 Token expired, attempting refresh...');
+      logDebug('Token expired (401), attempting refresh...');
 
       try {
-        // Call refresh endpoint - backend will use refresh_token cookie
+        // Call refresh endpoint - uses refresh_token from httpOnly cookie
         await refreshToken();
         
-        logDebug('✅ Token refresh successful');
+        logDebug('Token refresh successful');
         
         // Process queued requests
         processQueue();
         
-        // Retry original request
-        logDebug('🔄 Retrying original request after token refresh');
+        // Retry original request with new Bearer token
+        const accessToken = getAccessToken();
+        if (accessToken && originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        }
+        
+        logDebug('Retrying original request after token refresh');
         return axios(originalRequest);
       } catch (refreshError) {
-        // Refresh failed - clear queue and redirect to login
-        logError('❌ Token refresh failed:', refreshError);
+        // Refresh failed - clear stale tokens and redirect to login
+        logError('Token refresh failed:', refreshError);
+        
+        // Clear stale tokens from localStorage
+        clearTokens();
+        logDebug('Cleared stale tokens from localStorage');
+        
         processQueue(refreshError as Error);
         
         // Redirect to login
-        logWarn('🚪 Redirecting to login due to refresh failure');
+        logWarn('Redirecting to login due to refresh failure');
         window.location.href = '/';
         
         return Promise.reject(refreshError);
@@ -129,5 +200,5 @@ export function setupAxiosInterceptors() {
     }
   );
 
-  logDebug('✅ Axios interceptors configured');
+  logDebug('Axios interceptors configured (hybrid auth with Bearer tokens)');
 }

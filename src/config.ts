@@ -18,13 +18,13 @@ export const API_BASE = IS_PRODUCTION
 
 export const CW_AUTH_ENDPOINT = `${API_BASE}/api`;
 
-// Auth API endpoints (cookie-based authentication)
+// Auth API endpoints (hybrid authentication - Bearer tokens + httpOnly refresh cookie)
 export const AUTH_API_BASE = `${API_BASE}/api/auth`;
 export const AUTH_ENDPOINTS = {
-  EXCHANGE_CODE: `${AUTH_API_BASE}/ExchangeCodeForTokens`,
-  REFRESH_TOKEN: `${AUTH_API_BASE}/GetNewToken`,
-  LOGOUT: `${AUTH_API_BASE}/Logout`,
-  ME: `${AUTH_API_BASE}/Me`,
+  EXCHANGE_CODE: `${AUTH_API_BASE}/ExchangeToken`,      // OAuth2 code exchange
+  REFRESH_TOKEN: `${AUTH_API_BASE}/RefreshToken`,       // Token refresh
+  LOGOUT: `${AUTH_API_BASE}/Logout`,                    // Logout
+  ME: `${AUTH_API_BASE}/Me`,                            // Get current user
 } as const;
 
 // AWS Cognito Hosted UI configuration

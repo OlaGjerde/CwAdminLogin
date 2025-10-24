@@ -1,21 +1,25 @@
 import axios from 'axios';
 import { CW_AUTH_ENDPOINT, INSTALLATIONS_ENDPOINT, AUTH_ENDPOINTS, COGNITO_REDIRECT_URI } from '../config';
-import { logDebug } from '../utils/logger';
+import { logDebug, logError } from '../utils/logger';
+import { setTokens, clearTokens } from '../utils/tokenStorage';
 
 /**
  * Configure axios to send cookies with all requests
- * This is required for cookie-based authentication
+ * This is required for refresh token cookie (httpOnly)
  */
 axios.defaults.withCredentials = true;
 
 /**
  * Backend API functions for authenticated operations
- * Note: Authentication is now handled by httpOnly cookies set by the backend.
- * The browser automatically sends these cookies with each request.
+ * 
+ * Hybrid Authentication Approach:
+ * - Access Token: Returned in response body → Stored in localStorage → Sent via Bearer header
+ * - ID Token: Returned in response body → Stored in localStorage
+ * - Refresh Token: Stored in httpOnly cookie by backend (never exposed to JS)
  */
 
 // ============================================================================
-// Cookie-Based Auth API
+// Hybrid Auth API - DTOs
 // ============================================================================
 
 export interface CodeExchangeRequest {
@@ -25,17 +29,31 @@ export interface CodeExchangeRequest {
 }
 
 /**
- * Unified response DTO for authentication token operations
- * Used by both ExchangeCodeForTokens and GetNewToken endpoints
+ * Response DTO for ExchangeToken endpoint (OAuth2 callback)
+ * Backend returns tokens in response body (NOT in cookies anymore)
+ * Note: Backend uses PascalCase (C# convention)
  */
-export interface AuthTokenResponseDTO {
-  success: boolean;
-  expiresIn: number;
-  message?: string;
+export interface OAuth2ExchangeResponseDTO {
+  AccessToken: string;    // Store in localStorage (PascalCase from backend)
+  IdToken: string;        // Store in localStorage (PascalCase from backend)
+  TokenType: string;      // Should be "Bearer" (PascalCase from backend)
+  ExpiresIn?: number;     // Seconds until expiry (nullable - Cognito can return null)
+  // Note: refreshToken is in httpOnly cookie, NOT in response
 }
 
-// Type aliases for backward compatibility and clarity
-export type CodeExchangeResponse = AuthTokenResponseDTO;
+/**
+ * Response DTO for RefreshToken endpoint
+ * Backend returns new access token in response body
+ * Note: Backend uses PascalCase (C# convention)
+ */
+export interface AuthTokenResponseDTO {
+  AccessToken: string;    // New access token to store (PascalCase from backend)
+  IdToken: string;        // New ID token (PascalCase from backend)
+  ExpiresIn?: number;     // Seconds until expiry (nullable - Cognito can return null)
+}
+
+// Type aliases for backward compatibility
+export type CodeExchangeResponse = OAuth2ExchangeResponseDTO;
 export type TokenRefreshResponseDTO = AuthTokenResponseDTO;
 
 /**
@@ -66,10 +84,12 @@ export interface CurrentUserResponseDTO {
 export type UserInfo = CurrentUserResponseDTO;
 
 /**
- * Exchange OAuth authorization code for tokens (sets httpOnly cookies)
- * Returns token expiry information. Actual tokens are set as httpOnly cookies.
+ * Exchange OAuth authorization code for tokens
+ * Backend returns tokens in response body (accessToken, idToken) and sets refresh token cookie
+ * 
+ * @returns Token data including accessToken and idToken to store in localStorage
  */
-export async function exchangeCodeForTokens(code: string, codeVerifier: string): Promise<AuthTokenResponseDTO> {
+export async function exchangeCodeForTokens(code: string, codeVerifier: string): Promise<OAuth2ExchangeResponseDTO> {
   logDebug('Sending token exchange request:', {
     url: AUTH_ENDPOINTS.EXCHANGE_CODE,
     code: code.substring(0, 20) + '...',
@@ -77,45 +97,86 @@ export async function exchangeCodeForTokens(code: string, codeVerifier: string):
     codeVerifier: codeVerifier.substring(0, 20) + '...',
   });
   
-  const response = await axios.post<AuthTokenResponseDTO>(
-    AUTH_ENDPOINTS.EXCHANGE_CODE,
-    {
-      code,
-      redirectUri: COGNITO_REDIRECT_URI,
-      codeVerifier,
-    } as CodeExchangeRequest
-  );
-  
-  logDebug('Token exchange response:', response.data);
-  logDebug('Cookies after exchange:', document.cookie);
-  
-  // ⭐ Log ALL response headers to see if Set-Cookie is there
-  logDebug('ALL Response Headers:');
-  Object.entries(response.headers).forEach(([key, value]) => {
-    logDebug(`  ${key}: ${value}`);
-  });
-  
-  // ⭐ Specifically check for Set-Cookie (won't be visible in JS, but good to try)
-  logDebug('Set-Cookie header (if accessible):', response.headers['set-cookie']);
-  
-  return response.data;
+  try {
+    const response = await axios.post<OAuth2ExchangeResponseDTO>(
+      AUTH_ENDPOINTS.EXCHANGE_CODE,
+      {
+        code,
+        redirectUri: COGNITO_REDIRECT_URI,
+        codeVerifier,
+      } as CodeExchangeRequest,
+      {
+        timeout: 30000, // 30 second timeout for token exchange (Cognito can be slow)
+      }
+    );
+    
+    logDebug('Token exchange response received:', {
+      tokenType: response.data.TokenType,
+      expiresIn: response.data.ExpiresIn,
+      hasAccessToken: !!response.data.AccessToken,
+      hasIdToken: !!response.data.IdToken,
+    });
+    
+    // Store tokens in localStorage (default to 3600 seconds = 1 hour if null)
+    const expiresIn = response.data.ExpiresIn ?? 3600;
+    setTokens(response.data.AccessToken, response.data.IdToken, expiresIn);
+    logDebug('Tokens stored in localStorage');
+    
+    return response.data;
+  } catch (error) {
+    logError('Token exchange request failed:', error);
+    // Log more details for debugging
+    if (axios.isAxiosError(error)) {
+      logError('Error details:', {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+      });
+    }
+    throw error;
+  }
 }
 
 /**
  * Refresh access and ID tokens using refresh token cookie
- * Returns token expiry information. New tokens are set as httpOnly cookies.
+ * Backend reads refresh token from httpOnly cookie and returns new tokens in response body
+ * 
+ * @returns New token data including accessToken and idToken to store in localStorage
  */
 export async function refreshToken(): Promise<AuthTokenResponseDTO> {
+  logDebug('Refreshing tokens using httpOnly refresh token cookie');
+  
   const response = await axios.post<AuthTokenResponseDTO>(AUTH_ENDPOINTS.REFRESH_TOKEN);
+  
+  logDebug('Token refresh response received:', {
+    expiresIn: response.data.ExpiresIn,
+    hasAccessToken: !!response.data.AccessToken,
+    hasIdToken: !!response.data.IdToken,
+  });
+  
+  // Store new tokens in localStorage (default to 3600 seconds = 1 hour if null)
+  const expiresIn = response.data.ExpiresIn ?? 3600;
+  setTokens(response.data.AccessToken, response.data.IdToken, expiresIn);
+  logDebug('Refreshed tokens stored in localStorage');
+  
   return response.data;
 }
 
 /**
- * Logout - clears auth cookies and returns Cognito logout URL
+ * Logout - clears auth cookies and localStorage tokens, returns Cognito logout URL
  * Frontend should redirect to the returned URL to complete logout
  */
 export async function logout(): Promise<LogoutResponseDTO> {
+  // Clear tokens from localStorage first
+  clearTokens();
+  logDebug('Tokens cleared from localStorage');
+  
+  // Call backend to clear refresh token cookie and get Cognito logout URL
   const response = await axios.post<LogoutResponseDTO>(AUTH_ENDPOINTS.LOGOUT);
+  logDebug('Backend logout complete, refresh token cookie cleared');
+  
   return response.data;
 }
 
