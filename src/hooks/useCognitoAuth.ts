@@ -24,8 +24,11 @@ import {
   refreshToken,
   logout as apiLogout,
   getCurrentUser,
-  type UserInfo,
+  type CurrentUserResponseDTO,
 } from '../api/auth';
+
+// Type alias for backward compatibility
+type UserInfo = CurrentUserResponseDTO;
 
 // ============================================================================
 // Types

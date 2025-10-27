@@ -18,32 +18,45 @@ axios.defaults.withCredentials = true;
 // Cookie-Based Auth API
 // ============================================================================
 
-export interface CodeExchangeRequest {
-  code: string;
-  redirectUri: string;
-  codeVerifier: string;  // PKCE code verifier
+export interface TokenExchangeRequestDTO {
+  Code: string;         // PascalCase to match backend
+  RedirectUri: string;  // PascalCase to match backend
+  CodeVerifier?: string;  // Optional in backend
 }
 
 /**
- * Unified response DTO for authentication token operations
+ * Response DTO for authentication token operations
  * Used by both ExchangeCodeForTokens and GetNewToken endpoints
  */
 export interface AuthTokenResponseDTO {
-  success: boolean;
-  expiresIn: number;
-  message?: string;
+  AccessToken?: string;    // Optional access token
+  IdToken?: string;       // Optional ID token
+  ExpiresIn?: number;     // Optional in backend
+  Success: boolean;       // Required in backend
+  Message?: string;       // Optional message
 }
 
-// Type aliases for backward compatibility and clarity
+// Type aliases for backward compatibility
 export type CodeExchangeResponse = AuthTokenResponseDTO;
 export type TokenRefreshResponseDTO = AuthTokenResponseDTO;
+
+/**
+ * Response DTO for OAuth2 token operations
+ */
+export interface OAuth2TokenResponseDTO {
+  access_token?: string;   // Snake case for OAuth2 standard
+  id_token?: string;
+  refresh_token?: string;
+  token_type?: string;
+  expires_in?: number;
+}
 
 /**
  * Response DTO for logout endpoint
  * Contains Cognito logout URL for completing the logout flow
  */
 export interface LogoutResponseDTO {
-  LogoutUrl: string;  // PascalCase to match .NET backend
+  LogoutUrl: string;      // PascalCase to match .NET backend
 }
 
 // Type alias for backward compatibility
@@ -52,13 +65,12 @@ export type LogoutResponse = LogoutResponseDTO;
 /**
  * Response DTO for /api/auth/Me endpoint
  * Contains authenticated user information from JWT claims
- * Note: Backend returns PascalCase property names
  */
 export interface CurrentUserResponseDTO {
-  Username: string;
-  Email: string | null;
-  Groups: string[];
-  UserId: string;
+  Username: string;       // Has default empty string in backend
+  Email: string | null;   // Nullable in backend
+  Groups: string[];       // Backend uses List<string> with default new()
+  UserId: string | null;  // Nullable in backend
   IsAuthenticated: boolean;
 }
 
@@ -76,15 +88,31 @@ export async function exchangeCodeForTokens(code: string, codeVerifier: string):
     redirectUri: COGNITO_REDIRECT_URI,
     codeVerifier: codeVerifier.substring(0, 20) + '...',
   });
-  
+
+  // Make sure we're sending credentials with the request
   const response = await axios.post<AuthTokenResponseDTO>(
     AUTH_ENDPOINTS.EXCHANGE_CODE,
     {
-      code,
-      redirectUri: COGNITO_REDIRECT_URI,
-      codeVerifier,
-    } as CodeExchangeRequest
-  );
+      Code: code,
+      RedirectUri: COGNITO_REDIRECT_URI,
+      CodeVerifier: codeVerifier,
+    } as TokenExchangeRequestDTO,
+    {
+      withCredentials: true,  // Essential for cookie handling
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    }
+  );  // Debug response and cookies after request
+  console.log('Token exchange response:', response.data);
+  console.log('Cookies after token exchange:', document.cookie);
+  
+  // Verify authentication by calling /Me endpoint
+  try {
+    await getCurrentUser();
+  } catch (error) {
+    console.error('Failed to get user info:', error);
+  }
   
   logDebug('Token exchange response:', response.data);
   logDebug('Cookies after exchange:', document.cookie);

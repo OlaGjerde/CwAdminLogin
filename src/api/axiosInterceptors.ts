@@ -48,6 +48,17 @@ const processQueue = (error: Error | null = null) => {
 export function setupAxiosInterceptors() {
   logDebug('🔧 Setting up Axios interceptors for cookie-based auth');
 
+  // Add request interceptor for CORS credentials
+  axios.interceptors.request.use(
+    (config) => {
+      config.withCredentials = true;  // Always send credentials
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
+    }
+  );
+
   axios.interceptors.response.use(
     // Success handler - pass through
     response => response,

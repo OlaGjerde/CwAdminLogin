@@ -6,7 +6,10 @@
  * - Production (yarn build): Uses AWS deployment
  */
 
-import type { UserInfo } from './api/auth';
+import type { CurrentUserResponseDTO } from './api/auth';
+
+// Type alias for backward compatibility
+type UserInfo = CurrentUserResponseDTO;
 
 // Detect if running in production build
 const IS_PRODUCTION = import.meta.env.PROD;

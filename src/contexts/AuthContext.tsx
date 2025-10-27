@@ -22,7 +22,10 @@
 import React, { createContext, useContext } from 'react';
 import type { ReactNode } from 'react';
 import { useCognitoAuth } from '../hooks/useCognitoAuth';
-import type { UserInfo } from '../api/auth';
+import type { CurrentUserResponseDTO } from '../api/auth';
+
+// Type alias for backward compatibility
+type UserInfo = CurrentUserResponseDTO;
 
 // ============================================================================
 // Types
