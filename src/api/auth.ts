@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { CW_AUTH_ENDPOINT, INSTALLATIONS_ENDPOINT, AUTH_ENDPOINTS, COGNITO_REDIRECT_URI } from '../config';
+import { AUTH_API, ADMIN_SERVICE_BASE, AUTH_SERVICE_BASE, COGNITO_REDIRECT_URI, TOKEN_CONFIG } from '../config';
 import { logDebug } from '../utils/logger';
 
 /**
@@ -83,7 +83,7 @@ export type UserInfo = CurrentUserResponseDTO;
  */
 export async function exchangeCodeForTokens(code: string, codeVerifier: string): Promise<AuthTokenResponseDTO> {
   logDebug('Sending token exchange request:', {
-    url: AUTH_ENDPOINTS.EXCHANGE_CODE,
+    url: `${AUTH_API.BASE}${AUTH_API.EXCHANGE_CODE}`,
     code: code.substring(0, 20) + '...',
     redirectUri: COGNITO_REDIRECT_URI,
     codeVerifier: codeVerifier.substring(0, 20) + '...',
@@ -91,7 +91,7 @@ export async function exchangeCodeForTokens(code: string, codeVerifier: string):
 
   // Make sure we're sending credentials with the request
   const response = await axios.post<AuthTokenResponseDTO>(
-    AUTH_ENDPOINTS.EXCHANGE_CODE,
+    `${AUTH_API.BASE}${AUTH_API.EXCHANGE_CODE}`,
     {
       Code: code,
       RedirectUri: COGNITO_REDIRECT_URI,
@@ -104,27 +104,51 @@ export async function exchangeCodeForTokens(code: string, codeVerifier: string):
       }
     }
   );  // Debug response and cookies after request
-  console.log('Token exchange response:', response.data);
-  console.log('Cookies after token exchange:', document.cookie);
+  logDebug('Token exchange response:', response.data);
   
-  // Verify authentication by calling /Me endpoint
-  try {
-    await getCurrentUser();
-  } catch (error) {
-    console.error('Failed to get user info:', error);
+  // Enhanced cookie debugging
+  logDebug('Cookie Debug Information:');
+  logDebug('Current endpoint path:', window.location.pathname);
+  logDebug('Refresh token endpoint:', AUTH_API.REFRESH_TOKEN);
+  
+  // Debug cookie security and path
+  const setCookieHeader = response.headers['set-cookie'];
+  if (setCookieHeader) {
+    // Parse all cookie attributes
+    const cookieStr = setCookieHeader.toString();
+    logDebug('Cookie attributes:');
+    logDebug('- Path:', cookieStr.match(/Path=([^;]+)/) ? cookieStr.match(/Path=([^;]+)/)![1] : 'not set');
+    logDebug('- Domain:', cookieStr.match(/Domain=([^;]+)/) ? cookieStr.match(/Domain=([^;]+)/)![1] : 'not set');
+    logDebug('- SameSite:', cookieStr.match(/SameSite=([^;]+)/) ? cookieStr.match(/SameSite=([^;]+)/)![1] : 'not set');
+    logDebug('- Secure:', cookieStr.includes('Secure') ? 'yes' : 'no');
+    logDebug('- HttpOnly:', cookieStr.includes('HttpOnly') ? 'yes' : 'no');
+    
+    // Check if path matches the backend config
+    const path = cookieStr.match(/Path=([^;]+)/)?.[1];
+    if (path === '/api/auth/getnewtoken/') {
+      logDebug('⚠️ WARNING: Cookie path is too restrictive. Should be "/" instead of "/api/auth/getnewtoken/"');
+    }
   }
   
-  logDebug('Token exchange response:', response.data);
-  logDebug('Cookies after exchange:', document.cookie);
+  // Test accessing cookies at different paths
+  logDebug('Cookie visibility test:');
+  logDebug('- Root path cookies:', document.cookie);
   
-  // ⭐ Log ALL response headers to see if Set-Cookie is there
-  logDebug('ALL Response Headers:');
-  Object.entries(response.headers).forEach(([key, value]) => {
-    logDebug(`  ${key}: ${value}`);
+  // Check if the refresh endpoint matches the cookie path
+  const refreshEndpoint = AUTH_API.REFRESH_TOKEN;
+  logDebug('Refresh endpoint check:', {
+    endpoint: refreshEndpoint,
+    shouldMatchPath: '/api/auth/getnewtoken/',
+    matches: refreshEndpoint.toLowerCase() === '/api/auth/getnewtoken/'.toLowerCase()
   });
   
-  // ⭐ Specifically check for Set-Cookie (won't be visible in JS, but good to try)
-  logDebug('Set-Cookie header (if accessible):', response.headers['set-cookie']);
+  // Log current path for comparison
+  logDebug('Current path:', window.location.pathname);
+  logDebug('API endpoint path:', AUTH_API.EXCHANGE_CODE);
+  
+  // For debugging on different environments
+  logDebug('Current origin:', window.location.origin);
+  logDebug('AUTH_SERVICE_BASE:', AUTH_SERVICE_BASE);
   
   return response.data;
 }
@@ -134,8 +158,67 @@ export async function exchangeCodeForTokens(code: string, codeVerifier: string):
  * Returns token expiry information. New tokens are set as httpOnly cookies.
  */
 export async function refreshToken(): Promise<AuthTokenResponseDTO> {
-  const response = await axios.post<AuthTokenResponseDTO>(AUTH_ENDPOINTS.REFRESH_TOKEN);
-  return response.data;
+  const now = new Date();
+  logDebug('📍 Starting token refresh request', {
+    endpoint: `${AUTH_API.BASE}${AUTH_API.REFRESH_TOKEN}`,
+    currentPath: window.location.pathname,
+    timestamp: now.toISOString()
+  });
+
+  try {
+    const response = await axios.post<AuthTokenResponseDTO>(
+      `${AUTH_API.BASE}${AUTH_API.REFRESH_TOKEN}`,
+      null,
+      {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    // Calculate and log token expiry details
+    const expiresIn = response.data.ExpiresIn || TOKEN_CONFIG.DEFAULT_EXPIRY;
+    const expiryTime = new Date(now.getTime() + expiresIn * 1000);
+    const refreshTime = new Date(expiryTime.getTime() - TOKEN_CONFIG.REFRESH_GRACE_PERIOD * 1000);
+    
+    logDebug('🕒 Token Lifetime Information:', {
+      issuedAt: now.toISOString(),
+      expiresIn: `${expiresIn} seconds`,
+      expiresAt: expiryTime.toISOString(),
+      willRefreshAt: refreshTime.toISOString(),
+      gracePeriod: `${TOKEN_CONFIG.REFRESH_GRACE_PERIOD} seconds`
+    });
+    
+    logDebug('🔑 Token refresh response:', {
+      status: response.status,
+      success: response.data.Success,
+      message: response.data.Message,
+      expiresIn: response.data.ExpiresIn,
+      cookiePath: '/api/auth/', // Log the configured cookie path
+      timestamp: new Date().toISOString()
+    });
+
+    // Check response headers for cookie information
+    const setCookieHeader = response.headers['set-cookie'];
+    if (setCookieHeader) {
+      logDebug('🍪 Set-Cookie details:', {
+        path: setCookieHeader.toString().match(/Path=([^;]+)/) ?? 'not set',
+        secure: setCookieHeader.toString().includes('Secure'),
+        httpOnly: setCookieHeader.toString().includes('HttpOnly'),
+        sameSite: setCookieHeader.toString().match(/SameSite=([^;]+)/) ?? 'not set'
+      });
+    }
+
+    return response.data;
+  } catch (error) {
+    logDebug('❌ Token refresh failed', {
+      error,
+      endpoint: AUTH_API.REFRESH_TOKEN,
+      timestamp: new Date().toISOString()
+    });
+    throw error;
+  }
 }
 
 /**
@@ -143,7 +226,7 @@ export async function refreshToken(): Promise<AuthTokenResponseDTO> {
  * Frontend should redirect to the returned URL to complete logout
  */
 export async function logout(): Promise<LogoutResponseDTO> {
-  const response = await axios.post<LogoutResponseDTO>(AUTH_ENDPOINTS.LOGOUT);
+  const response = await axios.post<LogoutResponseDTO>(`${AUTH_API.BASE}${AUTH_API.LOGOUT}`);
   return response.data;
 }
 
@@ -154,7 +237,7 @@ export async function logout(): Promise<LogoutResponseDTO> {
 export async function getCurrentUser(): Promise<CurrentUserResponseDTO> {
   logDebug('Calling /Me endpoint...');
   logDebug('All cookies:', document.cookie);
-  const response = await axios.get<CurrentUserResponseDTO>(AUTH_ENDPOINTS.ME);
+  const response = await axios.get<CurrentUserResponseDTO>(`${AUTH_API.BASE}${AUTH_API.ME}`);
   logDebug('/Me response:', response.data);
   return response.data;
 }
@@ -168,7 +251,7 @@ export async function getCurrentUser(): Promise<CurrentUserResponseDTO> {
  * Note: Authorization header is no longer needed - cookies are sent automatically
  */
 export async function fetchInstallations() {
-  return axios.get(INSTALLATIONS_ENDPOINT, {
+  return axios.get(`${ADMIN_SERVICE_BASE}/api/auth/installations`, {
     validateStatus: s => s < 500
   });
 }
@@ -178,7 +261,7 @@ export async function fetchInstallations() {
  * Note: Authorization header is no longer needed - cookies are sent automatically
  */
 export async function createOneTimeToken(installationId: string) {
-  return axios.post(`${CW_AUTH_ENDPOINT}/desktop/CreateOneTimeToken`, null, {
+  return axios.post(`${ADMIN_SERVICE_BASE}/api/desktop/CreateOneTimeToken`, null, {
     params: { installationId },
     validateStatus: s => s < 500
   });

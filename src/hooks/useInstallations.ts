@@ -1,7 +1,8 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { logDebug, logWarn } from '../utils/logger';
 import { INSTALLATIONS_STALE_MS, INSTALLATIONS_RETRY_BASE_MS, INSTALLATIONS_RETRY_MAX_MS, INSTALLATIONS_RETRY_MAX_ATTEMPTS } from '../config';
-import { fetchInstallations, createOneTimeToken } from '../api/auth';
+import { getAuthorizedInstallations, createOneTimeToken as apiCreateOneTimeToken } from '../api/adminApi';
+import { handleApiError } from '../utils/apiErrors';
 import type { NormalizedInstallation, InstallationItem } from '../types/installations';
 
 export interface UseInstallationsResult {
@@ -62,53 +63,44 @@ export function useInstallations(): UseInstallationsResult {
   }, [clearRetry]);
 
   const refresh = useCallback(async () => {
-  const debug = import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1';
     if (inFlightRef.current) {
-  if (debug) logDebug('[installations] skip (in-flight)');
       return;
     }
     inFlightRef.current = true;
     clearRetry();
     setLoading(true);
     setError(null);
-    const started = Date.now();
-  if (debug) logDebug('[installations] request start', { failureCount: failureCountRef.current });
+    
     try {
-      const resp = await fetchInstallations();
-      if (resp.status === 401) {
-        setError('Ikke autorisert.');
-        failureCountRef.current = 0;
-  if (debug) logWarn('[installations] 401 unauthorized');
-        return;
-      }
-      if (!Array.isArray(resp.data)) {
+      const data = await getAuthorizedInstallations();
+      if (!Array.isArray(data)) {
         setError('Uventet format på installasjoner.');
         failureCountRef.current++;
         scheduleRetry();
-  if (debug) logWarn('[installations] invalid format');
         return;
       }
-      const normalized = normalize(resp.data);
+      const normalized = normalize(data);
       setInstallations(normalized);
       lastFetchedRef.current = Date.now();
       try {
         localStorage.setItem('cw_installations', JSON.stringify({ ts: lastFetchedRef.current, items: normalized }));
       } catch { /* ignore */ }
       failureCountRef.current = 0;
-  if (debug) logDebug('[installations] success', { durationMs: Date.now() - started, count: normalized.length });
-    } catch (err: unknown) {
-      const msg = typeof err === 'object' && err && 'message' in err && typeof (err as { message?: unknown }).message === 'string'
-        ? (err as { message: string }).message
-        : '';
-      const isResourceErr = /INSUFFICIENT_RESOURCES/i.test(msg);
-      setError(isResourceErr ? 'Nettleseren avviste forespørselen (ressurser). Prøver igjen...' : 'Feil ved henting av installasjoner.');
+    } catch (error: unknown) {
+      const apiError = handleApiError(error);
+      if (apiError.code === 'NETWORK_ERROR') {
+        setError('Nettverksfeil ved henting av installasjoner. Prøver igjen...');
+      } else if (apiError.status === 401) {
+        setError('Ikke autorisert. Vennligst logg inn på nytt.');
+        return; // Don't retry on auth errors
+      } else {
+        setError(apiError.message);
+      }
       failureCountRef.current++;
       scheduleRetry();
-  if (debug) logWarn('[installations] error', { msg, failureCount: failureCountRef.current });
     } finally {
       setLoading(false);
       inFlightRef.current = false;
-  if (debug) logDebug('[installations] request end');
     }
   }, [clearRetry, scheduleRetry]);
 
@@ -145,13 +137,17 @@ export function useInstallations(): UseInstallationsResult {
   }, []);
 
   const generateLaunchToken = useCallback(async (installationId: string) => {
+    const debug = import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1';
+    if (debug) logDebug('[installations] generating launch token', { installationId });
+    
     try {
-      const resp = await createOneTimeToken(installationId);
-      if (resp.status !== 200) return null;
-      const data = resp.data;
-      if (typeof data === 'string') return data;
-      return data.oneTimeToken || data.OneTimeToken || data.token || data.Token || data.linkToken || data.LinkToken || null;
-    } catch {
+      const token = await apiCreateOneTimeToken(installationId);
+      if (debug) logDebug('[installations] token generated successfully');
+      return token;
+    } catch (error) {
+      const apiError = handleApiError(error);
+      if (debug) logWarn('[installations] token generation failed', { error: apiError });
+      setError(apiError.message || 'Kunne ikke generere påloggingstoken.');
       return null;
     }
   }, []);

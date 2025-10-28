@@ -14,20 +14,29 @@ type UserInfo = CurrentUserResponseDTO;
 // Detect if running in production build
 const IS_PRODUCTION = import.meta.env.PROD;
 
-// Base API URLs - different for dev vs production
-export const API_BASE = IS_PRODUCTION
-  ? 'https://adminapi-dev.calwincloud.com'  // Production AWS ECS Fargate
-  : 'https://localhost:7059';                // Local development
+// Service Base URLs - different for dev vs production
+export const AUTH_SERVICE_BASE = IS_PRODUCTION
+  ? 'https://auth.calwincloud.com'    // Production Auth Service
+  : 'https://localhost:7059';         // Local Auth Service (CwAuth)
 
-export const CW_AUTH_ENDPOINT = `${API_BASE}/api`;
+export const ADMIN_SERVICE_BASE = IS_PRODUCTION
+  ? 'https://adminapi-dev.calwincloud.com'  // Production Admin Service
+  : 'https://localhost:7060';               // Local Admin Service
 
-// Auth API endpoints (cookie-based authentication)
-export const AUTH_API_BASE = `${API_BASE}/api/auth`;
-export const AUTH_ENDPOINTS = {
-  EXCHANGE_CODE: `${AUTH_API_BASE}/ExchangeCodeForTokens`,
-  REFRESH_TOKEN: `${AUTH_API_BASE}/GetNewToken`,
-  LOGOUT: `${AUTH_API_BASE}/Logout`,
-  ME: `${AUTH_API_BASE}/Me`,
+// Auth API configuration (cookie-based authentication)
+export const AUTH_API = {
+  BASE: `${AUTH_SERVICE_BASE}`,
+  EXCHANGE_CODE: `/api/auth/ExchangeCodeForTokens`,
+  REFRESH_TOKEN: `/api/auth/GetNewToken`,
+  LOGOUT: `/api/auth/Logout`,
+  ME: `/api/auth/Me`,
+} as const;
+
+// Admin API configuration
+export const ADMIN_API = {
+  BASE: `${ADMIN_SERVICE_BASE}`,
+  INSTALLATIONS: `/api/installation/GetAuthorizedInstallations`,
+  CREATE_ONE_TIME_TOKEN: `/api/desktop/CreateOneTimeToken`,
 } as const;
 
 // AWS Cognito Hosted UI configuration
@@ -40,12 +49,20 @@ export const COGNITO_REDIRECT_URI = IS_PRODUCTION
   ? 'https://dev.calwincloud.com'  // Production AWS S3
   : window.location.origin;        // Local development (dynamic)
 
+// Token refresh configuration
+export const TOKEN_CONFIG = {
+  // Grace period before token expiry (in seconds)
+  // Token will be refreshed if it's within this period of expiring
+  REFRESH_GRACE_PERIOD: 300, // 5 minutes
+  
+  // Default token expiry time (in seconds) if not provided by backend
+  DEFAULT_EXPIRY: 3600, // 1 hour
+} as const;
+
 // Supported app protocols
 export const PROTOCOL_CALWIN = 'calwin://';
 export const PROTOCOL_CALWIN_TEST = 'calwintest://';
 export const PROTOCOL_CALWIN_DEV = 'calwindev://';
-
-export const INSTALLATIONS_ENDPOINT = `${CW_AUTH_ENDPOINT}/installation/GetAuthorizedInstallations`;
 
 // Installer download URL for when protocol handler is not registered
 export const INSTALLER_DOWNLOAD_URL = 'https://calwinmedia-dev.calwincloud.com/CalWin8.appinstaller';
@@ -144,20 +161,20 @@ export function getAppSettingsFromStorage(workspaceId: string | number, appId: s
 }
 
 export default {
-  API_BASE,
-  CW_AUTH_ENDPOINT,
-  // APPINSTALLER_URLS, // DISABLED
+  AUTH_SERVICE_BASE,
+  ADMIN_SERVICE_BASE,
+  AUTH_API,
+  ADMIN_API,
   PROTOCOL_CALWIN,
   PROTOCOL_CALWIN_TEST,
   PROTOCOL_CALWIN_DEV,
-  INSTALLATIONS_ENDPOINT,
   INSTALLER_DOWNLOAD_URL,
-  REFRESH_MARGIN_SECONDS
-  , INSTALLATIONS_STALE_MS
-  , INSTALLATIONS_RETRY_BASE_MS
-  , INSTALLATIONS_RETRY_MAX_MS
-  , INSTALLATIONS_RETRY_MAX_ATTEMPTS
-  , COGNITO_DOMAIN
-  , COGNITO_CLIENT_ID
-  , COGNITO_REDIRECT_URI
+  REFRESH_MARGIN_SECONDS,
+  INSTALLATIONS_STALE_MS,
+  INSTALLATIONS_RETRY_BASE_MS,
+  INSTALLATIONS_RETRY_MAX_MS,
+  INSTALLATIONS_RETRY_MAX_ATTEMPTS,
+  COGNITO_DOMAIN,
+  COGNITO_CLIENT_ID,
+  COGNITO_REDIRECT_URI
 };

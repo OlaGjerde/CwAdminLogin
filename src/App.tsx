@@ -37,8 +37,8 @@ function App() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      refreshIfStale().catch((err) => {
-        logError("Failed to fetch installations:", err);
+      refreshIfStale().catch(() => {
+        // Silent fail - error is handled in useInstallations
       });
     }
   }, [isAuthenticated, refreshIfStale]);
@@ -112,7 +112,7 @@ function App() {
           </p>
           <div style={{ display: "flex", gap: "10px", flexDirection: "column" }}>
             <Button
-              text="Pr�v p� nytt"
+              text="Prøv på nytt"
               icon="refresh"
               onClick={login}
               type="default"
@@ -120,7 +120,7 @@ function App() {
               width="100%"
             />
             <Button
-              text="Slett alt og pr�v igjen"
+              text="Slett alt og prøv igjen"
               icon="trash"
               onClick={() => {
                 localStorage.clear();

@@ -7,6 +7,7 @@
 import React from 'react';
 import { Button } from 'devextreme-react/button';
 import { getCurrentUser, refreshToken } from '../api/auth';
+import { handleApiError } from '../utils/apiErrors';
 import { logDebug, logError, logWarn } from '../utils/logger';
 import notify from 'devextreme/ui/notify';
 
@@ -17,12 +18,27 @@ export const TokenRefreshTester: React.FC = () => {
     setTesting(true);
     try {
       logWarn('🧪 TEST: Manual token refresh');
+      
+      // Log current cookies before refresh
+      logDebug('Cookies before refresh:', {
+        visibleCookies: document.cookie,
+        currentPath: window.location.pathname
+      });
+      
       await refreshToken();
+      
+      // Log cookies after refresh
+      logDebug('Cookies after refresh:', {
+        visibleCookies: document.cookie,
+        currentPath: window.location.pathname
+      });
+      
       notify('✅ Token refresh successful!', 'success', 3000);
       logDebug('✅ Manual refresh completed');
     } catch (error) {
-      logError('❌ Manual refresh failed:', error);
-      notify('❌ Token refresh failed!', 'error', 3000);
+      const apiError = handleApiError(error);
+      logError('❌ Manual refresh failed:', apiError);
+      notify(`❌ ${apiError.message}`, 'error', 3000);
     } finally {
       setTesting(false);
     }
@@ -36,8 +52,9 @@ export const TokenRefreshTester: React.FC = () => {
       notify(`✅ User: ${user.Email}`, 'success', 3000);
       logDebug('✅ /Me response:', user);
     } catch (error) {
-      logError('❌ /Me failed:', error);
-      notify('❌ Failed to get user!', 'error', 3000);
+      const apiError = handleApiError(error);
+      logError('❌ /Me failed:', apiError);
+      notify(`❌ ${apiError.message}`, 'error', 3000);
     } finally {
       setTesting(false);
     }
@@ -55,8 +72,9 @@ export const TokenRefreshTester: React.FC = () => {
       
       notify('✅ Request succeeded (token was valid or refreshed)', 'success', 3000);
     } catch (error) {
-      logError('❌ Test failed:', error);
-      notify('❌ Test failed - check console', 'error', 3000);
+      const apiError = handleApiError(error);
+      logError('❌ Test failed:', apiError);
+      notify(`❌ ${apiError.message}`, 'error', 3000);
     } finally {
       setTesting(false);
     }

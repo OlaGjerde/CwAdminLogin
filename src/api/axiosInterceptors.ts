@@ -8,6 +8,7 @@
 import axios from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { refreshToken } from './auth';
+import { AUTH_API } from '../config';
 import { logDebug, logError, logWarn } from '../utils/logger';
 
 // Track if a refresh is in progress to prevent multiple concurrent refresh attempts
@@ -47,6 +48,18 @@ const processQueue = (error: Error | null = null) => {
  */
 export function setupAxiosInterceptors() {
   logDebug('🔧 Setting up Axios interceptors for cookie-based auth');
+  
+  // Log when access token is being used
+  axios.interceptors.request.use((config) => {
+    if (config.url?.includes('/api/')) {
+      logDebug('🔑 Using Access Token for request:', {
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        timestamp: new Date().toISOString()
+      });
+    }
+    return config;
+  });
 
   // Add request interceptor for CORS credentials
   axios.interceptors.request.use(
@@ -67,14 +80,32 @@ export function setupAxiosInterceptors() {
     async (error: AxiosError) => {
       const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-      // Check if this is a token expiration error
-      const isTokenExpired = 
-        error.response?.status === 401 && 
-        error.response?.headers['token-expired'] === 'true';
+      // Enhanced token expiration check with detailed logging
+      const isTokenExpired = error.response?.status === 401;
+      const isAuthEndpoint = originalRequest.url?.includes('/api/auth/');
+      
+      logDebug('� Auth Interceptor: Token Check', {
+        timestamp: new Date().toISOString(),
+        requestUrl: originalRequest.url,
+        status: error.response?.status,
+        isTokenExpired,
+        isAuthEndpoint,
+        failedRequestMethod: originalRequest.method,
+        headers: {
+          tokenExpired: error.response?.headers['token-expired'],
+          ...error.response?.headers
+        }
+      });
+
+      // Don't attempt refresh for auth endpoints to prevent loops
+      if (isTokenExpired && isAuthEndpoint) {
+        logWarn('⚠️ Auth endpoint returned 401, skipping refresh');
+        return Promise.reject(error);
+      }
 
       if (!isTokenExpired) {
-        // Not a token expiration error - pass through
-        return Promise.reject(error);
+      logDebug('📝 Not a token expiration error - passing through');
+      return Promise.reject(error);
       }
 
       // Prevent infinite retry loop
@@ -83,6 +114,12 @@ export function setupAxiosInterceptors() {
         window.location.href = '/';
         return Promise.reject(error);
       }
+
+      logDebug('🔄 Starting token refresh process', {
+        timestamp: new Date().toISOString(),
+        originalUrl: originalRequest.url,
+        requestMethod: originalRequest.method
+      });
 
       // Avoid refreshing on the refresh endpoint itself
       if (originalRequest.url?.includes('/api/auth/GetNewToken')) {
@@ -110,19 +147,43 @@ export function setupAxiosInterceptors() {
 
       // Start refresh process
       isRefreshing = true;
-      logDebug('🔄 Token expired, attempting refresh...');
+      logDebug('🔄 Auth Interceptor: Token Refresh Started', {
+        timestamp: new Date().toISOString(),
+        triggeringRequest: {
+          url: originalRequest.url,
+          method: originalRequest.method
+        },
+        queueStatus: {
+          isRefreshing,
+          queuedRequests: failedQueue.length
+        }
+      });
 
       try {
+        logDebug('📡 Auth Interceptor: Calling Refresh Token API', {
+          timestamp: new Date().toISOString(),
+          endpoint: AUTH_API.REFRESH_TOKEN
+        });
+
         // Call refresh endpoint - backend will use refresh_token cookie
         await refreshToken();
         
-        logDebug('✅ Token refresh successful');
+        logDebug('✅ Token refresh successful', {
+          cookies: document.cookie, // Will only show non-httpOnly cookies
+          path: window.location.pathname
+        });
         
         // Process queued requests
         processQueue();
+        logDebug('📋 Processed queued requests:', {
+          processedCount: failedQueue.length
+        });
         
         // Retry original request
-        logDebug('🔄 Retrying original request after token refresh');
+        logDebug('🔄 Retrying original request:', {
+          method: originalRequest.method,
+          url: originalRequest.url
+        });
         return axios(originalRequest);
       } catch (refreshError) {
         // Refresh failed - clear queue and redirect to login
