@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { AUTH_API, ADMIN_SERVICE_BASE, AUTH_SERVICE_BASE, COGNITO_REDIRECT_URI, TOKEN_CONFIG } from '../config';
 import { logDebug } from '../utils/logger';
+import { authClient } from './axiosConfig';
 
 /**
  * Configure axios to send cookies with all requests
@@ -22,6 +23,56 @@ export interface TokenExchangeRequestDTO {
   Code: string;         // PascalCase to match backend
   RedirectUri: string;  // PascalCase to match backend
   CodeVerifier?: string;  // Optional in backend
+}
+
+// Access token memory cache
+let _accessToken: string | null = null;
+
+/**
+ * Get current access token from cookie
+ * If no token exists, will try to refresh it once
+ */
+// Track token refresh attempts
+let isRefreshing = false;
+let refreshAttempts = 0;
+const MAX_REFRESH_ATTEMPTS = 3;
+
+export async function getAccessToken(): Promise<string | null> {
+  try {
+    // If we already have a token, return it
+    if (_accessToken) {
+      return _accessToken;
+    }
+
+    // If we're already refreshing, wait a bit and try again
+    if (isRefreshing) {
+      if (refreshAttempts >= MAX_REFRESH_ATTEMPTS) {
+        logDebug('Max refresh attempts reached, giving up');
+        return null;
+      }
+      refreshAttempts++;
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+      return getAccessToken();
+    }
+
+    // Try to get a new token
+    isRefreshing = true;
+    const me = await getCurrentUser();
+    if (me.IsAuthenticated) {
+      // We have valid authentication, try to refresh the token
+      await authClient.post(AUTH_API.REFRESH_TOKEN);
+      _accessToken = 'temp-token'; // The actual token is in the cookie
+      return _accessToken;
+    }
+    return null;
+  } catch (error) {
+    logDebug('Failed to get access token:', error);
+    _accessToken = null;
+    return null;
+  } finally {
+    isRefreshing = false;
+    refreshAttempts = 0;
+  }
 }
 
 /**

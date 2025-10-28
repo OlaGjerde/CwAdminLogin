@@ -22,7 +22,7 @@
  */
 
 import { useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts';
 import { logDebug } from '../utils/logger';
 
 // ============================================================================

@@ -19,9 +19,9 @@ const authConfig = {
   },
 };
 
-// Admin client config (uses Bearer token)
+// Admin client config (uses cookie-based auth)
 const adminConfig = {
-  withCredentials: false, // Don't send cookies
+  withCredentials: true, // Required for cookie handling
   headers: {
     'Content-Type': 'application/json',
   },
@@ -72,16 +72,15 @@ const errorInterceptor = (error: AxiosError) => {
 adminClient.interceptors.request.use(async (config) => {
   try {
     // Dynamically import to avoid circular dependency
-    const { getAccessToken } = await import('./authApi');
+    const { getAccessToken } = await import('./auth');
     const token = await getAccessToken();
     
     if (!token) {
-      logError('❌ Admin Request Error: No access token available');
-      return Promise.reject(new Error('No access token available'));
+      logError('❌ Admin Request Error: No access token available - user may need to log in again. Please refresh the page or log out and back in.');
+      return Promise.reject(new Error('No access token available - Please log in again'));
     }
     
-    // Add Bearer token to Authorization header
-    config.headers.Authorization = `Bearer ${token}`;
+    // Token is managed by cookies, no need to set Authorization header
     return config;
   } catch (error) {
     logError('❌ Admin Request Error:', error instanceof Error ? error.message : 'Unknown error');

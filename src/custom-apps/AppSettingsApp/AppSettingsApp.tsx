@@ -12,7 +12,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import type { CustomAppProps } from '../../types/custom-app';
 import type { AppSettingsUpdate } from '../../types/app-settings';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts';
 import { customAppRegistry } from '../../registry/custom-apps';
 import { isUserAdmin } from '../../config';
 import { Button } from 'devextreme-react/button';

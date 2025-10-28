@@ -4,8 +4,10 @@
 
 export interface CurrentUserResponseDTO {
   Email: string | null;
-  Groups?: string[];
-  // Add other user properties as needed
+  Groups: string[];
+  Username: string;
+  UserId: string | null;
+  IsAuthenticated: boolean;
 }
 
 export interface OAuth2TokenResponseDTO {

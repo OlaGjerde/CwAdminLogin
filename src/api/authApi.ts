@@ -5,7 +5,10 @@
 
 import { authClient } from './axiosConfig';
 import { AUTH_API, COGNITO_REDIRECT_URI } from '../config';
-import type { CurrentUserResponseDTO, OAuth2TokenResponseDTO } from '../types/auth';
+import type { CurrentUserResponseDTO } from '../types/auth';
+
+// Store the current tokens in memory
+let _currentTokens: { access_token?: string } | null = null;
 
 /**
  * Exchange authorization code for tokens

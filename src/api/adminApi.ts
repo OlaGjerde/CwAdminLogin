@@ -20,7 +20,7 @@ interface OneTimeTokenResponse {
  * Get authorized installations for the current user
  */
 export async function getAuthorizedInstallations(): Promise<InstallationItem[]> {
-  const response = await adminClient.get<InstallationItem[]>(`${ADMIN_API.BASE}${ADMIN_API.INSTALLATIONS}`);
+  const response = await adminClient.get<InstallationItem[]>(ADMIN_API.INSTALLATIONS);
   return response.data;
 }
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { useAuth } from './contexts/AuthContext';
+import { useAuth } from './contexts';
 import { useInstallations } from './hooks/useInstallations';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
@@ -187,7 +187,7 @@ const AppContent = React.memo(function AppContent() {
         hasAutoOpenedRef.current = true;
       }
     }
-  }, [state.currentWorkspace, handleAutoOpenLauncher]);
+  }, [state.currentWorkspace, state.openApps, handleAutoOpenLauncher]);
 
   return (
     <div className="app-root">

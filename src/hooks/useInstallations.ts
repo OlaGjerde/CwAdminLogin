@@ -2,6 +2,7 @@ import { useCallback, useState, useEffect, useRef } from 'react';
 import { logDebug, logWarn } from '../utils/logger';
 import { INSTALLATIONS_STALE_MS, INSTALLATIONS_RETRY_BASE_MS, INSTALLATIONS_RETRY_MAX_MS, INSTALLATIONS_RETRY_MAX_ATTEMPTS } from '../config';
 import { getAuthorizedInstallations, createOneTimeToken as apiCreateOneTimeToken } from '../api/adminApi';
+import { useAuth } from '../contexts';
 import { handleApiError } from '../utils/apiErrors';
 import type { NormalizedInstallation, InstallationItem } from '../types/installations';
 
@@ -20,6 +21,7 @@ export function useInstallations(): UseInstallationsResult {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lastFetchedRef = useRef<number>(0);
+  const { isAuthenticated } = useAuth();
 
   const normalize = (data: Array<InstallationItem | string>): NormalizedInstallation[] => {
     return data.map((item, idx) => {
@@ -63,6 +65,11 @@ export function useInstallations(): UseInstallationsResult {
   }, [clearRetry]);
 
   const refresh = useCallback(async () => {
+    if (!isAuthenticated) {
+      logDebug('Skipping installations refresh - not authenticated');
+      return;
+    }
+
     if (inFlightRef.current) {
       return;
     }
@@ -102,7 +109,7 @@ export function useInstallations(): UseInstallationsResult {
       setLoading(false);
       inFlightRef.current = false;
     }
-  }, [clearRetry, scheduleRetry]);
+  }, [clearRetry, scheduleRetry, isAuthenticated]);
 
   // Keep ref pointing to latest refresh implementation
   useEffect(() => { refreshFnRef.current = refresh; }, [refresh]);

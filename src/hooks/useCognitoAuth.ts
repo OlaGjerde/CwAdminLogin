@@ -23,8 +23,7 @@ import {
   exchangeCodeForTokens,
   refreshToken,
   logout as apiLogout,
-  getCurrentUser,
-  type LogoutResponse,
+  getCurrentUser
 } from '../api/auth';
 import type { CurrentUserResponseDTO } from '../types/auth';
 
@@ -211,7 +210,7 @@ export function useCognitoAuth() {
         return;
       }
       
-      const tokenResponse = await exchangeCodeForTokens(params.code, codeVerifier);
+      await exchangeCodeForTokens(params.code, codeVerifier);
       
       logDebug('Tokens received and cookies set by backend');
       
@@ -347,7 +346,6 @@ export function useCognitoAuth() {
     try {
       // Call backend logout endpoint (clears cookies and returns Cognito logout URL)
       const response = await apiLogout();
-      type LogoutResponse = { LogoutUrl: string };
       
       logDebug('Backend cookies cleared');
       

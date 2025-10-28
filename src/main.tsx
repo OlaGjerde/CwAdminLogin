@@ -14,7 +14,7 @@ config({ licenseKey });
 import './index.css'
 import App from './App.tsx'
 import { setupAxiosInterceptors } from './api/axiosInterceptors'
-import { AuthProvider } from './contexts/AuthContext'
+import { AuthProvider } from './contexts/auth'
 
 // Setup automatic token refresh on 401 errors
 setupAxiosInterceptors();

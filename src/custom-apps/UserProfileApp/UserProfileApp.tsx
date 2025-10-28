@@ -10,7 +10,7 @@
 
 import React from 'react';
 import type { CustomAppProps } from '../../types/custom-app';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts';
 import { Button } from 'devextreme-react/button';
 import './UserProfileApp.css';
 
