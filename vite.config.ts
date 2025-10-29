@@ -21,6 +21,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/api/desktop': {
+        target: 'https://localhost:7060',
+        changeOrigin: true,
+        secure: false,
+      },
       '/api': {
         target: 'https://localhost:7059',
         changeOrigin: true,

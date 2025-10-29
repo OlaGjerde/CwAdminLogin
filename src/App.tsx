@@ -227,30 +227,17 @@ const AppContent = React.memo(function AppContent() {
                 setIsStartingCalWin(true);
                 
                 try {
-                  const { createOneTimeToken } = await import("./api/auth");
+                  const { createOneTimeToken } = await import("./api/adminApi");
                   const { PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } = await import("./config");
                   
                   logDebug("Generating launch token...");
-                  const resp = await createOneTimeToken(state.currentWorkspace.id);
-                  
-                  if (resp.status !== 200) {
-                    throw new Error(`Failed to generate launch token: ${resp.status}`);
-                  }
-                  
-                  const data = resp.data;
-                  let token: string | null = null;
-                  
-                  if (typeof data === "string") {
-                    token = data;
-                  } else {
-                    token = data.oneTimeToken || data.OneTimeToken || data.token || data.Token || data.linkToken || data.LinkToken || null;
-                  }
+                  const token = await createOneTimeToken(state.currentWorkspace.id);
                   
                   if (!token) {
                     throw new Error("No launch token received from server");
                   }
                   
-                  logDebug(" Launch token received");
+                  logDebug("Launch token received");
                   
                   const protocol = state.currentWorkspace.appType === 0 
                     ? PROTOCOL_CALWIN 

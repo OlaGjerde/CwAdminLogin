@@ -28,12 +28,19 @@ export async function getAuthorizedInstallations(): Promise<InstallationItem[]> 
  * Generate a one-time token for launching an installation
  */
 export async function createOneTimeToken(installationId: string): Promise<string> {
-  const response = await adminClient.post<OneTimeTokenResponse>(
+  const response = await adminClient.post<OneTimeTokenResponse | string>(
     `${ADMIN_API.BASE}${ADMIN_API.CREATE_ONE_TIME_TOKEN}`,
     null,
     { params: { installationId } }
   );
   const data = response.data;
+  
+  // Handle direct string response
+  if (typeof data === 'string') {
+    return data;
+  }
+  
+  // Handle object response with various property names
   const token = data.oneTimeToken || data.OneTimeToken || data.token || data.Token || data.linkToken || data.LinkToken;
   if (!token) {
     throw new Error('Invalid token response from server');
