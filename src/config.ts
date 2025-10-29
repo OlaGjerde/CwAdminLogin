@@ -1,9 +1,11 @@
 /**
  * Centralized configuration for URLs and endpoints
  * 
- * Build-time configuration based on Vite mode:
- * - Development (yarn dev): Uses localhost
- * - Production (yarn build): Uses AWS deployment
+ * Environment-specific configuration for:
+ * - Development (localhost)
+ * - Dev Cloud (dev.calwincloud.com)
+ * - Test (test.calwincloud.com)
+ * - Production (www.calwincloud.com)
  */
 
 import type { CurrentUserResponseDTO } from './api/auth';
@@ -11,43 +13,132 @@ import type { CurrentUserResponseDTO } from './api/auth';
 // Type alias for backward compatibility
 type UserInfo = CurrentUserResponseDTO;
 
-// Detect if running in production build
-const IS_PRODUCTION = import.meta.env.PROD;
+// Environment detection
+const ENV = {
+  isDev: import.meta.env.MODE === 'development',
+  isTest: import.meta.env.MODE === 'test',
+  isProd: import.meta.env.MODE === 'production',
+  isLocal: typeof window !== 'undefined' && window.location.hostname === 'localhost'
+};
 
-// Service Base URLs - different for dev vs production
-export const AUTH_SERVICE_BASE = IS_PRODUCTION
-  ? 'https://auth.calwincloud.com'    // Production Auth Service
-  : 'https://localhost:7059';         // Local Auth Service (CwAuth)
+// Environment-specific configurations
+interface EnvConfig {
+  frontendUrl: string;
+  apiUrl: string;
+  cognitoDomain: string;
+  cookieDomain: string;
+  cookieSecure: boolean;
+  cookieSameSite: 'Strict' | 'Lax' | 'None';
+  corsOrigins: string[];
+}
 
-export const ADMIN_SERVICE_BASE = IS_PRODUCTION
-  ? 'https://adminapi-dev.calwincloud.com'  // Production Admin Service
-  : 'https://localhost:7060';               // Local Admin Service
+const envConfigs: Record<string, EnvConfig> = {
+  local: {
+    frontendUrl: 'http://localhost:5173',
+    apiUrl: 'http://localhost:5000',
+    cognitoDomain: 'https://login.calwincloud.com',
+    cookieDomain: '',
+    cookieSecure: false,
+    cookieSameSite: 'Lax',
+    corsOrigins: ['http://localhost:5173', 'https://localhost:5173']
+  },
+  dev: {
+    frontendUrl: 'https://dev.calwincloud.com',
+    apiUrl: 'https://apidev.calwincloud.com',
+    cognitoDomain: 'https://login.calwincloud.com',
+    cookieDomain: '.calwincloud.com',
+    cookieSecure: true,
+    cookieSameSite: 'None',
+    corsOrigins: ['https://dev.calwincloud.com']
+  },
+  test: {
+    frontendUrl: 'https://test.calwincloud.com',
+    apiUrl: 'https://apitest.calwincloud.com',
+    cognitoDomain: 'https://login.calwincloud.com',
+    cookieDomain: '.calwincloud.com',
+    cookieSecure: true,
+    cookieSameSite: 'None',
+    corsOrigins: ['https://test.calwincloud.com']
+  },
+  prod: {
+    frontendUrl: 'https://www.calwincloud.com',
+    apiUrl: 'https://api.calwincloud.com',
+    cognitoDomain: 'https://login.calwincloud.com',
+    cookieDomain: '.calwincloud.com',
+    cookieSecure: true,
+    cookieSameSite: 'None',
+    corsOrigins: ['https://www.calwincloud.com']
+  }
+};
+
+// Get current environment configuration
+const getCurrentEnv = (): EnvConfig => {
+  if (ENV.isLocal) return envConfigs.local;
+  if (ENV.isDev) return envConfigs.dev;
+  if (ENV.isTest) return envConfigs.test;
+  return envConfigs.prod;
+};
+
+const currentEnv = getCurrentEnv();
+
+// Service Base URLs
+export const AUTH_SERVICE_BASE = currentEnv.apiUrl;
+export const ADMIN_SERVICE_BASE = currentEnv.apiUrl;
+
+// Cookie configuration
+export const COOKIE_CONFIG = {
+  access: {
+    name: 'access_token',
+    path: '/',
+    maxAge: 3600, // 1 hour
+    httpOnly: true,
+    secure: currentEnv.cookieSecure,
+    sameSite: currentEnv.cookieSameSite,
+    domain: currentEnv.cookieDomain
+  },
+  refresh: {
+    name: 'refresh_token',
+    path: '/api/auth/',
+    maxAge: 2592000, // 30 days
+    httpOnly: true,
+    secure: currentEnv.cookieSecure,
+    sameSite: currentEnv.cookieSameSite,
+    domain: currentEnv.cookieDomain
+  }
+} as const;
 
 // Auth API configuration (cookie-based authentication)
 export const AUTH_API = {
   BASE: `${AUTH_SERVICE_BASE}`,
-  EXCHANGE_CODE: `/api/auth/ExchangeCodeForTokens`,
-  REFRESH_TOKEN: `/api/auth/GetNewToken`,
-  LOGOUT: `/api/auth/Logout`,
-  ME: `/api/auth/Me`,
+  LOGIN: '/api/auth/LoginUser',
+  CALLBACK: '/api/auth/callback',
+  EXCHANGE_CODE: '/api/auth/ExchangeCodeForTokens',
+  REFRESH_TOKEN: '/api/auth/GetNewToken',
+  LOGOUT: '/api/auth/Logout',
+  ME: '/api/auth/Me',
+  GET_USER_STATUS: '/api/auth/GetUserStatus'
 } as const;
 
 // Admin API configuration
 export const ADMIN_API = {
   BASE: `${ADMIN_SERVICE_BASE}`,
-  INSTALLATIONS: `/api/installation/GetAuthorizedInstallations`,
-  CREATE_ONE_TIME_TOKEN: `/api/desktop/CreateOneTimeToken`,
+  INSTALLATIONS: '/api/installation/GetAuthorizedInstallations',
+  CREATE_ONE_TIME_TOKEN: '/api/desktop/CreateOneTimeToken'
 } as const;
 
 // AWS Cognito Hosted UI configuration
 export const COGNITO_AWS_REGION_DOMAIN = 'https://calwincloud.auth.eu-north-1.amazoncognito.com';
-export const COGNITO_DOMAIN = 'https://auth.calwincloud.com'; // Custom domain
+export const COGNITO_DOMAIN = currentEnv.cognitoDomain;
 export const COGNITO_CLIENT_ID = '656e5ues1tvo5tk9e00u5f0ft3';
 
-// Redirect URI - different for dev vs production
-export const COGNITO_REDIRECT_URI = IS_PRODUCTION
-  ? 'https://dev.calwincloud.com'  // Production AWS S3
-  : window.location.origin;        // Local development (dynamic)
+// Redirect URI based on environment
+export const COGNITO_REDIRECT_URI = currentEnv.frontendUrl;
+
+// CORS configuration
+export const CORS_CONFIG = {
+  origins: currentEnv.corsOrigins,
+  credentials: true
+} as const;
 
 // Token refresh configuration
 export const TOKEN_CONFIG = {
