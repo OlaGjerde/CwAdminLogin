@@ -35,8 +35,8 @@ interface EnvConfig {
 const envConfigs: Record<string, EnvConfig> = {
   local: {
     frontendUrl: 'http://localhost:5173',
-    apiUrl: 'http://localhost:5000',
-    cognitoDomain: 'https://login.calwincloud.com',
+    apiUrl: '', // Use proxy - requests will go to same origin
+    cognitoDomain: 'https://auth.calwincloud.com',
     cookieDomain: '',
     cookieSecure: false,
     cookieSameSite: 'Lax',

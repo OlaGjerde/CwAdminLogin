@@ -71,8 +71,20 @@ const responseInterceptor = (response: AxiosResponse) => {
 const errorInterceptor = async (error: AxiosError) => {
   const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
   
-  // Handle 401 errors (unauthorized)
-  if (error.response?.status === 401 && !originalRequest._retry) {
+  // Don't retry on these endpoints to avoid infinite loops
+  const noRetryEndpoints = [
+    AUTH_API.ME,
+    AUTH_API.REFRESH_TOKEN,
+    AUTH_API.LOGOUT,
+    AUTH_API.LOGIN
+  ];
+  
+  const shouldSkipRetry = noRetryEndpoints.some(endpoint => 
+    originalRequest.url?.includes(endpoint)
+  );
+  
+  // Handle 401 errors (unauthorized) - but skip certain endpoints
+  if (error.response?.status === 401 && !originalRequest._retry && !shouldSkipRetry) {
     if (isRefreshing) {
       // Wait for token refresh
       try {
@@ -97,8 +109,7 @@ const errorInterceptor = async (error: AxiosError) => {
     } catch (refreshError) {
       isRefreshing = false;
       refreshSubscribers = [];
-      // Redirect to login or handle refresh failure
-      window.location.href = '/login';
+      // Don't redirect here - let the calling code handle it
       return Promise.reject(refreshError);
     }
   }

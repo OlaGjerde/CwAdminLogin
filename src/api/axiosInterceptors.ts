@@ -7,7 +7,7 @@
 
 import axios from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { refreshToken } from './auth';
+import { refreshTokens } from './auth';
 import { AUTH_API } from '../config';
 import { logDebug, logError, logWarn } from '../utils/logger';
 
@@ -166,7 +166,7 @@ export function setupAxiosInterceptors() {
         });
 
         // Call refresh endpoint - backend will use refresh_token cookie
-        await refreshToken();
+        await refreshTokens();
         
         logDebug('✅ Token refresh successful', {
           cookies: document.cookie, // Will only show non-httpOnly cookies

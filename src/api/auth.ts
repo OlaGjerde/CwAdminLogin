@@ -81,7 +81,7 @@ export async function exchangeCodeForTokens(request: TokenExchangeRequest): Prom
     const response = await authClient.post<TokenResponse>(AUTH_API.EXCHANGE_CODE, request);
     return response.data;
   } catch (error: unknown) {
-    const err = error as { response?: { status?: number } };
+    const err = error as { response?: { status?: number; data?: unknown } };
     if (err.response?.status === 400) {
       throw new Error('Invalid code or exchange failed');
     } else if (err.response?.status === 502) {
@@ -140,18 +140,21 @@ export async function checkAuthStatus(): Promise<AuthenticationStatus> {
 
 /**
  * Logout the current user
- * This will clear all authentication cookies
+ * Clears backend cookies and redirects to Cognito logout URL
  */
-export async function logout(): Promise<void> {
+export async function logout(): Promise<LogoutResponseDTO> {
   try {
-    await authClient.post(AUTH_API.LOGOUT);
-    window.location.href = '/login';
+    // Call backend to clear cookies and get Cognito logout URL
+    const response = await authClient.post<LogoutResponseDTO>(AUTH_API.LOGOUT);
+    
+    // Return the response but DON'T redirect
+    // Let the caller decide what to do with the LogoutUrl
+    return response.data;
   } catch (error) {
     if (error instanceof Error) {
       logError('Logout failed:', error.message);
     }
-    // Still redirect to login even if the logout request fails
-    window.location.href = '/login';
+    throw error;
   }
 }
 
@@ -164,12 +167,18 @@ export function getOAuth2CallbackUrl(): string {
 
 /**
  * Generate PKCE code verifier and challenge
+ * Code verifier: 43-128 character random string (base64url encoded)
+ * Code challenge: base64url(SHA256(code_verifier))
  */
 export async function generatePKCE(): Promise<{ codeVerifier: string; codeChallenge: string }> {
-  const verifier = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-    .map(byte => String.fromCharCode(byte))
-    .join('');
+  // Generate 32 random bytes and base64url encode them
+  const randomBytes = crypto.getRandomValues(new Uint8Array(32));
+  const verifier = btoa(String.fromCharCode(...randomBytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
   
+  // Generate code challenge from verifier
   const encoder = new TextEncoder();
   const data = encoder.encode(verifier);
   const hash = await crypto.subtle.digest('SHA-256', data);

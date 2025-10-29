@@ -21,9 +21,9 @@ import {
 } from '../utils/cognitoHelpers';
 import {
   exchangeCodeForTokens,
-  refreshToken,
+  refreshTokens,
   logout as apiLogout,
-  getCurrentUser
+  checkAuthStatus as apiCheckAuthStatus
 } from '../api/auth';
 import type { CurrentUserResponseDTO } from '../types/auth';
 
@@ -59,6 +59,9 @@ export function useCognitoAuth() {
   const login = useCallback(async () => {
     try {
       logDebug('Initiating Cognito login flow');
+      
+      // Clear the logout flag when user explicitly logs in
+      sessionStorage.removeItem('just_logged_out');
       
       // Clear any previous errors
       setState((prev) => ({
@@ -210,7 +213,12 @@ export function useCognitoAuth() {
         return;
       }
       
-      await exchangeCodeForTokens(params.code, codeVerifier);
+      // Exchange code for tokens using the new request format
+      await exchangeCodeForTokens({
+        code: params.code,
+        redirectUri: window.location.origin,
+        codeVerifier: codeVerifier
+      });
       
       logDebug('Tokens received and cookies set by backend');
       
@@ -219,8 +227,17 @@ export function useCognitoAuth() {
       
       // Get user information from backend (wait for it before setting authenticated)
       try {
-        const userInfo = await getCurrentUser();
-        logDebug('User info received:', userInfo.Email);
+        const authStatus = await apiCheckAuthStatus();
+        logDebug('User info received:', authStatus.email);
+        
+        // Convert AuthenticationStatus to UserInfo format
+        const userInfo: UserInfo = {
+          Username: authStatus.username || '',
+          Email: authStatus.email || null,
+          Groups: authStatus.groups || [],
+          UserId: null,
+          IsAuthenticated: authStatus.isAuthenticated
+        };
         
         // Update state with authentication and user info together
         setState({
@@ -304,7 +321,36 @@ export function useCognitoAuth() {
       logDebug('Checking authentication status...');
       // Don't set loading here - use initial state
       
-      const userInfo = await getCurrentUser();
+      const authStatus = await apiCheckAuthStatus();
+      
+      // Check if user is actually authenticated
+      if (!authStatus.isAuthenticated) {
+        logDebug('User is not authenticated (from auth status)');
+        
+        // Clear installations cache since user is not authenticated
+        try {
+          localStorage.removeItem('cw_installations');
+        } catch (e) {
+          logError('Failed to clear installations cache:', e);
+        }
+        
+        setState({
+          isAuthenticated: false,
+          isLoading: false,
+          userInfo: null,
+          error: null,
+        });
+        return;
+      }
+      
+      // Convert AuthenticationStatus to UserInfo format
+      const userInfo: UserInfo = {
+        Username: authStatus.username || '',
+        Email: authStatus.email || null,
+        Groups: authStatus.groups || [],
+        UserId: null,
+        IsAuthenticated: authStatus.isAuthenticated
+      };
       
       setState({
         isAuthenticated: true,
@@ -320,6 +366,14 @@ export function useCognitoAuth() {
       // 401 means not authenticated - this is NORMAL, not an error
       if (err.response?.status === 401) {
         logDebug('User is not authenticated (expected)');
+        
+        // Clear installations cache since user is not authenticated
+        try {
+          localStorage.removeItem('cw_installations');
+        } catch (e) {
+          logError('Failed to clear installations cache:', e);
+        }
+        
         setState({
           isAuthenticated: false,
           isLoading: false,
@@ -344,7 +398,7 @@ export function useCognitoAuth() {
     logDebug('Logging out - clearing cookies and Cognito session');
     
     try {
-      // Call backend logout endpoint (clears cookies and returns Cognito logout URL)
+      // Call backend to clear cookies and get Cognito logout URL
       const response = await apiLogout();
       
       logDebug('Backend cookies cleared');
@@ -398,7 +452,7 @@ export function useCognitoAuth() {
       
       // Redirect to Cognito logout - this will:
       // 1. Clear Cognito session
-      // 2. Redirect back to our app
+      // 2. Redirect back to our app (to the logout_uri configured in backend)
       window.location.href = response.LogoutUrl;
     } catch (error) {
       logError('Logout failed:', error);
@@ -413,7 +467,7 @@ export function useCognitoAuth() {
   const handleRefreshToken = useCallback(async (): Promise<boolean> => {
     try {
       logDebug('Refreshing access token...');
-      await refreshToken();
+      await refreshTokens();
       logDebug('Token refreshed successfully');
       return true;
     } catch (error: unknown) {
@@ -445,13 +499,13 @@ export function useCognitoAuth() {
    */
   useEffect(() => {
     const initAuth = async () => {
-      // Check if returning from logout (check both query param and hash)
+      // Check if we just came back from logout
       const urlParams = new URLSearchParams(window.location.search);
-      const hashParams = new URLSearchParams(window.location.hash.slice(1));
-      
-      if (urlParams.get('logout') === 'true' || hashParams.get('logout') === 'true') {
-        logDebug('Returned from Cognito logout - staying logged out');
-        // Clear the logout flag from URL
+      if (urlParams.get('logout') === 'true') {
+        logDebug('Just logged out - not checking auth status');
+        // Mark in sessionStorage that we just logged out
+        sessionStorage.setItem('just_logged_out', 'true');
+        // Clear the logout parameter from URL
         window.history.replaceState({}, document.title, window.location.pathname);
         // Set state to logged out
         setState({
@@ -460,7 +514,20 @@ export function useCognitoAuth() {
           userInfo: null,
           error: null,
         });
-        return; //Don't check auth status!
+        return; // Don't proceed with auth check
+      }
+      
+      // Check if we previously detected logout (after URL was cleaned)
+      const justLoggedOut = sessionStorage.getItem('just_logged_out') === 'true';
+      if (justLoggedOut) {
+        logDebug('User previously logged out - staying logged out');
+        setState({
+          isAuthenticated: false,
+          isLoading: false,
+          userInfo: null,
+          error: null,
+        });
+        return; // Don't proceed with auth check
       }
       
       // Parse OAuth callback parameters

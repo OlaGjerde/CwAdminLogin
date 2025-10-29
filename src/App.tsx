@@ -139,6 +139,7 @@ function App() {
   }
 
   if (!isAuthenticated) {
+    // Not logged in - show nothing (auto-login will trigger)
     return null;
   }
 
