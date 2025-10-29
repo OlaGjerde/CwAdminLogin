@@ -1,8 +1,8 @@
 {
-  "version": "0.10.65",
-  "commit": "0550c83",
+  "version": "0.10.69",
+  "commit": "38262cf",
   "branch": "authchanges",
-  "timestamp": "2025-10-29T11:26:32.105Z",
+  "timestamp": "2025-10-29T11:40:23.615Z",
   "buildNumber": "",
   "node": "v22.21.0"
 }

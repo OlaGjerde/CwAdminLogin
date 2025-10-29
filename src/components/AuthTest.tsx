@@ -4,7 +4,6 @@ import {
   getUserStatus, 
   logout,
   generatePKCE,
-  getOAuth2CallbackUrl,
   refreshTokens
 } from '../api/auth';
 import { COGNITO_DOMAIN, COGNITO_CLIENT_ID, COGNITO_REDIRECT_URI } from '../config';

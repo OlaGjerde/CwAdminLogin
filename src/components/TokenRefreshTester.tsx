@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { Button } from 'devextreme-react/button';
-import { getCurrentUser, refreshToken } from '../api/auth';
+import { checkAuthStatus, refreshTokens } from '../api/auth';
 import { handleApiError } from '../utils/apiErrors';
 import { logDebug, logError, logWarn } from '../utils/logger';
 import notify from 'devextreme/ui/notify';
@@ -25,7 +25,7 @@ export const TokenRefreshTester: React.FC = () => {
         currentPath: window.location.pathname
       });
       
-      await refreshToken();
+      await refreshTokens();
       
       // Log cookies after refresh
       logDebug('Cookies after refresh:', {
@@ -48,8 +48,8 @@ export const TokenRefreshTester: React.FC = () => {
     setTesting(true);
     try {
       logWarn('🧪 TEST: Calling /Me endpoint');
-      const user = await getCurrentUser();
-      notify(`✅ User: ${user.Email}`, 'success', 3000);
+      const user = await checkAuthStatus();
+      notify(`✅ User: ${user.email}`, 'success', 3000);
       logDebug('✅ /Me response:', user);
     } catch (error) {
       const apiError = handleApiError(error);
@@ -68,7 +68,7 @@ export const TokenRefreshTester: React.FC = () => {
       
       // This will trigger a 401 if token is actually expired
       // The interceptor should catch it and refresh automatically
-      await getCurrentUser();
+      await checkAuthStatus();
       
       notify('✅ Request succeeded (token was valid or refreshed)', 'success', 3000);
     } catch (error) {

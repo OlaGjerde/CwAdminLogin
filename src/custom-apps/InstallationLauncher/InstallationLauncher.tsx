@@ -73,25 +73,12 @@ export const InstallationLauncherComponent: React.FC<CustomAppProps> = ({
       logDebug('🚀 Launching installation:', installation.name);
       
       // Import required modules (cookies sent automatically for auth)
-      const { createOneTimeToken } = await import('../../api/auth');
+      const { createOneTimeToken } = await import('../../api/adminApi');
       const { PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } = await import('../../config');
 
       // Generate launch token using cookie-based auth
       logDebug('Generating launch token...');
-      const resp = await createOneTimeToken(installation.id);
-      
-      if (resp.status !== 200) {
-        throw new Error(`Failed to generate launch token: ${resp.status}`);
-      }
-
-      const data = resp.data;
-      let token: string | null = null;
-      
-      if (typeof data === 'string') {
-        token = data;
-      } else {
-        token = data.oneTimeToken || data.OneTimeToken || data.token || data.Token || data.linkToken || data.LinkToken || null;
-      }
+      const token = await createOneTimeToken(installation.id);
       
       if (!token) {
         throw new Error('No launch token received from server');

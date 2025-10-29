@@ -13,8 +13,6 @@ config({ licenseKey });
 
 import './index.css'
 import App from './App.tsx'
-// Temporarily use AuthTest component for testing
-import { AuthTest } from './components/AuthTest.tsx'
 import { setupAxiosInterceptors } from './api/axiosInterceptors'
 import { AuthProvider } from './contexts/auth'
 
