@@ -24,7 +24,8 @@ const ENV = {
 // Environment-specific configurations
 interface EnvConfig {
   frontendUrl: string;
-  apiUrl: string;
+  authUrl: string;      // Auth API URL (for /api/auth/* endpoints)
+  adminUrl: string;     // Admin API URL (for /api/installation/*, /api/desktop/*, etc.)
   backendCallbackUrl: string; // Direct backend URL for OAuth callback
   cognitoDomain: string;
   cookieDomain: string;
@@ -36,9 +37,10 @@ interface EnvConfig {
 const envConfigs: Record<string, EnvConfig> = {
   local: {
     frontendUrl: 'http://localhost:5173',
-    apiUrl: '', // Use proxy - requests will go to same origin
+    authUrl: '', // Use proxy - requests will go to same origin
+    adminUrl: '', // Use proxy - requests will go to same origin
     backendCallbackUrl: 'https://localhost:7059', // Direct backend URL
-    cognitoDomain: 'https://auth.calwincloud.com',
+    cognitoDomain: 'https://login.calwincloud.com',
     cookieDomain: '',
     cookieSecure: false,
     cookieSameSite: 'Lax',
@@ -46,8 +48,9 @@ const envConfigs: Record<string, EnvConfig> = {
   },
   dev: {
     frontendUrl: 'https://dev.calwincloud.com',
-    apiUrl: 'https://apidev.calwincloud.com',
-    backendCallbackUrl: 'https://apidev.calwincloud.com', // Same as apiUrl
+    authUrl: 'https://auth.calwincloud.com',
+    adminUrl: 'https://adminapi-dev.calwincloud.com',
+    backendCallbackUrl: 'https://auth.calwincloud.com',
     cognitoDomain: 'https://login.calwincloud.com',
     cookieDomain: '.calwincloud.com',
     cookieSecure: true,
@@ -56,8 +59,9 @@ const envConfigs: Record<string, EnvConfig> = {
   },
   test: {
     frontendUrl: 'https://test.calwincloud.com',
-    apiUrl: 'https://apitest.calwincloud.com',
-    backendCallbackUrl: 'https://apitest.calwincloud.com', // Same as apiUrl
+    authUrl: 'https://auth.calwincloud.com',
+    adminUrl: 'https://adminapi-test.calwincloud.com',
+    backendCallbackUrl: 'https://auth.calwincloud.com',
     cognitoDomain: 'https://login.calwincloud.com',
     cookieDomain: '.calwincloud.com',
     cookieSecure: true,
@@ -66,8 +70,9 @@ const envConfigs: Record<string, EnvConfig> = {
   },
   prod: {
     frontendUrl: 'https://www.calwincloud.com',
-    apiUrl: 'https://api.calwincloud.com',
-    backendCallbackUrl: 'https://api.calwincloud.com', // Same as apiUrl
+    authUrl: 'https://auth.calwincloud.com',
+    adminUrl: 'https://adminapi.calwincloud.com',
+    backendCallbackUrl: 'https://auth.calwincloud.com',
     cognitoDomain: 'https://login.calwincloud.com',
     cookieDomain: '.calwincloud.com',
     cookieSecure: true,
@@ -87,8 +92,8 @@ const getCurrentEnv = (): EnvConfig => {
 const currentEnv = getCurrentEnv();
 
 // Service Base URLs
-export const AUTH_SERVICE_BASE = currentEnv.apiUrl;
-export const ADMIN_SERVICE_BASE = currentEnv.apiUrl;
+export const AUTH_SERVICE_BASE = currentEnv.authUrl;
+export const ADMIN_SERVICE_BASE = currentEnv.adminUrl;
 
 // Cookie configuration
 export const COOKIE_CONFIG = {
