@@ -191,7 +191,7 @@ export interface LogoutResponseDTO {
 export type LogoutResponse = LogoutResponseDTO;
 
 /**
- * Response DTO for /api/auth/Me endpoint
+ * Response DTO for /api/auth/me endpoint
  * Contains authenticated user information from JWT claims
  */
 export interface CurrentUserResponseDTO {

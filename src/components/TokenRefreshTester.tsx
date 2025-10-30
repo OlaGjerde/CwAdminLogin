@@ -47,13 +47,13 @@ export const TokenRefreshTester: React.FC = () => {
   const testGetCurrentUser = async () => {
     setTesting(true);
     try {
-      logWarn('🧪 TEST: Calling /Me endpoint');
+      logWarn('🧪 TEST: Calling /me endpoint');
       const user = await checkAuthStatus();
       notify(`✅ User: ${user.email}`, 'success', 3000);
-      logDebug('✅ /Me response:', user);
+      logDebug('✅ /me response:', user);
     } catch (error) {
       const apiError = handleApiError(error);
-      logError('❌ /Me failed:', apiError);
+      logError('❌ /me failed:', apiError);
       notify(`❌ ${apiError.message}`, 'error', 3000);
     } finally {
       setTesting(false);
@@ -117,7 +117,7 @@ export const TokenRefreshTester: React.FC = () => {
       />
       
       <Button
-        text="Test Get User (/Me)"
+        text="Test Get User (/me)"
         type="default"
         onClick={testGetCurrentUser}
         disabled={testing}

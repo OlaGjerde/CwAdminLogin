@@ -115,12 +115,14 @@ export const COOKIE_CONFIG = {
 // Auth API configuration (cookie-based authentication)
 export const AUTH_API = {
   BASE: `${AUTH_SERVICE_BASE}`,
-  LOGIN: '/api/auth/LoginUser',
+  LOGIN: '/api/auth/loginuser',
   CALLBACK: '/api/auth/callback',
   REFRESH_TOKEN: '/api/auth/refresh',
-  LOGOUT: '/api/auth/Logout',
-  ME: '/api/auth/Me',
-  GET_USER_STATUS: '/api/auth/GetUserStatus'
+  LOGOUT: '/api/auth/logout',
+  ME: '/api/auth/me',
+  GET_USER_STATUS: '/api/auth/getuserstatus',
+  VERIFY_EMAIL: '/api/auth/verifyemail',
+  LOGIN_USER_VERIFY_MFA: '/api/auth/loginuserverifymfa'
 } as const;
 
 // Admin API configuration
