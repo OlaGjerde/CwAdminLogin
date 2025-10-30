@@ -59,3 +59,28 @@ export async function checkAdminHealth(): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * User info response from Identity Management API
+ */
+export interface UserInfo {
+  cognitoUserId: string;
+  email?: string;
+  name?: string;
+  givenName?: string;
+  familyName?: string;
+  phoneNumber?: string;
+  [key: string]: unknown; // Allow additional fields
+}
+
+/**
+ * Get user information by Cognito user ID
+ * @param cognitoUserId The Cognito user ID
+ */
+export async function getUserInfo(cognitoUserId: string): Promise<UserInfo> {
+  const response = await adminClient.get<UserInfo>(
+    ADMIN_API.GET_USER_INFO,
+    { params: { cognitoUserId } }
+  );
+  return response.data;
+}

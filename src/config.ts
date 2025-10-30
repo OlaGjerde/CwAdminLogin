@@ -120,6 +120,7 @@ export const AUTH_API = {
   REFRESH_TOKEN: '/api/auth/refresh',
   LOGOUT: '/api/auth/logout',
   ME: '/api/auth/me',
+  ME_ATTRIBUTES: '/api/auth/me/attributes',
   GET_USER_STATUS: '/api/auth/getuserstatus',
   VERIFY_EMAIL: '/api/auth/verifyemail',
   LOGIN_USER_VERIFY_MFA: '/api/auth/loginuserverifymfa'
@@ -129,7 +130,8 @@ export const AUTH_API = {
 export const ADMIN_API = {
   BASE: `${ADMIN_SERVICE_BASE}`,
   INSTALLATIONS: '/api/installation/GetAuthorizedInstallations',
-  CREATE_ONE_TIME_TOKEN: '/api/desktop/CreateOneTimeToken'
+  CREATE_ONE_TIME_TOKEN: '/api/desktop/CreateOneTimeToken',
+  GET_USER_INFO: '/api/IdentityManagement/getuserinfo'
 } as const;
 
 // AWS Cognito Hosted UI configuration

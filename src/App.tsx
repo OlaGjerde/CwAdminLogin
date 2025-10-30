@@ -163,8 +163,9 @@ function App() {
 
 const AppContent = React.memo(function AppContent() {
   const { state, switchWorkspace, openApp } = useWorkspace();
-  const { userEmail, logout } = useAuth();
+  const { userEmail, logout, userInfo } = useAuth();
   const [isStartingCalWin, setIsStartingCalWin] = React.useState(false);
+  const [displayName, setDisplayName] = React.useState<string | null>(null);
 
   const handleInstallationChange = useCallback((installation: NormalizedInstallation) => {
     logDebug("=== handleInstallationChange called ===");
@@ -176,6 +177,33 @@ const AppContent = React.memo(function AppContent() {
     logDebug("=== Auto-opening launcher ===");
     openApp("selected-installation-launcher");
   }, [openApp]);
+
+  // Fetch user info from Auth API
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      if (userInfo?.UserId) {
+        try {
+          const { getCurrentUserAttributes } = await import('./api/auth');
+          const attributes = await getCurrentUserAttributes();
+          // Set display name from user attributes (prefer given_name, fallback to name or email)
+          const name = attributes.Attributes.given_name 
+                    || attributes.Attributes.name 
+                    || attributes.Attributes.email 
+                    || userEmail;
+          setDisplayName(name || null);
+          logDebug('User attributes fetched:', attributes);
+        } catch (error) {
+          logError('Failed to fetch user attributes:', error);
+          // Fallback to email if user attributes fetch fails
+          setDisplayName(userEmail);
+        }
+      } else {
+        setDisplayName(userEmail);
+      }
+    };
+
+    fetchUserInfo();
+  }, [userInfo, userEmail]);
 
   const hasAutoOpenedRef = React.useRef(false);
   
@@ -341,7 +369,7 @@ const AppContent = React.memo(function AppContent() {
             />
           </div>
           <span className="app-user-info" title={userEmail || undefined}>
-            {userEmail || "Bruker"}
+            {displayName || userEmail || "Bruker"}
           </span>
           <Button
             icon="runner"

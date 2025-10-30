@@ -127,6 +127,25 @@ export async function logout(): Promise<LogoutResponseDTO> {
 }
 
 /**
+ * User attributes response from Cognito
+ */
+export interface UserAttributesResponseDTO {
+  Username: string;
+  Sub: string;
+  UserStatus: string;
+  Attributes: Record<string, string>;
+}
+
+/**
+ * Get current user's attributes from Cognito
+ * Includes all standard and custom attributes like email, name, given_name, family_name, etc.
+ */
+export async function getCurrentUserAttributes(): Promise<UserAttributesResponseDTO> {
+  const response = await authClient.get<UserAttributesResponseDTO>(AUTH_API.ME_ATTRIBUTES);
+  return response.data;
+}
+
+/**
  * Get the OAuth2 callback URL for the current environment
  */
 export function getOAuth2CallbackUrl(): string {
