@@ -45,8 +45,16 @@ function App() {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated && !authError) {
-      logDebug("Not authenticated - redirecting to Cognito login...");
-      login();
+      // Check if we just came from OAuth callback to prevent immediate redirect loop
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasOAuthParams = urlParams.has('code') || urlParams.has('state');
+      
+      if (!hasOAuthParams) {
+        logDebug("Not authenticated - redirecting to Cognito login...");
+        login();
+      } else {
+        logDebug("OAuth params detected, waiting for auth check to complete...");
+      }
     }
   }, [isLoading, isAuthenticated, authError, login]);
 

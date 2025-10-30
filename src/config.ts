@@ -25,6 +25,7 @@ const ENV = {
 interface EnvConfig {
   frontendUrl: string;
   apiUrl: string;
+  backendCallbackUrl: string; // Direct backend URL for OAuth callback
   cognitoDomain: string;
   cookieDomain: string;
   cookieSecure: boolean;
@@ -36,6 +37,7 @@ const envConfigs: Record<string, EnvConfig> = {
   local: {
     frontendUrl: 'http://localhost:5173',
     apiUrl: '', // Use proxy - requests will go to same origin
+    backendCallbackUrl: 'https://localhost:7059', // Direct backend URL
     cognitoDomain: 'https://auth.calwincloud.com',
     cookieDomain: '',
     cookieSecure: false,
@@ -45,6 +47,7 @@ const envConfigs: Record<string, EnvConfig> = {
   dev: {
     frontendUrl: 'https://dev.calwincloud.com',
     apiUrl: 'https://apidev.calwincloud.com',
+    backendCallbackUrl: 'https://apidev.calwincloud.com', // Same as apiUrl
     cognitoDomain: 'https://login.calwincloud.com',
     cookieDomain: '.calwincloud.com',
     cookieSecure: true,
@@ -54,6 +57,7 @@ const envConfigs: Record<string, EnvConfig> = {
   test: {
     frontendUrl: 'https://test.calwincloud.com',
     apiUrl: 'https://apitest.calwincloud.com',
+    backendCallbackUrl: 'https://apitest.calwincloud.com', // Same as apiUrl
     cognitoDomain: 'https://login.calwincloud.com',
     cookieDomain: '.calwincloud.com',
     cookieSecure: true,
@@ -63,6 +67,7 @@ const envConfigs: Record<string, EnvConfig> = {
   prod: {
     frontendUrl: 'https://www.calwincloud.com',
     apiUrl: 'https://api.calwincloud.com',
+    backendCallbackUrl: 'https://api.calwincloud.com', // Same as apiUrl
     cognitoDomain: 'https://login.calwincloud.com',
     cookieDomain: '.calwincloud.com',
     cookieSecure: true,
@@ -112,8 +117,7 @@ export const AUTH_API = {
   BASE: `${AUTH_SERVICE_BASE}`,
   LOGIN: '/api/auth/LoginUser',
   CALLBACK: '/api/auth/callback',
-  EXCHANGE_CODE: '/api/auth/ExchangeCodeForTokens',
-  REFRESH_TOKEN: '/api/auth/GetNewToken',
+  REFRESH_TOKEN: '/api/auth/refresh',
   LOGOUT: '/api/auth/Logout',
   ME: '/api/auth/Me',
   GET_USER_STATUS: '/api/auth/GetUserStatus'
@@ -131,8 +135,9 @@ export const COGNITO_AWS_REGION_DOMAIN = 'https://calwincloud.auth.eu-north-1.am
 export const COGNITO_DOMAIN = currentEnv.cognitoDomain;
 export const COGNITO_CLIENT_ID = '656e5ues1tvo5tk9e00u5f0ft3';
 
-// Redirect URI based on environment
-export const COGNITO_REDIRECT_URI = currentEnv.frontendUrl;
+// Redirect URI - points to backend callback endpoint
+// Backend will handle token exchange and redirect to frontend
+export const COGNITO_REDIRECT_URI = `${currentEnv.backendCallbackUrl}/api/auth/callback`;
 
 // CORS configuration
 export const CORS_CONFIG = {

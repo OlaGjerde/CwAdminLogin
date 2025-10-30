@@ -52,11 +52,26 @@ const STORAGE_KEY_STATE = 'cognito_state';
 
 /**
  * Generate random state parameter for CSRF protection
+ * Now includes code_verifier for backend PKCE validation
  */
-export function generateState(): string {
-  const array = new Uint8Array(16);
-  crypto.getRandomValues(array);
-  return base64URLEncode(array);
+export function generateState(codeVerifier?: string, redirectUrl?: string): string {
+  const randomState = base64URLEncode(crypto.getRandomValues(new Uint8Array(16)));
+  
+  // If code_verifier is provided, encode it in the state along with redirect URL
+  if (codeVerifier) {
+    const stateData = {
+      state: randomState,
+      code_verifier: codeVerifier,
+      redirect_url: redirectUrl || window.location.origin
+    };
+    // Base64 encode the JSON to pass as state parameter
+    return btoa(JSON.stringify(stateData))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+  }
+  
+  return randomState;
 }
 
 /**

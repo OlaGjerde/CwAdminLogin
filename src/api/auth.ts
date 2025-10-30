@@ -24,25 +24,12 @@ export interface UserStatusResponse {
   userStatus: string;
 }
 
-export interface TokenExchangeRequest {
-  code: string;
-  redirectUri: string;
-  codeVerifier?: string;
-}
-
-export interface TokenResponse {
-  accessToken?: string;
-  idToken?: string;
-  refreshToken?: string;
-  tokenType: string;
-  expiresIn: number;
-}
-
 export interface AuthenticationStatus {
   isAuthenticated: boolean;
   username?: string;
   email?: string;
   groups?: string[];
+  userId?: string; // Added to match backend response
 }
 
 // ============================================================================
@@ -73,25 +60,6 @@ export async function getUserStatus(email: string): Promise<UserStatusResponse> 
 }
 
 /**
- * Exchange authorization code for tokens
- * Tokens will be set as httpOnly cookies by the backend
- */
-export async function exchangeCodeForTokens(request: TokenExchangeRequest): Promise<TokenResponse> {
-  try {
-    const response = await authClient.post<TokenResponse>(AUTH_API.EXCHANGE_CODE, request);
-    return response.data;
-  } catch (error: unknown) {
-    const err = error as { response?: { status?: number; data?: unknown } };
-    if (err.response?.status === 400) {
-      throw new Error('Invalid code or exchange failed');
-    } else if (err.response?.status === 502) {
-      throw new Error('Failed to parse Cognito response');
-    }
-    throw error;
-  }
-}
-
-/**
  * Refresh the access token using the refresh token cookie
  * New tokens will be set as httpOnly cookies by the backend
  */
@@ -106,7 +74,7 @@ export async function refreshTokens(): Promise<void> {
 
 /**
  * Response DTO for authentication token operations
- * Used by both ExchangeCodeForTokens and GetNewToken endpoints
+ * Used by both ExchangeCodeForTokens and refresh endpoints
  */
 export interface AuthTokenResponseDTO {
   AccessToken?: string;    // Optional access token

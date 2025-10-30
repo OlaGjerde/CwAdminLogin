@@ -4,31 +4,31 @@
  */
 
 import { authClient } from './axiosConfig';
-import { AUTH_API, COGNITO_REDIRECT_URI } from '../config';
+import { AUTH_API } from '../config';
 import type { CurrentUserResponseDTO } from '../types/auth';
 
 // Store the current tokens in memory
 let _currentTokens: { access_token?: string } | null = null;
 
 /**
- * Exchange authorization code for tokens
- * Tokens are stored as httpOnly cookies by the backend
+ * DEPRECATED: Token exchange is now handled by backend /api/auth/callback endpoint
+ * Backend exchanges code for tokens and sets httpOnly cookies automatically
  */
-interface TokenExchangeRequestDTO {
-  Code: string;
-  RedirectUri: string;
-  CodeVerifier: string;
-}
+// interface TokenExchangeRequestDTO {
+//   Code: string;
+//   RedirectUri: string;
+//   CodeVerifier: string;
+// }
 
-export async function exchangeCodeForTokens(code: string, codeVerifier: string): Promise<void> {
-  const request: TokenExchangeRequestDTO = {
-    Code: code,
-    CodeVerifier: codeVerifier,
-    RedirectUri: COGNITO_REDIRECT_URI
-  };
-
-  await authClient.post(AUTH_API.EXCHANGE_CODE, request);
-}
+// DEPRECATED: Token exchange is now handled by backend /api/auth/callback endpoint
+// export async function exchangeCodeForTokens(code: string, codeVerifier: string): Promise<void> {
+//   const request: TokenExchangeRequestDTO = {
+//     Code: code,
+//     CodeVerifier: codeVerifier,
+//     RedirectUri: COGNITO_REDIRECT_URI
+//   };
+//   await authClient.post(AUTH_API.EXCHANGE_CODE, request);
+// }
 
 /**
  * Refresh access token using refresh token cookie

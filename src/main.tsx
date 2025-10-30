@@ -15,14 +15,18 @@ import './index.css'
 import App from './App.tsx'
 import { setupAxiosInterceptors } from './api/axiosInterceptors'
 import { AuthProvider } from './contexts/auth'
+import { AuthTest } from './components/AuthTest'
 
 // Setup automatic token refresh on 401 errors
 setupAxiosInterceptors();
 
+// TEMPORARY: Use AuthTest to debug the login loop
+const USE_AUTH_TEST = false;
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AuthProvider>
-      <App />
+      {USE_AUTH_TEST ? <AuthTest /> : <App />}
     </AuthProvider>
   </StrictMode>,
 )

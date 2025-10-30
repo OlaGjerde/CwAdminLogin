@@ -12,15 +12,12 @@ import {
   generateCodeVerifier,
   generateCodeChallenge,
   generateState,
-  storePKCEData,
-  retrievePKCEData,
   clearPKCEData,
   buildCognitoAuthUrl,
   parseCallbackParams,
   clearOAuthParams,
 } from '../utils/cognitoHelpers';
 import {
-  exchangeCodeForTokens,
   refreshTokens,
   logout as apiLogout,
   checkAuthStatus as apiCheckAuthStatus
@@ -72,10 +69,11 @@ export function useCognitoAuth() {
       // Generate PKCE parameters
       const verifier = generateCodeVerifier();
       const challenge = await generateCodeChallenge(verifier);
-      const state = generateState();
+      // Generate state with code_verifier embedded for backend
+      const state = generateState(verifier, window.location.origin);
       
-      // Store for later retrieval
-      storePKCEData(verifier, state);
+      // Store state for validation (but not verifier since it's in the state now)
+      sessionStorage.setItem('cognito_state', state);
       
       // Build authorization URL
       const authUrl = buildCognitoAuthUrl({
@@ -98,26 +96,16 @@ export function useCognitoAuth() {
   }, []);
 
   /**
-   * Handle OAuth callback - exchange code for tokens
+   * Handle OAuth callback - SIMPLIFIED for backend-handled flow
+   * Backend now handles token exchange and redirects to frontend with cookies set
+   * Frontend just needs to detect error callbacks from Cognito
    */
   const handleCallback = useCallback(async () => {
-    logDebug('Processing OAuth callback');
+    logDebug('Checking for OAuth callback errors');
     
     const params = parseCallbackParams();
     
-    // Check if we're already processing this code (prevent double execution in StrictMode)
-    const processingCode = sessionStorage.getItem('cognito_processing_code');
-    if (processingCode === params.code) {
-      logDebug('Already processing this code, skipping duplicate execution');
-      return;
-    }
-    
-    // Mark this code as being processed
-    if (params.code) {
-      sessionStorage.setItem('cognito_processing_code', params.code);
-    }
-    
-    // Check for errors from Cognito
+    // Only handle error cases - success is handled by backend
     if (params.error) {
       logError('Cognito returned error:', params.error);
       logError('Error description:', params.error_description);
@@ -148,169 +136,13 @@ export function useCognitoAuth() {
         isLoading: false,
       }));
       clearOAuthParams();
-      sessionStorage.removeItem('cognito_processing_code');
       return;
     }
     
-    // Validate we have a code
-    if (!params.code) {
-      logError('No authorization code in callback');
-      setState((prev) => ({
-        ...prev,
-        error: 'Invalid callback - no authorization code',
-        isLoading: false,
-      }));
-      clearOAuthParams();
-      sessionStorage.removeItem('cognito_processing_code');
-      return;
-    }
-    
-    // Retrieve stored PKCE data
-    const pkceData = retrievePKCEData();
-    if (!pkceData) {
-      logError('No PKCE data found - possible CSRF attack or session expired');
-      setState((prev) => ({
-        ...prev,
-        error: 'Session expired - please try again',
-        isLoading: false,
-      }));
-      clearOAuthParams();
-      sessionStorage.removeItem('cognito_processing_code');
-      return;
-    }
-    
-    // Validate state parameter (CSRF protection)
-    if (params.state !== pkceData.state) {
-      logError('State mismatch - possible CSRF attack');
-      setState((prev) => ({
-        ...prev,
-        error: 'Invalid state - security check failed',
-        isLoading: false,
-      }));
-      clearPKCEData();
-      clearOAuthParams();
-      sessionStorage.removeItem('cognito_processing_code');
-      return;
-    }
-    
-    // Exchange code for tokens (backend sets httpOnly cookies)
-    try {
-      logDebug('Exchanging authorization code for tokens (backend will set cookies)');
-      
-      // Retrieve PKCE code_verifier from sessionStorage
-      const codeVerifier = sessionStorage.getItem('cognito_code_verifier');
-      if (!codeVerifier) {
-        logError('Code verifier not found in session storage');
-        setState(prev => ({
-          ...prev,
-          hasError: true,
-          error: 'PKCE code verifier missing',
-          isLoading: false,
-        }));
-        clearPKCEData();
-        clearOAuthParams();
-        sessionStorage.removeItem('cognito_processing_code');
-        return;
-      }
-      
-      // Exchange code for tokens using the new request format
-      await exchangeCodeForTokens({
-        code: params.code,
-        redirectUri: window.location.origin,
-        codeVerifier: codeVerifier
-      });
-      
-      logDebug('Tokens received and cookies set by backend');
-      
-      // Small delay to ensure cookies are properly set
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Get user information from backend (wait for it before setting authenticated)
-      try {
-        const authStatus = await apiCheckAuthStatus();
-        logDebug('User info received:', authStatus.email);
-        
-        // Convert AuthenticationStatus to UserInfo format
-        const userInfo: UserInfo = {
-          Username: authStatus.username || '',
-          Email: authStatus.email || null,
-          Groups: authStatus.groups || [],
-          UserId: null,
-          IsAuthenticated: authStatus.isAuthenticated
-        };
-        
-        // Update state with authentication and user info together
-        setState({
-          isAuthenticated: true,
-          isLoading: false,
-          userInfo,
-          error: null,
-        });
-        
-        logDebug('Authentication complete for:', userInfo.Email);
-      } catch (getUserError: unknown) {
-        logError('Failed to get user info after token exchange:', getUserError);
-        
-        type ErrorResponse = { response?: { status?: number; data?: unknown; headers?: Record<string, string> } };
-        const err = getUserError as ErrorResponse;
-        
-        // If 401, cookies might not be set correctly by backend
-        if (err.response?.status === 401) {
-          logError('CRITICAL: Token exchange succeeded but /Me returned 401!');
-          logError('This means backend is NOT reading cookies correctly.');
-          logError('Check if CookieToHeaderMiddleware is added BEFORE UseAuthentication()');
-          logError('Response headers:', err.response?.headers);
-          
-          setState((prev) => ({
-            ...prev,
-            isLoading: false,
-            error: 'Backend configuration error: Cookies not being read. Contact administrator.',
-          }));
-        } else {
-          setState((prev) => ({
-            ...prev,
-            isLoading: false,
-            error: 'Failed to get user information after login',
-          }));
-        }
-        
-        clearPKCEData();
-        clearOAuthParams();
-        sessionStorage.removeItem('cognito_processing_code');
-        return;
-      }
-      
-      // Clean up
-      clearPKCEData();
-      clearOAuthParams();
-      sessionStorage.removeItem('cognito_processing_code');
-    } catch (exchangeError: unknown) {
-      logError('Token exchange failed:', exchangeError);
-      
-      // Enhanced error logging
-      if (exchangeError && typeof exchangeError === 'object' && 'response' in exchangeError) {
-        const axiosError = exchangeError as { response?: { data?: unknown; status?: number; headers?: unknown } };
-        logError('Response status:', axiosError.response?.status);
-        logError('Response data:', axiosError.response?.data);
-        logError('Response headers:', axiosError.response?.headers);
-      }
-      
-      type ErrorResponse = { response?: { data?: { detail?: string; title?: string; error?: string }; status?: number } };
-      const err = exchangeError as ErrorResponse;
-      const errorMessage = err.response?.data?.detail || 
-                          err.response?.data?.title ||
-                          err.response?.data?.error ||
-                          'Failed to exchange authorization code for tokens';
-      
-      setState((prev) => ({
-        ...prev,
-        error: errorMessage,
-        isLoading: false,
-      }));
-      clearPKCEData();
-      clearOAuthParams();
-      sessionStorage.removeItem('cognito_processing_code');
-    }
+    // If no error, backend handled the callback successfully
+    // Just clear any OAuth params and let init handle auth check
+    clearOAuthParams();
+    clearPKCEData();
   }, []);
 
   /**
@@ -322,9 +154,19 @@ export function useCognitoAuth() {
       // Don't set loading here - use initial state
       
       const authStatus = await apiCheckAuthStatus();
+      logDebug('Auth status response:', authStatus);
+      
+      // Backend returns PascalCase properties, need to handle both cases
+      type BackendResponse = Record<string, unknown>;
+      const response = authStatus as unknown as BackendResponse;
+      const isAuthenticated = (response.IsAuthenticated ?? response.isAuthenticated) as boolean;
+      const username = (response.Username ?? response.username) as string | undefined;
+      const email = (response.Email ?? response.email) as string | undefined;
+      const groups = (response.Groups ?? response.groups) as string[] | undefined;
+      const userId = (response.UserId ?? response.userId) as string | undefined;
       
       // Check if user is actually authenticated
-      if (!authStatus.isAuthenticated) {
+      if (!isAuthenticated) {
         logDebug('User is not authenticated (from auth status)');
         
         // Clear installations cache since user is not authenticated
@@ -343,15 +185,16 @@ export function useCognitoAuth() {
         return;
       }
       
-      // Convert AuthenticationStatus to UserInfo format
+      // Convert to UserInfo format
       const userInfo: UserInfo = {
-        Username: authStatus.username || '',
-        Email: authStatus.email || null,
-        Groups: authStatus.groups || [],
-        UserId: null,
-        IsAuthenticated: authStatus.isAuthenticated
+        Username: username || '',
+        Email: email || null,
+        Groups: groups || [],
+        UserId: userId || null,
+        IsAuthenticated: isAuthenticated
       };
       
+      logDebug('Setting authenticated state with user info:', userInfo);
       setState({
         isAuthenticated: true,
         isLoading: false,
@@ -530,26 +373,21 @@ export function useCognitoAuth() {
         return; // Don't proceed with auth check
       }
       
-      // Parse OAuth callback parameters
+      // Check for OAuth error callback (Cognito error redirect)
       const params = parseCallbackParams();
-      
-      // Only process callback if we have BOTH code AND state (valid OAuth callback)
-      if (params.code && params.state) {
-        logDebug('Detected valid OAuth callback');
-        await handleCallback();
-      } else if (params.error) {
+      if (params.error) {
         // Handle OAuth error callback
         logDebug('Detected OAuth error callback');
         await handleCallback();
-      } else if (params.code) {
-        // Code without state - likely stale/invalid, clear it
-        logDebug('Found code without state - clearing stale OAuth params');
-        clearOAuthParams();
-        await checkAuthStatus();
-      } else {
-        // No callback - check authentication status via backend
-        await checkAuthStatus();
+        return;
       }
+      
+      // Clear any OAuth params (backend handled successful callback)
+      clearOAuthParams();
+      clearPKCEData();
+      
+      // Check authentication status via backend
+      await checkAuthStatus();
     };
     
     initAuth();
