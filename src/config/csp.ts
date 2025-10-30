@@ -12,20 +12,29 @@ export interface CSPConfig {
  * API domains that need to be whitelisted in connect-src
  */
 const API_DOMAINS = [
-  'https://adminapi-dev.calwincloud.com',
+  // Auth API (all environments use same domain)
   'https://auth.calwincloud.com',
+  // Admin API (environment-specific)
+  'https://adminapi-dev.calwincloud.com',
+  'https://adminapi-test.calwincloud.com',
+  'https://adminapi.calwincloud.com',
+  // Cognito
   'https://calwincloud.auth.eu-north-1.amazoncognito.com',
+  // Media servers
   'https://calwinmedia.calwincloud.com',
   'https://calwinmedia-test.calwincloud.com',
   'https://calwinmedia-dev.calwincloud.com',
-  'https://dev.calwincloud.com', // Production domain
+  // Frontend domains
+  'https://dev.calwincloud.com',
+  'https://test.calwincloud.com',
+  'https://www.calwincloud.com',
 ];
 
 /**
  * Cognito domains for form-action (OAuth redirects)
  */
 const COGNITO_DOMAINS = [
-  'https://auth.calwincloud.com',
+  'https://login.calwincloud.com',
   'https://calwincloud.auth.eu-north-1.amazoncognito.com',
 ];
 

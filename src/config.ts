@@ -13,14 +13,6 @@ import type { CurrentUserResponseDTO } from './api/auth';
 // Type alias for backward compatibility
 type UserInfo = CurrentUserResponseDTO;
 
-// Environment detection
-const ENV = {
-  isDev: import.meta.env.MODE === 'development',
-  isTest: import.meta.env.MODE === 'test',
-  isProd: import.meta.env.MODE === 'production',
-  isLocal: typeof window !== 'undefined' && window.location.hostname === 'localhost'
-};
-
 // Environment-specific configurations
 interface EnvConfig {
   frontendUrl: string;
@@ -81,12 +73,19 @@ const envConfigs: Record<string, EnvConfig> = {
   }
 };
 
-// Get current environment configuration
+// Get current environment configuration based on hostname at runtime
 const getCurrentEnv = (): EnvConfig => {
-  if (ENV.isLocal) return envConfigs.local;
-  if (ENV.isDev) return envConfigs.dev;
-  if (ENV.isTest) return envConfigs.test;
-  return envConfigs.prod;
+  // For build time, we need to detect at runtime based on hostname
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost') return envConfigs.local;
+    if (hostname.includes('dev.calwincloud.com')) return envConfigs.dev;
+    if (hostname.includes('test.calwincloud.com')) return envConfigs.test;
+    if (hostname.includes('www.calwincloud.com') || hostname.includes('calwincloud.com')) return envConfigs.prod;
+  }
+  
+  // Fallback to dev for safety during build
+  return envConfigs.dev;
 };
 
 const currentEnv = getCurrentEnv();
