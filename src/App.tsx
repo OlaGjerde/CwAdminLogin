@@ -5,6 +5,7 @@ import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
 import { WorkbenchArea } from './components/WorkbenchArea';
 import { UserDropdown } from './components/UserDropdown';
+import { InstallPromptWindow } from './components/InstallPromptWindow';
 import type { NormalizedInstallation } from './types/installations';
 import './App.css';
 import BuildFooter from './components/BuildFooter';
@@ -13,7 +14,6 @@ import { Button } from 'devextreme-react/button';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import { logDebug, logError } from './utils/logger';
 import { INSTALLER_DOWNLOAD_URL } from './config';
-import notify from 'devextreme/ui/notify';
 
 function App() {
   const {
@@ -167,6 +167,7 @@ const AppContent = React.memo(function AppContent() {
   const { userEmail, logout, userInfo } = useAuth();
   const [isStartingCalWin, setIsStartingCalWin] = React.useState(false);
   const [displayName, setDisplayName] = React.useState<string | null>(null);
+  const [showInstallPrompt, setShowInstallPrompt] = React.useState(false);
 
   const handleInstallationChange = useCallback((installation: NormalizedInstallation) => {
     logDebug("=== handleInstallationChange called ===");
@@ -310,19 +311,14 @@ const AppContent = React.memo(function AppContent() {
                   setTimeout(() => {
                     if (!launched) {
                       // If we're still here and no launch detected, protocol probably failed
-                      logDebug("Protocol handler may not be installed. Showing download prompt.");
+                      logDebug("Protocol handler may not be installed. Showing install prompt.");
                       
                       // Clean up event listeners
                       document.removeEventListener('visibilitychange', handleAppLaunch);
                       window.removeEventListener('blur', handleAppLaunch);
                       
-                      // Use DevExtreme notification
-                      notify({
-                        message: "CalWin er ikke installert på denne enheten. Vennligst klikk på 'Download CalWin' knappen til høyre for å laste ned og installere programmet først.",
-                        type: "warning",
-                        displayTime: 7000,
-                        width: "auto"
-                      });
+                      // Show install prompt window instead of notification
+                      setShowInstallPrompt(true);
                     }
                     
                     // Clear loading state
@@ -332,13 +328,8 @@ const AppContent = React.memo(function AppContent() {
                 } catch (error) {
                   logError(" Launch failed:", error);
                   
-                  // Show error using DevExtreme notification
-                  notify({
-                    message: "Det oppstod en feil ved forsøk på å starte CalWin. Vennligst prøv igjen, eller klikk på 'Download CalWin' knappen til høyre for å laste ned og installere programmet på nytt.",
-                    type: "error",
-                    displayTime: 7000,
-                    width: "auto"
-                  });
+                  // Show install prompt window
+                  setShowInstallPrompt(true);
                   
                   // Clear loading state
                   setIsStartingCalWin(false);
@@ -356,19 +347,6 @@ const AppContent = React.memo(function AppContent() {
           </div>
         </div>
         <div className="app-top-bar-right">
-          <div className="app-top-bar-actions">
-            <Button
-              text="Download CalWin"
-              icon="download"
-              type="normal"
-              stylingMode="contained"
-              disabled={!state.currentWorkspace}
-              onClick={() => {
-                logDebug("Download CalWin button clicked");
-                window.open(INSTALLER_DOWNLOAD_URL, "_blank");
-              }}
-            />
-          </div>
           <UserDropdown
             userEmail={userEmail}
             displayName={displayName}
@@ -384,6 +362,14 @@ const AppContent = React.memo(function AppContent() {
       </div>
 
       <BuildFooter />
+      
+      {/* Install prompt window - shown when protocol handler fails */}
+      {showInstallPrompt && (
+        <InstallPromptWindow
+          installerUrl={INSTALLER_DOWNLOAD_URL}
+          onClose={() => setShowInstallPrompt(false)}
+        />
+      )}
     </div>
   );
 });
