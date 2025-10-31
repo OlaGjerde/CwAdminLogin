@@ -242,18 +242,15 @@ const AppContent = React.memo(function AppContent() {
             onAutoOpenLauncher={handleAutoOpenLauncher}
             isLoading={state.isLoading}
           />
-        </div>
-        <div className="app-top-bar-right">
-          <div className="app-top-bar-actions">
-            {/* Start CalWin button with loading effect */}
-            <div className="button-with-loading">
-              <Button
-                text={isStartingCalWin ? "Starter CalWin..." : "Start CalWin"}
-                icon={isStartingCalWin ? undefined : "runner"}
-                type={isStartingCalWin ? "success" : "normal"}
-                stylingMode="contained" 
-                disabled={!state.currentWorkspace || isStartingCalWin}
-                onClick={async () => {
+          {/* Start CalWin button with loading effect */}
+          <div className="button-with-loading">
+            <Button
+              text={isStartingCalWin ? "Starter CalWin..." : "Start CalWin"}
+              icon={isStartingCalWin ? undefined : "runner"}
+              type={isStartingCalWin ? "success" : "normal"}
+              stylingMode="contained" 
+              disabled={!state.currentWorkspace || isStartingCalWin}
+              onClick={async () => {
                 logDebug("Start CalWin button clicked");
                 if (!state.currentWorkspace) {
                   logError("No workspace selected");
@@ -348,15 +345,18 @@ const AppContent = React.memo(function AppContent() {
                 }
               }}
             />
-              {isStartingCalWin && (
-                <LoadIndicator
-                  className="dx-button-spinner"
-                  width={16}
-                  height={16}
-                  visible={true}
-                />
-              )}
-            </div>
+            {isStartingCalWin && (
+              <LoadIndicator
+                className="dx-button-spinner"
+                width={16}
+                height={16}
+                visible={true}
+              />
+            )}
+          </div>
+        </div>
+        <div className="app-top-bar-right">
+          <div className="app-top-bar-actions">
             <Button
               text="Download CalWin"
               icon="download"
