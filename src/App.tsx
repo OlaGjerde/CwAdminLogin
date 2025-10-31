@@ -291,17 +291,28 @@ const AppContent = React.memo(function AppContent() {
                   
                   // Set up detection for app launch
                   let launched = false;
+                  const launchTime = Date.now();
                   
                   // Function to handle successful launch
                   const handleAppLaunch = () => {
+                    const timeSinceLaunch = Date.now() - launchTime;
+                    logDebug(`App launch detected after ${timeSinceLaunch}ms`);
                     launched = true;
                     document.removeEventListener('visibilitychange', handleAppLaunch);
                     window.removeEventListener('blur', handleAppLaunch);
+                    window.removeEventListener('focus', handleFocus);
+                  };
+                  
+                  // Track if window regains focus quickly (indicates protocol failed)
+                  const handleFocus = () => {
+                    const timeSinceLaunch = Date.now() - launchTime;
+                    logDebug(`Window regained focus after ${timeSinceLaunch}ms`);
                   };
                   
                   // Try to detect if app launches
                   document.addEventListener('visibilitychange', handleAppLaunch);
                   window.addEventListener('blur', handleAppLaunch);
+                  window.addEventListener('focus', handleFocus);
                   
                   // Click the link to launch
                   anchor.click();
@@ -309,21 +320,24 @@ const AppContent = React.memo(function AppContent() {
                   
                   // Check after a delay if the app was launched
                   setTimeout(() => {
-                    if (!launched) {
-                      // If we're still here and no launch detected, protocol probably failed
+                    // Clean up event listeners
+                    document.removeEventListener('visibilitychange', handleAppLaunch);
+                    window.removeEventListener('blur', handleAppLaunch);
+                    window.removeEventListener('focus', handleFocus);
+                    
+                    if (!launched && document.hasFocus()) {
+                      // Window still has focus and no blur detected - protocol probably failed
                       logDebug("Protocol handler may not be installed. Showing install prompt.");
-                      
-                      // Clean up event listeners
-                      document.removeEventListener('visibilitychange', handleAppLaunch);
-                      window.removeEventListener('blur', handleAppLaunch);
-                      
-                      // Show install prompt window instead of notification
                       setShowInstallPrompt(true);
+                    } else if (launched) {
+                      logDebug("App launched successfully - no install prompt needed.");
+                    } else {
+                      logDebug("Window lost focus - assuming app launched successfully.");
                     }
                     
                     // Clear loading state
                     setIsStartingCalWin(false);
-                  }, 500);
+                  }, 2000); // 2 seconds timeout
                 
                 } catch (error) {
                   logError(" Launch failed:", error);

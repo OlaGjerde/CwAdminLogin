@@ -41,7 +41,7 @@ export const InstallPromptWindow: React.FC<InstallPromptWindowProps> = ({
         
         <div className="install-prompt-content">
           <div className="install-prompt-steps">
-            <h3>First-time setup is simple:</h3>
+            <h3>First-time setup</h3>
             <ol>
               <li>Click the "Download CalWin" button below</li>
               <li>Open the downloaded <strong>.appinstaller</strong> file</li>
@@ -49,6 +49,7 @@ export const InstallPromptWindow: React.FC<InstallPromptWindowProps> = ({
               <li>When the installation is complete, click "Start CalWin" again</li>
             </ol>
           </div>
+          <div className="install-prompt-note">After installation, CalWin Desktop will auto-update itself with new versions.</div>
         {/*
           <div className="install-prompt-note">
             <strong>Note:</strong> You must allow the installation when Windows asks for permission.
