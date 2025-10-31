@@ -59,14 +59,14 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
 
   return (
     <div className="workspace-selector">
-      <label className="workspace-selector-label">Velg installasjon:</label>
+      <label className="workspace-selector-label">Select Installation:</label>
       <SelectBox
         dataSource={workspaces}
         value={currentWorkspace?.id}
         displayExpr="name"
         valueExpr="id"
         onValueChanged={handleWorkspaceChange}
-        placeholder="Velg en CalWin installasjon..."
+        placeholder="Select a CalWin installation..."
         disabled={isLoading || workspaces.length === 0}
         stylingMode="outlined"
         width={300}

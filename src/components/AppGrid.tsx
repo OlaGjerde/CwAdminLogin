@@ -83,10 +83,10 @@ export const AppGrid: React.FC<Props> = ({
                 {/* downloadAvailableUrl && downloadAvailableType === type && (
                   <div style={{ marginTop: 10 }} ref={r => { fallbackRefs.current[type] = r; }}>
                     <div className="CwAdminLogin-login-download-fallback" role="region" aria-live="polite">
-                      <div style={{ marginBottom: 8 }}>Kan ikke installere via protokoll? Last ned installasjonsprogrammet manuelt:</div>
+                      <div style={{ marginBottom: 8 }}>Cannot install via protocol? Download the installer manually:</div>
                       <div className="CwAdminLogin-download-actions">
                         <Button
-                          text="Last ned .appinstaller"
+                          text="Download .appinstaller"
                           type="default"
                           onClick={() => {
                             window.location.href = downloadAvailableUrl;
@@ -94,7 +94,7 @@ export const AppGrid: React.FC<Props> = ({
                           }}
                         />
                         <Button
-                          text="Vis installasjonsinstruksjoner"
+                          text="Show Installation Instructions"
                           type="normal"
                           onClick={() => setShowDownloadModal(true)}
                         />

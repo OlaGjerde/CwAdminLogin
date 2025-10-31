@@ -110,7 +110,7 @@ function App() {
             marginBottom: "20px"
           }}></div>
           <h2 style={{ marginBottom: "15px", color: "#d9534f" }}>
-            Autentiseringsfeil
+            Authentication Error
           </h2>
           <p style={{ 
             color: "#666", 
@@ -121,7 +121,7 @@ function App() {
           </p>
           <div style={{ display: "flex", gap: "10px", flexDirection: "column" }}>
             <Button
-              text="Prøv på nytt"
+              text="Try Again"
               icon="refresh"
               onClick={login}
               type="default"
@@ -129,7 +129,7 @@ function App() {
               width="100%"
             />
             <Button
-              text="Slett alt og prøv igjen"
+              text="Clear All and Retry"
               icon="trash"
               onClick={() => {
                 localStorage.clear();
@@ -246,7 +246,7 @@ const AppContent = React.memo(function AppContent() {
           {/* Start CalWin button with loading effect */}
           <div className="button-with-loading">
             <Button
-              text={isStartingCalWin ? "Starter CalWin..." : "Start CalWin"}
+              text={isStartingCalWin ? "Starting CalWin..." : "Start CalWin"}
               icon={isStartingCalWin ? undefined : "runner"}
               type={isStartingCalWin ? "success" : "normal"}
               stylingMode="contained" 

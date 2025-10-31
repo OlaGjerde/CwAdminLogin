@@ -24,13 +24,13 @@ export const UserDropdown: React.FC<UserDropdownProps> = ({
   const menuItems = [
     {
       id: 'user-info',
-      text: displayName || userEmail || 'Bruker',
+      text: displayName || userEmail || 'User',
       icon: 'user',
       disabled: true, // Make it non-clickable, just informational
     },
     {
       id: 'logout',
-      text: 'Logg ut',
+      text: 'Log Out',
       icon: 'runner',
       onClick: onLogout,
     },
