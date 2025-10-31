@@ -1,8 +1,8 @@
 {
-  "version": "0.10.76",
-  "commit": "9cc735d",
+  "version": "0.10.78",
+  "commit": "f73ded2",
   "branch": "cognito-hosted-ui",
-  "timestamp": "2025-10-30T16:50:27.814Z",
+  "timestamp": "2025-10-31T09:26:00.231Z",
   "buildNumber": "",
   "node": "v22.21.0"
 }

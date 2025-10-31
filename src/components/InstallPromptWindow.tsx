@@ -49,10 +49,11 @@ export const InstallPromptWindow: React.FC<InstallPromptWindowProps> = ({
               <li>When the installation is complete, click "Start CalWin" again</li>
             </ol>
           </div>
-          
+        {/*
           <div className="install-prompt-note">
             <strong>Note:</strong> You must allow the installation when Windows asks for permission.
           </div>
+          */}
         </div>
         
         <div className="install-prompt-actions">
