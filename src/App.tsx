@@ -4,6 +4,7 @@ import { useInstallations } from './hooks/useInstallations';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
 import { WorkbenchArea } from './components/WorkbenchArea';
+import { UserDropdown } from './components/UserDropdown';
 import type { NormalizedInstallation } from './types/installations';
 import './App.css';
 import BuildFooter from './components/BuildFooter';
@@ -368,17 +369,10 @@ const AppContent = React.memo(function AppContent() {
               }}
             />
           </div>
-          <span className="app-user-info" title={userEmail || undefined}>
-            {displayName || userEmail || "Bruker"}
-          </span>
-          <Button
-            icon="runner"
-            text="Logg ut"
-            onClick={() => {
-              logDebug("Logout button clicked");
-              logout();
-            }}
-            stylingMode="outlined"
+          <UserDropdown
+            userEmail={userEmail}
+            displayName={displayName}
+            onLogout={logout}
           />
         </div>
       </div>
