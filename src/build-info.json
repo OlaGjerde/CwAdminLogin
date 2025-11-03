@@ -1,8 +1,8 @@
 {
-  "version": "0.10.1",
-  "commit": "9462f79",
-  "branch": "main",
-  "timestamp": "2025-10-01T10:56:38.821Z",
+  "version": "0.10.80",
+  "commit": "a2ed8e9",
+  "branch": "installFix",
+  "timestamp": "2025-10-31T10:41:10.691Z",
   "buildNumber": "",
-  "node": "v22.20.0"
+  "node": "v22.21.0"
 }

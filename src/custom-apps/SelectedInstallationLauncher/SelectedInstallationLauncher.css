@@ -1,0 +1,331 @@
+.selected-launcher {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: #f8f9fa;
+  padding: 10px 20px 20px 20px; /* Reduced top padding to 10px */
+}
+
+/* Empty State */
+.selected-launcher-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  max-width: 400px;
+}
+
+.selected-launcher-empty i {
+  font-size: 64px;
+  color: #dee2e6;
+  margin-bottom: 20px;
+}
+
+.selected-launcher-empty h3 {
+  margin: 0 0 12px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.selected-launcher-empty p {
+  margin: 0;
+  font-size: 16px;
+  color: #6c757d;
+}
+
+/* Content Area */
+.selected-launcher-content {
+  display: flex;
+  flex-direction: column; /* Stack children vertically */
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 300px; /* Reduced from 500px */
+}
+
+/* Installation Card - Smaller single card */
+.selected-launcher-card {
+  background: white;
+  border-radius: 12px; /* Reduced from 16px */
+  border: 1px solid #e9ecef;
+  padding: 24px; /* Reduced from 40px */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px; /* Reduced from 24px */
+  width: 100%;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  user-select: none;
+}
+
+.selected-launcher-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: #dee2e6;
+  transform: translateY(-4px);
+}
+
+.selected-launcher-card:active {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.selected-launcher-card.launching {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.selected-launcher-card-icon {
+  width: 64px; /* Reduced from 120px */
+  height: 64px; /* Reduced from 120px */
+  border-radius: 12px; /* Reduced from 20px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.selected-launcher-card:hover .selected-launcher-card-icon {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.selected-launcher-card-icon::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(40, 54, 239, 0.667) 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+}
+
+.selected-launcher-card-initials {
+  font-size: 28px; /* Reduced from 48px */
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: 1px; /* Reduced from 2px */
+  position: relative;
+  z-index: 1;
+}
+
+.selected-launcher-card-content {
+  text-align: center;
+  width: 100%;
+}
+
+.selected-launcher-card-title {
+  margin: 0 0 8px 0; /* Reduced from 12px */
+  font-size: 20px; /* Reduced from 28px */
+  font-weight: 600;
+  color: #212529;
+  line-height: 1.3;
+}
+
+.selected-launcher-card-type {
+  margin: 0;
+  font-size: 14px; /* Reduced from 16px */
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.selected-launcher-card-actions {
+  width: 100%;
+}
+
+/* Loading Animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Shake animation for protocol not detected */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-4px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(4px);
+  }
+}
+
+.selected-launcher-card.shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+.selected-launcher-card.launching .selected-launcher-card-icon {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.selected-launcher-card.launching .selected-launcher-card-initials {
+  animation: spin 2s linear infinite;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .selected-launcher {
+    padding: 20px;
+  }
+  
+  .selected-launcher-card {
+    padding: 30px;
+  }
+  
+  .selected-launcher-card-icon {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .selected-launcher-card-initials {
+    font-size: 40px;
+  }
+  
+  .selected-launcher-card-title {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 576px) {
+  .selected-launcher-card {
+    padding: 24px;
+  }
+  
+  .selected-launcher-card-icon {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .selected-launcher-card-initials {
+    font-size: 32px;
+  }
+  
+  .selected-launcher-card-title {
+    font-size: 20px;
+  }
+}
+
+/* Status Message */
+.selected-launcher-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+  width: 100%;
+  max-width: 300px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.selected-launcher-message.info {
+  background-color: #e7f3ff;
+  border: 1px solid #b3d9ff;
+  color: #0066cc;
+}
+
+.selected-launcher-message.error {
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  color: #856404;
+}
+
+.selected-launcher-message i {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* Installer Download Section */
+.selected-launcher-installer {
+  background: white;
+  border-radius: 12px;
+  border: 2px solid #1976d2;
+  padding: 24px;
+  margin-top: 24px;
+  width: 100%;
+  max-width: 300px;
+  box-shadow: 0 4px 16px rgba(25, 118, 210, 0.1);
+}
+
+.selected-launcher-installer-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.selected-launcher-installer-text h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #212529;
+}
+
+.selected-launcher-installer-text p {
+  margin: 0;
+  font-size: 14px;
+  color: #6c757d;
+  line-height: 1.5;
+}
+
+.selected-launcher-installer-note {
+  margin: 12px 0 0 0;
+  font-size: 12px;
+  color: #6c757d;
+  text-align: center;
+  font-style: italic;
+}
+
+/* Info text above download button */
+.installer-info-text {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #6c757d;
+  text-align: center;
+  line-height: 1.4;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  width: 100%;
+}
+
+/* Responsive adjustments for installer section */
+@media (max-width: 576px) {
+  .selected-launcher-message,
+  .selected-launcher-installer {
+    max-width: 100%;
+  }
+  
+  .selected-launcher-installer-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}

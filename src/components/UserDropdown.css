@@ -1,0 +1,53 @@
+/**
+ * UserDropdown Styles
+ * Styling for the user profile dropdown menu component
+ */
+
+.user-dropdown {
+  display: flex;
+  align-items: center;
+}
+
+.user-dropdown-button {
+  min-width: 44px;
+}
+
+/* Style the user info item (disabled, non-clickable) */
+.user-dropdown .dx-list-item:first-child {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+  cursor: default;
+  padding: 10px 15px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.user-dropdown .dx-list-item:first-child:hover {
+  background-color: #f8f9fa;
+}
+
+/* Style the logout item */
+.user-dropdown .dx-list-item:last-child {
+  color: #d9534f;
+  padding: 10px 15px;
+}
+
+.user-dropdown .dx-list-item:last-child:hover {
+  background-color: #ffebee;
+}
+
+.user-dropdown .dx-list-item:last-child .dx-icon {
+  color: #d9534f;
+}
+
+/* Icon spacing in dropdown items */
+.user-dropdown .dx-list-item .dx-icon {
+  margin-right: 10px;
+}
+
+/* Ensure the dropdown button has proper styling */
+.user-dropdown-button .dx-button-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

@@ -1,17 +1,19 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { logDebug, logWarn } from '../utils/logger';
 import { INSTALLATIONS_STALE_MS, INSTALLATIONS_RETRY_BASE_MS, INSTALLATIONS_RETRY_MAX_MS, INSTALLATIONS_RETRY_MAX_ATTEMPTS } from '../config';
-import { fetchInstallations, createOneTimeToken } from '../api/auth';
+import { getAuthorizedInstallations, createOneTimeToken as apiCreateOneTimeToken } from '../api/adminApi';
+import { useAuth } from '../contexts';
+import { handleApiError } from '../utils/apiErrors';
 import type { NormalizedInstallation, InstallationItem } from '../types/installations';
 
 export interface UseInstallationsResult {
   installations: NormalizedInstallation[];
   loading: boolean;
   error: string | null;
-  refresh: (rawAccessToken: string) => Promise<void>;
+  refresh: () => Promise<void>;
   /** Refresh only if cached value is stale (older than maxAgeMs). Returns boolean indicating whether a refresh was triggered */
-  refreshIfStale: (rawAccessToken: string, maxAgeMs?: number) => Promise<boolean>;
-  generateLaunchToken: (rawAccessToken: string, installationId: string) => Promise<string | null>;
+  refreshIfStale: (maxAgeMs?: number) => Promise<boolean>;
+  generateLaunchToken: (installationId: string) => Promise<string | null>;
 }
 
 export function useInstallations(): UseInstallationsResult {
@@ -19,6 +21,7 @@ export function useInstallations(): UseInstallationsResult {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lastFetchedRef = useRef<number>(0);
+  const { isAuthenticated } = useAuth();
 
   const normalize = (data: Array<InstallationItem | string>): NormalizedInstallation[] => {
     return data.map((item, idx) => {
@@ -44,9 +47,9 @@ export function useInstallations(): UseInstallationsResult {
   }, []);
 
   // We keep a stable ref to the refresh function to avoid circular hook dependencies between scheduleRetry and refresh.
-  const refreshFnRef = useRef<(token: string) => void>(() => {});
+  const refreshFnRef = useRef<() => void>(() => {});
 
-  const scheduleRetry = useCallback((rawAccessToken: string) => {
+  const scheduleRetry = useCallback(() => {
     if (failureCountRef.current >= INSTALLATIONS_RETRY_MAX_ATTEMPTS) return; // give up quietly
     const attempt = failureCountRef.current; // after increment
     const base = INSTALLATIONS_RETRY_BASE_MS * Math.pow(2, Math.max(0, attempt - 1));
@@ -56,72 +59,68 @@ export function useInstallations(): UseInstallationsResult {
     clearRetry();
     retryTimerRef.current = setTimeout(() => {
       if (failureCountRef.current > 0 && failureCountRef.current <= INSTALLATIONS_RETRY_MAX_ATTEMPTS) {
-        refreshFnRef.current(rawAccessToken);
+        refreshFnRef.current();
       }
     }, delay);
   }, [clearRetry]);
 
-  const refresh = useCallback(async (rawAccessToken: string) => {
-  const debug = import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1';
+  const refresh = useCallback(async () => {
+    if (!isAuthenticated) {
+      logDebug('Skipping installations refresh - not authenticated');
+      return;
+    }
+
     if (inFlightRef.current) {
-  if (debug) logDebug('[installations] skip (in-flight)');
       return;
     }
     inFlightRef.current = true;
     clearRetry();
     setLoading(true);
     setError(null);
-    const started = Date.now();
-  if (debug) logDebug('[installations] request start', { tokenFrag: rawAccessToken.slice(0,8), failureCount: failureCountRef.current });
+    
     try {
-      const resp = await fetchInstallations(rawAccessToken);
-      if (resp.status === 401) {
-        setError('Ikke autorisert.');
-        failureCountRef.current = 0;
-  if (debug) logWarn('[installations] 401 unauthorized');
-        return;
-      }
-      if (!Array.isArray(resp.data)) {
+      const data = await getAuthorizedInstallations();
+      if (!Array.isArray(data)) {
         setError('Uventet format på installasjoner.');
         failureCountRef.current++;
-        scheduleRetry(rawAccessToken);
-  if (debug) logWarn('[installations] invalid format');
+        scheduleRetry();
         return;
       }
-      const normalized = normalize(resp.data);
+      const normalized = normalize(data);
       setInstallations(normalized);
       lastFetchedRef.current = Date.now();
       try {
         localStorage.setItem('cw_installations', JSON.stringify({ ts: lastFetchedRef.current, items: normalized }));
       } catch { /* ignore */ }
       failureCountRef.current = 0;
-  if (debug) logDebug('[installations] success', { durationMs: Date.now() - started, count: normalized.length });
-    } catch (err: unknown) {
-      const msg = typeof err === 'object' && err && 'message' in err && typeof (err as { message?: unknown }).message === 'string'
-        ? (err as { message: string }).message
-        : '';
-      const isResourceErr = /INSUFFICIENT_RESOURCES/i.test(msg);
-      setError(isResourceErr ? 'Nettleseren avviste forespørselen (ressurser). Prøver igjen...' : 'Feil ved henting av installasjoner.');
+    } catch (error: unknown) {
+      const apiError = handleApiError(error);
+      if (apiError.code === 'NETWORK_ERROR') {
+        setError('Nettverksfeil ved henting av installasjoner. Prøver igjen...');
+      } else if (apiError.status === 401) {
+        setError('Ikke autorisert. Vennligst logg inn på nytt.');
+        return; // Don't retry on auth errors
+      } else {
+        setError(apiError.message);
+      }
       failureCountRef.current++;
-      scheduleRetry(rawAccessToken);
-  if (debug) logWarn('[installations] error', { msg, failureCount: failureCountRef.current });
+      scheduleRetry();
     } finally {
       setLoading(false);
       inFlightRef.current = false;
-  if (debug) logDebug('[installations] request end');
     }
-  }, [clearRetry, scheduleRetry]);
+  }, [clearRetry, scheduleRetry, isAuthenticated]);
 
   // Keep ref pointing to latest refresh implementation
   useEffect(() => { refreshFnRef.current = refresh; }, [refresh]);
 
   // Consider data stale after 20 seconds unless caller overrides
-  const refreshIfStale = useCallback(async (rawAccessToken: string, maxAgeMs: number = INSTALLATIONS_STALE_MS) => {
+  const refreshIfStale = useCallback(async (maxAgeMs: number = INSTALLATIONS_STALE_MS) => {
   const debug = import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1';
     const age = Date.now() - lastFetchedRef.current;
     if (!lastFetchedRef.current || age > maxAgeMs) {
   if (debug) logDebug('[installations] stale -> refresh', { age, threshold: maxAgeMs });
-      await refresh(rawAccessToken);
+      await refresh();
       return true;
     }
   if (debug) logDebug('[installations] fresh, skip', { age, threshold: maxAgeMs });
@@ -144,14 +143,18 @@ export function useInstallations(): UseInstallationsResult {
     } catch { /* ignore */ }
   }, []);
 
-  const generateLaunchToken = useCallback(async (rawAccessToken: string, installationId: string) => {
+  const generateLaunchToken = useCallback(async (installationId: string) => {
+    const debug = import.meta.env?.MODE === 'development' || import.meta.env?.VITE_DEBUG_LOG === '1';
+    if (debug) logDebug('[installations] generating launch token', { installationId });
+    
     try {
-      const resp = await createOneTimeToken(rawAccessToken, installationId);
-      if (resp.status !== 200) return null;
-      const data = resp.data;
-      if (typeof data === 'string') return data;
-      return data.oneTimeToken || data.OneTimeToken || data.token || data.Token || data.linkToken || data.LinkToken || null;
-    } catch {
+      const token = await apiCreateOneTimeToken(installationId);
+      if (debug) logDebug('[installations] token generated successfully');
+      return token;
+    } catch (error) {
+      const apiError = handleApiError(error);
+      if (debug) logWarn('[installations] token generation failed', { error: apiError });
+      setError(apiError.message || 'Kunne ikke generere påloggingstoken.');
       return null;
     }
   }, []);

@@ -4,13 +4,13 @@
 interface ViteEnv { DEV?: boolean; VITE_DEBUG_LOG?: string; }
 const env: ViteEnv = (import.meta as unknown as { env?: ViteEnv }).env || {};
 const enabled = ((): boolean => {
-  if (env.DEV) return true;
   const flag = env.VITE_DEBUG_LOG;
-  if (flag) {
-    const v = flag.toLowerCase();
-    if (v === '1' || v === 'true' || v === 'yes') return true;
+  if (flag != null) {
+    const v = String(flag).toLowerCase();
+    return v === '1' || v === 'true' || v === 'yes' || v === 'on';
   }
-  return false;
+  // Default: enabled in development, disabled in production
+  return env.DEV === true;
 })();
 
 export function logDebug(...args: unknown[]) {
@@ -22,7 +22,13 @@ export function logWarn(...args: unknown[]) {
 }
 
 export function logError(...args: unknown[]) {
-  if (enabled) console.error(...args);
+  // Always log errors, even in production
+  console.error(...args);
+}
+
+export function logInfo(...args: unknown[]) {
+  // Info logs only in debug mode
+  if (enabled) console.info(...args);
 }
 
 export const debugLoggingEnabled = enabled;

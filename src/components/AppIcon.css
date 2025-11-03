@@ -1,0 +1,187 @@
+.app-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 12px;
+  min-width: auto;
+  max-width: 120px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.app-icon:hover:not(.disabled):not(.loading) {
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+.app-icon:active:not(.disabled):not(.loading) {
+  transform: translateY(0);
+}
+
+.app-icon.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.app-icon.loading {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.app-icon-image {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  color: white;
+  font-size: 24px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.app-icon-image .dx-icon {
+  font-size: 24px;
+}
+
+.app-icon-custom {
+  width: 32px;
+  height: 32px;
+  color: white;
+}
+
+.app-icon-initials {
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -0.5px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.app-icon-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.app-icon-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #333;
+  text-align: center;
+  white-space: normal;
+  word-wrap: break-word;
+  line-height: 1.2;
+}
+
+.app-icon.disabled .app-icon-label {
+  color: #999;
+}
+
+/* Start Installation Button - Special Highlight */
+.app-icon.start-installation {
+  position: relative;
+  background: linear-gradient(135deg, rgba(51, 122, 183, 0.1) 0%, rgba(51, 122, 183, 0.05) 100%);
+  border: 2px solid #337ab7;
+  animation: pulse-border-once 0.6s ease-out;
+}
+
+.app-icon.start-installation::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  background: linear-gradient(135deg, #337ab7, #2e6da4);
+  border-radius: 10px;
+  opacity: 0;
+  animation: pulse-glow-once 0.6s ease-out;
+  z-index: -1;
+}
+
+.app-icon.start-installation:hover:not(.disabled):not(.loading) {
+  background: linear-gradient(135deg, rgba(51, 122, 183, 0.2) 0%, rgba(51, 122, 183, 0.1) 100%);
+  transform: translateY(-4px);
+  border-color: #2e6da4;
+  box-shadow: 0 4px 12px rgba(51, 122, 183, 0.3);
+}
+
+.app-icon.start-installation .app-icon-image {
+  background: linear-gradient(135deg, #337ab7 0%, #2e6da4 100%);
+  box-shadow: 0 4px 12px rgba(51, 122, 183, 0.4);
+}
+
+.app-icon.start-installation .app-icon-label {
+  color: #337ab7;
+  font-weight: 600;
+}
+
+@keyframes pulse-border-once {
+  0% {
+    border-color: #337ab7;
+    box-shadow: 0 0 0 0 rgba(51, 122, 183, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    border-color: #2e6da4;
+    box-shadow: 0 0 0 8px rgba(51, 122, 183, 0);
+    transform: scale(1.05);
+  }
+  100% {
+    border-color: #337ab7;
+    box-shadow: 0 0 0 0 rgba(51, 122, 183, 0);
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse-glow-once {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+/* Launch Installation Button - Special Highlight (Blue Theme) */
+.app-icon.launch-installation {
+  position: relative;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.05) 100%);
+  border: 2px solid #667eea;
+}
+
+.app-icon.launch-installation:hover:not(.disabled):not(.loading) {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.1) 100%);
+  transform: translateY(-4px);
+  border-color: #764ba2;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.app-icon.launch-installation .app-icon-image {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.app-icon.launch-installation .app-icon-label {
+  color: #667eea;
+  font-weight: 600;
+}

@@ -1,0 +1,191 @@
+.window-container {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.window-container:hover {
+  border-color: #d0d0d0;
+}
+
+.window-container.maximized {
+  border-radius: 0;
+}
+
+.window-header {
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: move;
+  user-select: none;
+  height: 32px;
+  min-height: 32px;
+}
+
+.window-title {
+  font-weight: 400;
+  font-size: 12px;
+  color: #333;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 8px;
+}
+
+.window-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 3px;
+  color: white;
+  font-size: 11px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.window-icon-initials {
+  font-size: 9px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0px;
+}
+
+.window-controls {
+  display: flex;
+  gap: 0;
+  flex-shrink: 0;
+  height: 32px;
+}
+
+.window-controls .dx-button {
+  width: 34px;
+  height: 32px;
+  min-width: 34px;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.window-controls .dx-button .dx-icon {
+  font-size: 10px;
+  color: #333;
+}
+
+.window-controls .dx-button:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+.window-controls .dx-button:hover .dx-icon {
+  color: #000;
+}
+
+.window-controls .dx-button:active {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Close button - always last child */
+.window-controls .dx-button:last-child:hover {
+  background-color: #c42b1c;
+}
+
+.window-controls .dx-button:last-child:hover .dx-icon {
+  color: white;
+}
+
+.window-controls .dx-button:last-child:active {
+  background-color: #a52313;
+}
+
+/* Windows 11 style maximize/restore icons - only for maximize button (when present, it's the 2nd button and NOT last) */
+.window-controls .dx-button:nth-child(2):not(:last-child) .dx-icon {
+  position: relative;
+}
+
+.window-controls .dx-button:nth-child(2):not(:last-child) .dx-icon::before {
+  content: '';
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border: 1px solid currentColor;
+  border-radius: 1px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.window-controls .dx-button:nth-child(2):not(:last-child) .dx-icon-restore::before {
+  width: 8px;
+  height: 8px;
+}
+
+.window-controls .dx-button:nth-child(2):not(:last-child) .dx-icon-restore::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1px solid currentColor;
+  border-radius: 1px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-40%, -60%);
+  background: white;
+}
+
+.window-body {
+  flex: 1;
+  overflow: auto;
+  background: white;
+}
+
+.window-resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  background: transparent;
+}
+
+.window-resize-handle::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background: 
+    linear-gradient(135deg, transparent 0%, transparent 45%, #aaa 45%, #aaa 50%, transparent 50%),
+    linear-gradient(135deg, transparent 0%, transparent 55%, #aaa 55%, #aaa 60%, transparent 60%),
+    linear-gradient(135deg, transparent 0%, transparent 65%, #aaa 65%, #aaa 70%, transparent 70%);
+}
+
+.window-resize-handle:hover::after {
+  background: 
+    linear-gradient(135deg, transparent 0%, transparent 45%, #666 45%, #666 50%, transparent 50%),
+    linear-gradient(135deg, transparent 0%, transparent 55%, #666 55%, #666 60%, transparent 60%),
+    linear-gradient(135deg, transparent 0%, transparent 65%, #666 65%, #666 70%, transparent 70%);
+}
+
+/* Dragging state */
+.window-container.dragging {
+  cursor: move;
+}
+
+.window-container.resizing {
+  cursor: nwse-resize;
+}

@@ -1,0 +1,266 @@
+/**
+ * App Settings Component Styles
+ */
+
+.app-settings-container {
+  height: 100%;
+  width: 100%;
+  background: #f8f9fa;
+}
+
+.app-settings-content {
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Header */
+.app-settings-header {
+  margin-bottom: 24px;
+}
+
+.app-settings-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+}
+
+.app-settings-subtitle {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+/* Actions */
+.app-settings-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+/* Sections */
+.app-settings-section {
+  margin-bottom: 32px;
+}
+
+.app-settings-section h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.app-settings-section-description {
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  color: #666;
+  font-style: italic;
+}
+
+.app-settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* App Settings Item */
+.app-settings-item {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.app-settings-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.app-settings-item.locked {
+  border-color: #ffc107;
+  background: #fffbf0;
+}
+
+.app-settings-item.disabled {
+  opacity: 0.6;
+  background: #f5f5f5;
+}
+
+.app-settings-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  cursor: pointer;
+}
+
+.app-settings-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.app-settings-drag-handle {
+  font-size: 18px;
+  color: #999;
+  cursor: grab;
+  user-select: none;
+}
+
+.app-settings-drag-handle:active {
+  cursor: grabbing;
+}
+
+.app-settings-lock-icon {
+  font-size: 16px;
+  color: #ffc107;
+}
+
+.app-settings-item-icon {
+  font-size: 20px;
+  color: #007bff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-settings-item-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+}
+
+.app-settings-locked-badge {
+  padding: 2px 8px;
+  background: #ffc107;
+  color: white;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.app-settings-item-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Item Details */
+.app-settings-item-details {
+  padding: 16px;
+  border-top: 1px solid #e0e0e0;
+  background: #fafafa;
+}
+
+.app-settings-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.app-settings-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.app-settings-detail-section.full-width {
+  grid-column: 1 / -1;
+}
+
+.app-settings-detail-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.app-settings-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.app-settings-detail-placeholder {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+  font-style: italic;
+}
+
+/* Hint */
+.app-settings-hint {
+  margin: 16px 0 0 0;
+  color: #999;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Copy Modal */
+.copy-modal-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.copy-modal-content > p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.installation-list-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.copy-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .app-settings-content {
+    padding: 16px;
+  }
+
+  .app-settings-header h2 {
+    font-size: 20px;
+  }
+
+  .app-settings-actions {
+    flex-direction: column;
+  }
+
+  .app-settings-actions .dx-button {
+    width: 100%;
+  }
+
+  .app-settings-item-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .app-settings-item-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .app-settings-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

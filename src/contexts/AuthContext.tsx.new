@@ -1,0 +1,5 @@
+// This file is now just a re-export
+export * from './AuthContext.context';
+export * from './AuthContext.types';
+export * from './useAuth';
+export * from './AuthProvider';
