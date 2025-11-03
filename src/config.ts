@@ -108,7 +108,7 @@ export const COOKIE_CONFIG = {
   },
   refresh: {
     name: 'refresh_token',
-    path: '/api/',
+    path: '/api',
     maxAge: 2592000, // 30 days
     httpOnly: true,
     secure: currentEnv.cookieSecure,
