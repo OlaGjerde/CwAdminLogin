@@ -50,11 +50,6 @@ export const InstallPromptWindow: React.FC<InstallPromptWindowProps> = ({
             </ol>
           </div>
           <div className="install-prompt-note">After installation, CalWin Desktop will auto-update itself with new versions.</div>
-        {/*
-          <div className="install-prompt-note">
-            <strong>Note:</strong> You must allow the installation when Windows asks for permission.
-          </div>
-          */}
         </div>
         
         <div className="install-prompt-actions">
