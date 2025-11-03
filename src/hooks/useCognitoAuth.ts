@@ -102,9 +102,42 @@ export function useCognitoAuth() {
    */
   const handleCallback = useCallback(async () => {
     logDebug('Checking for OAuth callback errors');
-    
+
     const params = parseCallbackParams();
-    
+
+    // CSRF Protection: Validate state parameter
+    if (params.state) {
+      const storedState = sessionStorage.getItem('cognito_state');
+      if (!storedState) {
+        logError('No stored state found - possible CSRF attack or session expired');
+        setState((prev) => ({
+          ...prev,
+          error: 'Sikkerhetsvalidering feilet. Vennligst prøv å logge inn igjen.',
+          isLoading: false,
+        }));
+        clearOAuthParams();
+        clearPKCEData();
+        return;
+      }
+
+      if (params.state !== storedState) {
+        logError('State mismatch - possible CSRF attack', {
+          received: params.state.substring(0, 20) + '...',
+          expected: storedState.substring(0, 20) + '...'
+        });
+        setState((prev) => ({
+          ...prev,
+          error: 'Sikkerhetsvalidering feilet. Vennligst prøv å logge inn igjen.',
+          isLoading: false,
+        }));
+        clearOAuthParams();
+        clearPKCEData();
+        return;
+      }
+
+      logDebug('State parameter validated successfully');
+    }
+
     // Only handle error cases - success is handled by backend
     if (params.error) {
       logError('Cognito returned error:', params.error);

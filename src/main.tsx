@@ -13,12 +13,10 @@ config({ licenseKey });
 
 import './index.css'
 import App from './App.tsx'
-import { setupAxiosInterceptors } from './api/axiosInterceptors'
 import { AuthProvider } from './contexts/auth'
 import { AuthTest } from './components/AuthTest'
 
-// Setup automatic token refresh on 401 errors
-setupAxiosInterceptors();
+// Token refresh interceptors are automatically configured in axiosConfig.ts
 
 // TEMPORARY: Use AuthTest to debug the login loop
 const USE_AUTH_TEST = false;

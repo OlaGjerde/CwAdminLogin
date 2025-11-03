@@ -7,9 +7,6 @@ import { authClient } from './axiosConfig';
 import { AUTH_API } from '../config';
 import type { CurrentUserResponseDTO } from '../types/auth';
 
-// Store the current tokens in memory
-let _currentTokens: { access_token?: string } | null = null;
-
 /**
  * DEPRECATED: Token exchange is now handled by backend /api/callback endpoint
  * Backend exchanges code for tokens and sets httpOnly cookies automatically
@@ -46,8 +43,6 @@ export interface LogoutResponse {
 
 export async function logout(): Promise<LogoutResponse> {
   const response = await authClient.post<LogoutResponse>(AUTH_API.LOGOUT);
-  // Clear stored tokens on logout
-  _currentTokens = null;
   return response.data;
 }
 
@@ -57,18 +52,6 @@ export async function logout(): Promise<LogoutResponse> {
 export async function getCurrentUser(): Promise<CurrentUserResponseDTO> {
   const response = await authClient.get<CurrentUserResponseDTO>(AUTH_API.ME);
   return response.data;
-}
-
-/**
- * Get the current access token from the auth response
- * This is used by the admin client to authenticate requests
- */
-export async function getAccessToken(): Promise<string> {
-  // Return the stored access token from memory
-  if (!_currentTokens?.access_token) {
-    throw new Error('No access token available - user may need to log in again');
-  }
-  return _currentTokens.access_token;
 }
 
 /**
