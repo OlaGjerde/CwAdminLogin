@@ -11,7 +11,7 @@ import type { CurrentUserResponseDTO } from '../types/auth';
 let _currentTokens: { access_token?: string } | null = null;
 
 /**
- * DEPRECATED: Token exchange is now handled by backend /api/auth/callback endpoint
+ * DEPRECATED: Token exchange is now handled by backend /api/callback endpoint
  * Backend exchanges code for tokens and sets httpOnly cookies automatically
  */
 // interface TokenExchangeRequestDTO {
@@ -20,7 +20,7 @@ let _currentTokens: { access_token?: string } | null = null;
 //   CodeVerifier: string;
 // }
 
-// DEPRECATED: Token exchange is now handled by backend /api/auth/callback endpoint
+// DEPRECATED: Token exchange is now handled by backend /api/callback endpoint
 // export async function exchangeCodeForTokens(code: string, codeVerifier: string): Promise<void> {
 //   const request: TokenExchangeRequestDTO = {
 //     Code: code,

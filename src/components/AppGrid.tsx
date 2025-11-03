@@ -1,7 +1,4 @@
 import React from 'react';
-// DISABLED: AppInstaller functionality temporarily disabled
-// import { Button } from 'devextreme-react/button';
-// import { APPINSTALLER_URLS, PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } from '../config';
 import { PROTOCOL_CALWIN, PROTOCOL_CALWIN_TEST, PROTOCOL_CALWIN_DEV } from '../config';
 
 interface Props {
@@ -9,13 +6,7 @@ interface Props {
   tokens: { accessToken: string; refreshToken: string };
   launching: boolean;
   launchMessage: string | null;
-  // DISABLED: AppInstaller props temporarily disabled
-  // downloadAvailableUrl: string | null;
-  // downloadAvailableType: number | null;
   requestLaunch: (appUri: string, downloadUrl: string, type?: number) => void;
-  // clearPerTypeFallback: (type: number) => void;
-  // setShowDownloadModal: (v: boolean) => void;
-  // fallbackRefs: React.MutableRefObject<Record<number, HTMLDivElement | null>>;
 }
 
 export const AppGrid: React.FC<Props> = ({
@@ -23,12 +14,7 @@ export const AppGrid: React.FC<Props> = ({
   tokens,
   launching,
   launchMessage,
-  // downloadAvailableUrl,
-  // downloadAvailableType,
   requestLaunch,
-  // clearPerTypeFallback,
-  // setShowDownloadModal,
-  // fallbackRefs
 }) => {
   const appTypeMap: Record<number, string> = {
     0: 'CalWin Prod',
@@ -58,9 +44,7 @@ export const AppGrid: React.FC<Props> = ({
           const appName = appTypeMap[type] || `AppType${type}`;
             const protocol = protocolMap[type] || PROTOCOL_CALWIN_DEV;
             const appProtocolUrl = `${protocol}?accessToken=${encodeURIComponent(tokens.accessToken)}&refreshToken=${encodeURIComponent(tokens.refreshToken)}`;
-            // DISABLED: AppInstaller functionality temporarily disabled
-            // const appinstallerFileUrl = APPINSTALLER_URLS[type] || APPINSTALLER_URLS[2];
-            const appinstallerFileUrl = ''; // Placeholder when disabled
+            const appinstallerFileUrl = '';
             const onClick = (e: React.MouseEvent) => {
               e.preventDefault();
               if (launching) return;
@@ -79,29 +63,6 @@ export const AppGrid: React.FC<Props> = ({
                     <div className="CwAdminLogin-app-card-title">{appName}</div>
                   </div>
                 </button>
-                {/* DISABLED: AppInstaller download fallback UI temporarily disabled */}
-                {/* downloadAvailableUrl && downloadAvailableType === type && (
-                  <div style={{ marginTop: 10 }} ref={r => { fallbackRefs.current[type] = r; }}>
-                    <div className="CwAdminLogin-login-download-fallback" role="region" aria-live="polite">
-                      <div style={{ marginBottom: 8 }}>Cannot install via protocol? Download the installer manually:</div>
-                      <div className="CwAdminLogin-download-actions">
-                        <Button
-                          text="Download .appinstaller"
-                          type="default"
-                          onClick={() => {
-                            window.location.href = downloadAvailableUrl;
-                            clearPerTypeFallback(type);
-                          }}
-                        />
-                        <Button
-                          text="Show Installation Instructions"
-                          type="normal"
-                          onClick={() => setShowDownloadModal(true)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ) */}
               </div>
             );
         })}

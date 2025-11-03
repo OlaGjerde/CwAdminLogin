@@ -52,7 +52,7 @@ const onTokenRefreshed = (token: string) => {
 // Shared request interceptor
 const requestInterceptor = (config: InternalAxiosRequestConfig) => {
   // Log auth-related requests
-  if (config.url?.includes('/api/auth/')) {
+  if (config.url?.includes('/api/')) {
     logDebug(`🔒 Auth Request: ${config.method?.toUpperCase()} ${config.url}`);
   }
   return config;
@@ -61,7 +61,7 @@ const requestInterceptor = (config: InternalAxiosRequestConfig) => {
 // Shared response interceptor
 const responseInterceptor = (response: AxiosResponse) => {
   // Log auth-related responses
-  if (response.config.url?.includes('/api/auth/')) {
+  if (response.config.url?.includes('/api/')) {
     logDebug(`🔒 Auth Response: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`);
   }
   return response;
@@ -115,7 +115,7 @@ const errorInterceptor = async (error: AxiosError) => {
   }
 
   // Log errors
-  if (error.response && error.config?.url?.includes('/api/auth/')) {
+  if (error.response && error.config?.url?.includes('/api/')) {
     logError(`❌ Auth Error: ${error.response.status} ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
   } else if (!error.response && !error.request) {
     logError('Critical configuration error:', error.message);

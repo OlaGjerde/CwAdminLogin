@@ -16,7 +16,7 @@ type UserInfo = CurrentUserResponseDTO;
 // Environment-specific configurations
 interface EnvConfig {
   frontendUrl: string;
-  authUrl: string;      // Auth API URL (for /api/auth/* endpoints)
+  authUrl: string;      // Auth API URL (for /api/* endpoints)
   adminUrl: string;     // Admin API URL (for /api/installation/*, /api/desktop/*, etc.)
   backendCallbackUrl: string; // Direct backend URL for OAuth callback
   cognitoDomain: string;
@@ -93,6 +93,7 @@ const currentEnv = getCurrentEnv();
 // Service Base URLs
 export const AUTH_SERVICE_BASE = currentEnv.authUrl;
 export const ADMIN_SERVICE_BASE = currentEnv.adminUrl;
+export const FRONTEND_URL = currentEnv.frontendUrl;
 
 // Cookie configuration
 export const COOKIE_CONFIG = {
@@ -107,7 +108,7 @@ export const COOKIE_CONFIG = {
   },
   refresh: {
     name: 'refresh_token',
-    path: '/api/auth/',
+    path: '/api/',
     maxAge: 2592000, // 30 days
     httpOnly: true,
     secure: currentEnv.cookieSecure,
@@ -119,15 +120,15 @@ export const COOKIE_CONFIG = {
 // Auth API configuration (cookie-based authentication)
 export const AUTH_API = {
   BASE: `${AUTH_SERVICE_BASE}`,
-  LOGIN: '/api/auth/loginuser',
-  CALLBACK: '/api/auth/callback',
-  REFRESH_TOKEN: '/api/auth/refresh',
-  LOGOUT: '/api/auth/logout',
-  ME: '/api/auth/me',
-  ME_ATTRIBUTES: '/api/auth/me/attributes',
-  GET_USER_STATUS: '/api/auth/getuserstatus',
-  VERIFY_EMAIL: '/api/auth/verifyemail',
-  LOGIN_USER_VERIFY_MFA: '/api/auth/loginuserverifymfa'
+  LOGIN: '/api/loginuser',
+  CALLBACK: '/api/callback',
+  REFRESH_TOKEN: '/api/refresh',
+  LOGOUT: '/api/logout',
+  ME: '/api/me',
+  ME_ATTRIBUTES: '/api/me/attributes',
+  GET_USER_STATUS: '/api/getuserstatus',
+  VERIFY_EMAIL: '/api/verifyemail',
+  LOGIN_USER_VERIFY_MFA: '/api/loginuserverifymfa'
 } as const;
 
 // Admin API configuration
@@ -145,7 +146,7 @@ export const COGNITO_CLIENT_ID = '656e5ues1tvo5tk9e00u5f0ft3';
 
 // Redirect URI - points to backend callback endpoint
 // Backend will handle token exchange and redirect to frontend
-export const COGNITO_REDIRECT_URI = `${currentEnv.backendCallbackUrl}/api/auth/callback`;
+export const COGNITO_REDIRECT_URI = `${currentEnv.backendCallbackUrl}/api/callback`;
 
 // CORS configuration
 export const CORS_CONFIG = {

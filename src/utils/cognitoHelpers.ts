@@ -3,7 +3,12 @@
  * Implements Authorization Code flow with PKCE (RFC 7636)
  */
 
-import { COGNITO_DOMAIN, COGNITO_CLIENT_ID, COGNITO_REDIRECT_URI } from '../config';
+import { 
+  COGNITO_DOMAIN, 
+  COGNITO_CLIENT_ID, 
+  COGNITO_REDIRECT_URI,
+  FRONTEND_URL
+} from '../config';
 import { logError } from './logger';
 
 // ============================================================================
@@ -257,7 +262,8 @@ export function buildCognitoLogoutUrl(): string {
   const url = new URL(`${COGNITO_DOMAIN}/logout`);
   
   url.searchParams.append('client_id', COGNITO_CLIENT_ID);
-  url.searchParams.append('logout_uri', COGNITO_REDIRECT_URI);
+  // Redirect to frontend with logout flag after Cognito logout
+  url.searchParams.append('logout_uri', `${FRONTEND_URL}?logout=true`);
   
   return url.toString();
 }
