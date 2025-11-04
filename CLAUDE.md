@@ -128,7 +128,7 @@ Runtime environment detection based on hostname (in `src/config.ts`):
 ### API Structure
 - **Auth API** (`/api/auth/*`) - Cookie-based auth endpoints (login, callback, refresh, logout, me)
 - **Admin API** (`/api/installation/*`, `/api/desktop/*`) - Installation management, one-time tokens
-- Axios interceptors in `src/api/axiosInterceptors.ts` handle errors and retries
+- Axios interceptors in `src/api/axiosConfig.ts` handle automatic token refresh and retries
 
 ### Build System
 - **Vite** with React SWC plugin
@@ -179,3 +179,4 @@ All user-facing text is in Norwegian. Common translations:
 - **DevExtreme 25.1** - Use DevExtreme components for UI consistency
 - **Per-installation settings** - Settings are isolated per workspace ID
 - **Auto-version bumping** - `npm run build` automatically increments patch version
+- remeber all this

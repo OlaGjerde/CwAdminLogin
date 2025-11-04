@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { 
-  checkAuthStatus, 
-  getUserStatus, 
+import {
+  checkAuthStatus,
+  getUserStatus,
   logout,
   generatePKCE,
-  refreshTokens
+  refreshTokens,
+  type AuthenticationStatus
 } from '../api/auth';
 import { COGNITO_DOMAIN, COGNITO_CLIENT_ID, COGNITO_REDIRECT_URI } from '../config';
 
@@ -14,7 +15,7 @@ import { COGNITO_DOMAIN, COGNITO_CLIENT_ID, COGNITO_REDIRECT_URI } from '../conf
  */
 export function AuthTest() {
   const [status, setStatus] = useState<string>('');
-  const [authInfo, setAuthInfo] = useState<any>(null);
+  const [authInfo, setAuthInfo] = useState<AuthenticationStatus | null>(null);
 
   const handleCheckAuth = async () => {
     try {
