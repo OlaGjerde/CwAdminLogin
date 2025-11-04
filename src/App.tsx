@@ -291,7 +291,19 @@ const AppContent = React.memo(function AppContent() {
                   
                   // Set up detection for app launch
                   let launched = false;
+                  let explicitFailure = false;
                   const launchTime = Date.now();
+                  
+                  // Monitor console for protocol handler errors
+                  const originalConsoleError = console.error;
+                  console.error = function(...args: unknown[]) {
+                    const message = args.join(' ');
+                    if (message.includes('Failed to launch') && message.includes('because the scheme does not have a registered handler')) {
+                      logDebug(" Protocol handler not registered - detected from console error");
+                      explicitFailure = true;
+                    }
+                    originalConsoleError.apply(console, args);
+                  };
                   
                   // Function to handle successful launch
                   const handleAppLaunch = () => {
@@ -307,6 +319,10 @@ const AppContent = React.memo(function AppContent() {
                   const handleFocus = () => {
                     const timeSinceLaunch = Date.now() - launchTime;
                     logDebug(`Window regained focus after ${timeSinceLaunch}ms`);
+                    // If focus returns very quickly (< 500ms), likely a failure
+                    if (timeSinceLaunch < 500 && !launched) {
+                      explicitFailure = true;
+                    }
                   };
                   
                   // Try to detect if app launches
@@ -319,11 +335,21 @@ const AppContent = React.memo(function AppContent() {
                   document.body.removeChild(anchor);
                   
                   // Check after a delay if the app was launched
+                  // Increased timeout to 4 seconds to give slower systems time to start the app
                   setTimeout(() => {
                     // Clean up event listeners
                     document.removeEventListener('visibilitychange', handleAppLaunch);
                     window.removeEventListener('blur', handleAppLaunch);
                     window.removeEventListener('focus', handleFocus);
+                    console.error = originalConsoleError; // Restore original console.error
+                    
+                    // If we got an explicit failure (console error or quick focus return), show prompt
+                    if (explicitFailure) {
+                      logDebug("Protocol handler definitely failed. Showing install prompt.");
+                      setShowInstallPrompt(true);
+                      setIsStartingCalWin(false);
+                      return;
+                    }
                     
                     if (!launched && document.hasFocus()) {
                       // Window still has focus and no blur detected - protocol probably failed
@@ -337,7 +363,7 @@ const AppContent = React.memo(function AppContent() {
                     
                     // Clear loading state
                     setIsStartingCalWin(false);
-                  }, 2000); // 2 seconds timeout
+                  }, 4000); // Increased from 2000ms to 4000ms for slower systems
                 
                 } catch (error) {
                   logError(" Launch failed:", error);

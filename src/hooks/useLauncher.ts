@@ -15,6 +15,7 @@ function tryLaunchUri(uri: string): Promise<boolean> {
   return new Promise((resolve) => {
     try {
       let protocolHandlerDetected = false;
+      let explicitFailure = false;
       
       // Listen for window blur (indicates protocol handler opened)
       const onBlur = () => {
@@ -28,8 +29,25 @@ function tryLaunchUri(uri: string): Promise<boolean> {
         }
       };
       
+      // Listen for focus return (app might have launched and returned focus quickly)
+      const onFocus = () => {
+        // If we get focus back quickly, the app might still be starting
+        // Don't mark as failure immediately
+      };
+      
+      // Monitor console for protocol handler errors (Chrome/Edge specific)
+      const originalConsoleError = console.error;
+      console.error = function(...args: unknown[]) {
+        const message = args.join(' ');
+        if (message.includes('Failed to launch') && message.includes('because the scheme does not have a registered handler')) {
+          explicitFailure = true;
+        }
+        originalConsoleError.apply(console, args);
+      };
+      
       window.addEventListener('blur', onBlur);
       document.addEventListener('visibilitychange', onVisibilityChange);
+      window.addEventListener('focus', onFocus);
       
       // Create and click anchor
       const anchor = document.createElement('a');
@@ -39,16 +57,26 @@ function tryLaunchUri(uri: string): Promise<boolean> {
       anchor.click();
       
       // Check if protocol handler responded after timeout
+      // Increased timeout to 4 seconds to account for slower app startup
       setTimeout(() => {
         window.removeEventListener('blur', onBlur);
         document.removeEventListener('visibilitychange', onVisibilityChange);
+        window.removeEventListener('focus', onFocus);
+        console.error = originalConsoleError; // Restore original console.error
         
         try {
           document.body.removeChild(anchor);
         } catch { /* ignore */ }
         
+        // If we got an explicit failure message, definitely failed
+        if (explicitFailure) {
+          resolve(false);
+          return;
+        }
+        
+        // If we detected blur or visibility change, assume success
         resolve(protocolHandlerDetected);
-      }, 1800); // Wait 1.8 seconds for protocol handler to respond
+      }, 4000); // Increased from 1800ms to 4000ms for slower systems
       
     } catch (err) {
       logError('Failed to launch URI:', err);
