@@ -76,7 +76,7 @@ function tryLaunchUri(uri: string): Promise<boolean> {
         
         // If we detected blur or visibility change, assume success
         resolve(protocolHandlerDetected);
-      }, 4000); // Increased from 1800ms to 4000ms for slower systems
+      }, 6000); // Increased to 6000ms (6 seconds) for slower systems and remote access
       
     } catch (err) {
       logError('Failed to launch URI:', err);

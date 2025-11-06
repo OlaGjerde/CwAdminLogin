@@ -362,7 +362,7 @@ const AppContent = React.memo(function AppContent() {
                     
                     // Clear loading state
                     setIsStartingCalWin(false);
-                  }, 4000); // Increased from 2000ms to 4000ms for slower systems
+                  }, 6000); // Increased to 6000ms (6 seconds) for slower systems and remote access
                 
                 } catch (error) {
                   logError(" Launch failed:", error);
